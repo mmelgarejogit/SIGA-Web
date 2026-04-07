@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+
+@theme {
+  /* ── Brand colors ── */
+  --color-primary: #00288E;
+  --color-primary-container: #1E40AF;
+  --color-primary-fixed: #DDE1FF;
+  --color-primary-fixed-dim: #B8C4FF;
+  --color-on-primary: #ffffff;
+  --color-on-primary-fixed: #001453;
+  --color-on-primary-fixed-variant: #173BAB;
+  --color-on-primary-container: #A8B8FF;
+  --color-inverse-primary: #B8C4FF;
+
+  --color-secondary: #006780;
+  --color-secondary-container: #76DCFF;
+  --color-secondary-fixed: #B7EAFF;
+  --color-secondary-fixed-dim: #6CD3F7;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-fixed: #001F28;
+  --color-on-secondary-container: #006077;
+  --color-on-secondary-fixed-variant: #004E61;
+
+  --color-tertiary: #2000B1;
+  --color-tertiary-container: #382AD0;
+  --color-tertiary-fixed: #E2DFFF;
+  --color-tertiary-fixed-dim: #C3C0FF;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-fixed: #0F0069;
+  --color-on-tertiary-container: #B6B4FF;
+  --color-on-tertiary-fixed-variant: #3323CC;
+
+  --color-error: #BA1A1A;
+  --color-error-container: #FFDAD6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000A;
+
+  /* ── Surface scale ── */
+  --color-surface: #F7F9FE;
+  --color-surface-bright: #F7F9FE;
+  --color-surface-dim: #D8DADF;
+  --color-surface-variant: #E0E2E7;
+  --color-surface-tint: #3755C3;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #F1F4F9;
+  --color-surface-container: #ECEEF3;
+  --color-surface-container-high: #E6E8ED;
+  --color-surface-container-highest: #E0E2E7;
+  --color-inverse-surface: #2D3135;
+  --color-inverse-on-surface: #EFF1F6;
+
+  /* ── Neutral ── */
+  --color-on-surface: #181C20;
+  --color-on-surface-variant: #444653;
+  --color-on-background: #181C20;
+  --color-background: #F7F9FE;
+  --color-outline: #757684;
+  --color-outline-variant: #C4C5D5;
+
+  /* ── Typography ── */
+  --font-headline: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+
+  /* ── Border radius ── */
+  --radius-DEFAULT: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    user-select: none;
+  }
+}
