@@ -1,19 +1,87 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { login } from '@/services/authService'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const hasError = ref(false)
+const errorMessage = ref('')
+
+// ── Validación ────────────────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validate(): string | null {
+  if (!email.value.trim()) return 'El correo electrónico es requerido.'
+  if (!EMAIL_RE.test(email.value.trim())) return 'Ingrese un correo electrónico válido.'
+  if (!password.value) return 'La contraseña es requerida.'
+  return null
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
 
 async function handleSubmit() {
-  if (!email.value || !password.value) return
+  // Prevenir envíos simultáneos
+  if (isLoading.value) return
+
+  // Limpiar error previo
   hasError.value = false
+  errorMessage.value = ''
+
+  // Validación local
+  const validationError = validate()
+  if (validationError) {
+    errorMessage.value = validationError
+    hasError.value = true
+    return
+  }
+
   isLoading.value = true
-  await new Promise((r) => setTimeout(r, 1800))
-  isLoading.value = false
-  hasError.value = true
+
+  try {
+    const response = await login({
+      email: email.value.trim(),
+      password: password.value,
+    })
+
+    // Guardar sesión en el store (y en localStorage)
+    authStore.setSession(response.jwtToken, {
+      email: response.email,
+      roles: response.roleClaims,
+    })
+
+    // Navegar al dashboard
+    router.push({ name: 'dashboard' })
+  } catch (err: unknown) {
+    hasError.value = true
+
+    if (err instanceof Error) {
+      const status = (err as Error & { status?: number }).status
+
+      if (status === 401) {
+        // Mensajes de negocio del backend
+        errorMessage.value = err.message || 'Credenciales incorrectas. Intentá de nuevo.'
+      } else if (status === 400) {
+        errorMessage.value = 'Los datos ingresados no son válidos.'
+      } else if (!status) {
+        // Error de red / backend caído
+        errorMessage.value = 'No se pudo conectar con el servidor. Verificá tu conexión.'
+      } else {
+        errorMessage.value = 'Ocurrió un error inesperado. Intentá más tarde.'
+      }
+    } else {
+      errorMessage.value = 'Ocurrió un error inesperado. Intentá más tarde.'
+    }
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -142,7 +210,7 @@ async function handleSubmit() {
             style="background-color: #FFDAD6; color: #93000A;"
           >
             <span class="material-symbols-outlined flex-shrink-0" style="width:18px;height:18px;font-size:18px;">error</span>
-            Credenciales incorrectas. Intentá de nuevo.
+            {{ errorMessage }}
           </div>
         </Transition>
 
