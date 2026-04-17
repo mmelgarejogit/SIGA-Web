@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import { useAuthStore } from '@/stores/auth'
 import {
   type Patient,
   type CreatePatientRequest,
@@ -12,6 +13,8 @@ import {
   updatePatient,
   deletePatient,
 } from '@/services/patientService'
+
+const auth = useAuthStore()
 
 // ── Estado principal ──────────────────────────────────────────────────────────
 
@@ -128,7 +131,7 @@ const EMAIL_RE    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 type CreateErrors = {
   firstName?: string
   lastName?: string
-  dni?: string
+  ci?: string
   birthDate?: string
   contact?: string
   email?: string
@@ -149,7 +152,7 @@ function inputStyle(hasError: boolean) {
 
 const showCreateModal = ref(false)
 const createForm = ref<CreatePatientRequest>({
-  dni: '',
+  ci: '',
   firstName: '',
   lastName: '',
   birthDate: '',
@@ -178,10 +181,10 @@ function validateCreate(): boolean {
   else if (f.lastName.trim().length > 120)
     e.lastName = 'Máximo 120 caracteres.'
 
-  if (!f.dni.trim())
-    e.dni = 'El documento es obligatorio.'
-  else if (f.dni.trim().length > 30)
-    e.dni = 'Máximo 30 caracteres.'
+  if (!f.ci.trim())
+    e.ci = 'El documento es obligatorio.'
+  else if (f.ci.trim().length > 30)
+    e.ci = 'Máximo 30 caracteres.'
 
   if (!f.birthDate)
     e.birthDate = 'La fecha de nacimiento es obligatoria.'
@@ -199,7 +202,7 @@ function validateCreate(): boolean {
 }
 
 function openCreateModal() {
-  createForm.value = { dni: '', firstName: '', lastName: '', birthDate: '', phoneNumber: '', email: '' }
+  createForm.value = { ci: '', firstName: '', lastName: '', birthDate: '', phoneNumber: '', email: '' }
   createErrors.value = {}
   createError.value  = ''
   showCreateModal.value = true
@@ -335,6 +338,7 @@ async function confirmDelete() {
           </div>
 
           <button
+            v-if="auth.hasPermission('crear_paciente')"
             @click="openCreateModal"
             class="flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all active:scale-95"
             style="background-color: #00288E; color: white; box-shadow: 0 4px 20px rgba(0,40,142,0.2);"
@@ -366,7 +370,7 @@ async function confirmDelete() {
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Buscar por nombre, DNI, contacto..."
+              placeholder="Buscar por nombre, C.I., contacto..."
               class="pl-10 pr-10 py-2.5 rounded-full text-sm outline-none transition-all"
               style="background-color: #F1F4F9; border: 1px solid rgba(196,197,213,0.4); color: #181C20; width: 300px;"
             />
@@ -409,7 +413,7 @@ async function confirmDelete() {
             <thead>
               <tr style="background-color: #F1F4F9;">
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Nombre del Paciente</th>
-                <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">DNI</th>
+                <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">C.I.</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden md:table-cell" style="color: #757684;">Fecha de Registro</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Estado</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest text-right" style="color: #757684;">Acciones</th>
@@ -445,9 +449,9 @@ async function confirmDelete() {
                   </div>
                 </td>
 
-                <!-- DNI -->
+                <!-- C.I. -->
                 <td class="px-6 py-5 text-sm font-medium tracking-wider hidden sm:table-cell" style="color: #444653;">
-                  {{ p.dni }}
+                  {{ p.ci }}
                 </td>
 
                 <!-- Fecha de Registro -->
@@ -470,6 +474,7 @@ async function confirmDelete() {
                 <td class="px-6 py-5">
                   <div class="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
+                      v-if="auth.hasPermission('editar_paciente')"
                       @click="openEditModal(p)"
                       class="p-2 rounded-full transition-all"
                       style="color: #444653;"
@@ -479,6 +484,7 @@ async function confirmDelete() {
                       <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px;">edit</span>
                     </button>
                     <button
+                      v-if="auth.hasPermission('desactivar_paciente')"
                       @click="openDeleteModal(p)"
                       class="p-2 rounded-full transition-all"
                       style="color: #444653;"
@@ -667,13 +673,13 @@ async function confirmDelete() {
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Documento *</label>
                 <input
-                  v-model="createForm.dni"
+                  v-model="createForm.ci"
                   type="text"
                   placeholder="12345678"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  :style="inputStyle(!!createErrors.dni)"
+                  :style="inputStyle(!!createErrors.ci)"
                 />
-                <p v-if="createErrors.dni" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.dni }}</p>
+                <p v-if="createErrors.ci" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.ci }}</p>
               </div>
 
               <div class="flex flex-col gap-1.5">

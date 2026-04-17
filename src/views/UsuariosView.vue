@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import { useAuthStore } from '@/stores/auth'
 import { type AppUser, getAppUsers } from '@/services/userService'
 
 // ── Paginación ────────────────────────────────────────────────────────────────
@@ -21,6 +22,8 @@ import {
   PERMISSION_MATRIX,
   MATRIX_COLUMNS,
 } from '@/services/roleService'
+
+const auth = useAuthStore()
 
 // ── Tab activo ────────────────────────────────────────────────────────────────
 
@@ -64,9 +67,9 @@ function statusStyle(isActive: boolean) {
 }
 
 function userTypeStyle(type: AppUser['type']) {
-  return type === 'Profesional'
-    ? { bg: 'rgba(32,0,177,0.08)', color: '#2000B1' }
-    : { bg: 'rgba(0,103,128,0.08)', color: '#006780' }
+  if (type === 'Profesional') return { bg: 'rgba(32,0,177,0.08)',   color: '#2000B1' }
+  if (type === 'Paciente')    return { bg: 'rgba(0,103,128,0.08)',  color: '#006780' }
+  return                             { bg: 'rgba(0,40,142,0.08)',   color: '#00288E' }
 }
 
 function roleChipStyle(roleId: number) {
@@ -88,10 +91,11 @@ const showFilterDropdown = ref(false)
 
 const filters = [
   { id: 'todos',         label: 'Todos',          icon: 'group' },
-  { id: 'profesionales', label: 'Profesionales',   icon: 'medical_services' },
-  { id: 'pacientes',     label: 'Pacientes',        icon: 'person' },
-  { id: 'activos',       label: 'Activos',          icon: 'check_circle' },
-  { id: 'inactivos',     label: 'Inactivos',        icon: 'cancel' },
+  { id: 'profesionales', label: 'Profesionales',  icon: 'medical_services' },
+  { id: 'pacientes',     label: 'Pacientes',       icon: 'person' },
+  { id: 'usuarios',      label: 'Usuarios',        icon: 'manage_accounts' },
+  { id: 'activos',       label: 'Activos',         icon: 'check_circle' },
+  { id: 'inactivos',     label: 'Inactivos',       icon: 'cancel' },
 ]
 
 const activeFilterLabel = computed(
@@ -102,6 +106,7 @@ const filteredUsers = computed(() => {
   switch (activeFilter.value) {
     case 'profesionales': return users.value.filter((u) => u.type === 'Profesional')
     case 'pacientes':     return users.value.filter((u) => u.type === 'Paciente')
+    case 'usuarios':      return users.value.filter((u) => u.type === 'Usuario')
     case 'activos':       return users.value.filter((u) => u.isActive)
     case 'inactivos':     return users.value.filter((u) => !u.isActive)
     default:              return users.value
@@ -164,7 +169,7 @@ const managingUser = ref<AppUser | null>(null)
 const userCurrentRoles = ref<Role[]>([])
 const isLoadingUserRoles = ref(false)
 const rolesModalError = ref('')
-const selectedRoleToAdd = ref<number | ''>('')
+const selectedRolesToAdd = ref<number[]>([])
 const isAssigning = ref(false)
 const removingRoleId = ref<number | null>(null)
 
@@ -178,7 +183,7 @@ async function openRolesModal(user: AppUser) {
   showRolesModal.value = true
   isLoadingUserRoles.value = true
   rolesModalError.value = ''
-  selectedRoleToAdd.value = ''
+  selectedRolesToAdd.value = []
   userCurrentRoles.value = []
   try {
     const [userRoles, fetchedRoles] = await Promise.all([
@@ -194,17 +199,25 @@ async function openRolesModal(user: AppUser) {
   }
 }
 
+function toggleRoleSelection(roleId: number) {
+  const idx = selectedRolesToAdd.value.indexOf(roleId)
+  if (idx === -1) selectedRolesToAdd.value.push(roleId)
+  else selectedRolesToAdd.value.splice(idx, 1)
+}
+
 async function handleAssignRole() {
-  if (!managingUser.value || selectedRoleToAdd.value === '' || isAssigning.value) return
+  if (!managingUser.value || selectedRolesToAdd.value.length === 0 || isAssigning.value) return
   isAssigning.value = true
   rolesModalError.value = ''
   try {
-    await assignRoleToUser(managingUser.value.userId, selectedRoleToAdd.value as number)
-    const role = allRoles.value.find((r) => r.id === (selectedRoleToAdd.value as number))
-    if (role) userCurrentRoles.value.push(role)
-    selectedRoleToAdd.value = ''
+    await Promise.all(
+      selectedRolesToAdd.value.map((id) => assignRoleToUser(managingUser.value!.userId, id))
+    )
+    const newRoles = allRoles.value.filter((r) => selectedRolesToAdd.value.includes(r.id))
+    userCurrentRoles.value.push(...newRoles)
+    selectedRolesToAdd.value = []
   } catch (err: unknown) {
-    rolesModalError.value = err instanceof Error ? err.message : 'Error al asignar rol.'
+    rolesModalError.value = err instanceof Error ? err.message : 'Error al asignar roles.'
   } finally {
     isAssigning.value = false
   }
@@ -379,7 +392,7 @@ onMounted(() => {
           </div>
 
           <button
-            v-if="activeTab === 'roles'"
+            v-if="activeTab === 'roles' && auth.hasPermission('crear_rol')"
             @click="openCreateRoleModal"
             class="flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all active:scale-95"
             style="background-color: #00288E; color: white; box-shadow: 0 4px 20px rgba(0,40,142,0.2);"
@@ -517,7 +530,7 @@ onMounted(() => {
               <thead>
                 <tr style="background-color: #F1F4F9;">
                   <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Usuario</th>
-                  <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">DNI</th>
+                  <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">C.I.</th>
                   <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden md:table-cell" style="color: #757684;">Tipo</th>
                   <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden lg:table-cell" style="color: #757684;">Registro</th>
                   <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Estado</th>
@@ -553,9 +566,9 @@ onMounted(() => {
                     </div>
                   </td>
 
-                  <!-- DNI -->
+                  <!-- C.I. -->
                   <td class="px-6 py-5 text-sm font-medium tracking-wider hidden sm:table-cell" style="color: #444653;">
-                    {{ u.dni }}
+                    {{ u.ci }}
                   </td>
 
                   <!-- Tipo -->
@@ -586,6 +599,7 @@ onMounted(() => {
                   <td class="px-6 py-5">
                     <div class="flex justify-end opacity-40 group-hover:opacity-100 transition-opacity">
                       <button
+                        v-if="auth.hasPermission('editar_usuario')"
                         @click="openRolesModal(u)"
                         class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all"
                         style="color: #00288E;"
@@ -809,6 +823,7 @@ onMounted(() => {
                   <td class="px-6 py-5">
                     <div class="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                       <button
+                        v-if="auth.hasPermission('editar_rol')"
                         @click="openEditRoleModal(role)"
                         class="p-2 rounded-full transition-all"
                         style="color: #444653;"
@@ -818,6 +833,7 @@ onMounted(() => {
                         <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px;">edit</span>
                       </button>
                       <button
+                        v-if="auth.hasPermission('eliminar_rol')"
                         @click="openDeleteRoleModal(role)"
                         class="p-2 rounded-full transition-all"
                         style="color: #444653;"
@@ -963,16 +979,16 @@ onMounted(() => {
                   </div>
                 </div>
 
-                <!-- Añadir rol -->
+                <!-- Añadir roles -->
                 <div v-if="availableRolesToAdd.length > 0">
-                  <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: #757684;">Añadir rol</p>
+                  <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: #757684;">Añadir roles</p>
                   <div class="space-y-2">
                     <button
                       v-for="role in availableRolesToAdd"
                       :key="role.id"
-                      @click="selectedRoleToAdd = role.id"
+                      @click="toggleRoleSelection(role.id)"
                       class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all"
-                      :style="selectedRoleToAdd === role.id
+                      :style="selectedRolesToAdd.includes(role.id)
                         ? 'background-color: rgba(0,40,142,0.08); outline: 1.5px solid rgba(0,40,142,0.3);'
                         : 'background-color: #F7F9FE; outline: 1px solid rgba(196,197,213,0.2);'"
                     >
@@ -995,13 +1011,13 @@ onMounted(() => {
                         </div>
                       </div>
                       <div
-                        class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
-                        :style="selectedRoleToAdd === role.id
+                        class="w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                        :style="selectedRolesToAdd.includes(role.id)
                           ? 'border-color: #00288E; background-color: #00288E;'
                           : 'border-color: #C4C5D5;'"
                       >
                         <span
-                          v-if="selectedRoleToAdd === role.id"
+                          v-if="selectedRolesToAdd.includes(role.id)"
                           class="material-symbols-outlined text-white"
                           style="font-size:12px; width:12px; height:12px;"
                         >check</span>
@@ -1011,7 +1027,7 @@ onMounted(() => {
 
                   <button
                     @click="handleAssignRole"
-                    :disabled="selectedRoleToAdd === '' || isAssigning"
+                    :disabled="selectedRolesToAdd.length === 0 || isAssigning"
                     class="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-50"
                     style="background-color: #00288E; color: white;"
                   >
@@ -1020,7 +1036,7 @@ onMounted(() => {
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                     </svg>
                     <span v-else class="material-symbols-outlined" style="font-size:18px; width:18px; height:18px;">add</span>
-                    {{ isAssigning ? 'Asignando...' : 'Asignar rol seleccionado' }}
+                    {{ isAssigning ? 'Asignando...' : `Asignar ${selectedRolesToAdd.length > 1 ? selectedRolesToAdd.length + ' roles' : 'rol'}` }}
                   </button>
                 </div>
 

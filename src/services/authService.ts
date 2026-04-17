@@ -9,6 +9,7 @@ export interface LoginResponse {
   email: string
   jwtToken: string
   roleClaims: string[]
+  permissions: string[]
 }
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {

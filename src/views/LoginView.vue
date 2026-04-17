@@ -55,6 +55,7 @@ async function handleSubmit() {
     authStore.setSession(response.jwtToken, {
       email: response.email,
       roles: response.roleClaims,
+      permissions: response.permissions ?? [],
     })
 
     // Navegar al dashboard

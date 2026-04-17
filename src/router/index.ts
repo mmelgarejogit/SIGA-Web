@@ -1,9 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteMeta } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
 import PacientesView from '@/views/PacientesView.vue'
 import UsuariosView from '@/views/UsuariosView.vue'
 import { useAuthStore } from '@/stores/auth'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    requiresAuth?: boolean
+    requiresGuest?: boolean
+    permission?: string
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,13 +33,13 @@ const router = createRouter({
       path: '/pacientes',
       name: 'pacientes',
       component: PacientesView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, permission: 'ver_pacientes' },
     },
     {
       path: '/usuarios',
       name: 'usuarios',
       component: UsuariosView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, permission: 'ver_usuarios' },
     },
   ],
 })
@@ -38,15 +47,14 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
 
-  // Ruta protegida y no está autenticado → ir al login
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+  if (to.meta.requiresAuth && !auth.isAuthenticated)
     return { name: 'login' }
-  }
 
-  // Ruta de invitado (login) y ya está autenticado → ir al dashboard
-  if (to.meta.requiresGuest && auth.isAuthenticated) {
+  if (to.meta.requiresGuest && auth.isAuthenticated)
     return { name: 'dashboard' }
-  }
+
+  if (to.meta.permission && !auth.hasPermission(to.meta.permission))
+    return { name: 'dashboard' }
 })
 
 export default router

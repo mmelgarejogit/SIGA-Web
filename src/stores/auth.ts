@@ -10,6 +10,7 @@ const USER_KEY = 'siga_user'
 export interface AuthUser {
   email: string
   roles: string[]
+  permissions: string[]
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -21,6 +22,10 @@ export const useAuthStore = defineStore('auth', () => {
   })())
 
   const isAuthenticated = computed(() => !!token.value)
+
+  function hasPermission(permission: string): boolean {
+    return user.value?.permissions?.includes(permission) ?? false
+  }
 
   function setSession(jwtToken: string, authUser: AuthUser) {
     token.value = jwtToken
@@ -36,5 +41,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isAuthenticated, setSession, clearSession }
+  return { token, user, isAuthenticated, hasPermission, setSession, clearSession }
 })

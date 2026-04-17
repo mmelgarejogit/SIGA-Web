@@ -1,24 +1,32 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const route = useRoute()
+const route  = useRoute()
+const auth   = useAuthStore()
 
 const navItems = [
-  { id: 'dashboard',      label: 'Panel de Control',  icon: 'dashboard',        to: '/' },
-  { id: 'pacientes',      label: 'Pacientes',          icon: 'groups',           to: '/pacientes' },
-  { id: 'profesionales',  label: 'Profesionales',      icon: 'stethoscope',      to: null },
-  { id: 'agendamiento',   label: 'Agenda',             icon: 'calendar_month',   to: null },
-  { id: 'clinico',        label: 'Clínica',            icon: 'medical_services', to: null },
-  { id: 'inventario',     label: 'Inventario',         icon: 'inventory_2',      to: null },
-  { id: 'ventas',         label: 'Ventas',             icon: 'payments',         to: null },
-  { id: 'reportes',       label: 'Reportes',           icon: 'analytics',        to: null },
-  { id: 'usuarios',       label: 'Usuarios y Roles',   icon: 'manage_accounts',  to: '/usuarios' },
+  { id: 'dashboard',     label: 'Panel de Control', icon: 'dashboard',        to: '/',          permission: null },
+  { id: 'pacientes',     label: 'Pacientes',         icon: 'groups',           to: '/pacientes', permission: 'ver_pacientes' },
+  { id: 'profesionales', label: 'Profesionales',     icon: 'stethoscope',      to: null,         permission: null },
+  { id: 'agendamiento',  label: 'Agenda',            icon: 'calendar_month',   to: null,         permission: null },
+  { id: 'clinico',       label: 'Clínica',           icon: 'medical_services', to: null,         permission: null },
+  { id: 'inventario',    label: 'Inventario',        icon: 'inventory_2',      to: null,         permission: null },
+  { id: 'ventas',        label: 'Ventas',            icon: 'payments',         to: null,         permission: null },
+  { id: 'reportes',      label: 'Reportes',          icon: 'analytics',        to: null,         permission: null },
+  { id: 'usuarios',      label: 'Usuarios y Roles',  icon: 'manage_accounts',  to: '/usuarios',  permission: 'ver_usuarios' },
 ]
 
+// Oculta los items activos (con ruta) si el usuario no tiene el permiso requerido.
+// Los items "soon" (to: null) siempre son visibles — son placeholders, no exponen datos.
+const visibleNavItems = computed(() =>
+  navItems.filter(item => !item.permission || auth.hasPermission(item.permission))
+)
+
 const activeId = computed(() => {
-  const match = navItems.find((item) => item.to && item.to !== '/' && route.path.startsWith(item.to))
+  const match = visibleNavItems.value.find(item => item.to && item.to !== '/' && route.path.startsWith(item.to))
   if (match) return match.id
   if (route.path === '/') return 'dashboard'
   return ''
@@ -51,7 +59,7 @@ function navigate(item: (typeof navItems)[number]) {
     <!-- Nav Items -->
     <div class="flex-1 flex flex-col gap-0.5 overflow-y-auto px-3">
       <button
-        v-for="item in navItems"
+        v-for="item in visibleNavItems"
         :key="item.id"
         @click="navigate(item)"
         :title="!item.to ? 'Próximamente' : ''"

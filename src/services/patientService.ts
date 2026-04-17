@@ -19,7 +19,7 @@ export interface GetPatientsParams {
 export interface Patient {
   id: number
   userId?: number
-  dni: string
+  ci: string
   firstName: string
   lastName: string
   birthDate: string
@@ -31,7 +31,7 @@ export interface Patient {
 }
 
 export interface CreatePatientRequest {
-  dni: string
+  ci: string
   firstName: string
   lastName: string
   birthDate: string
