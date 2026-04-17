@@ -8,6 +8,9 @@ export interface LoginCredentials {
 export interface LoginResponse {
   email: string
   jwtToken: string
+  firstName: string
+  lastName: string
+  specialty?: string
   roleClaims: string[]
 }
 

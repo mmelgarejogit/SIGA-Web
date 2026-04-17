@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
 import PacientesView from '@/views/PacientesView.vue'
+import PacienteDetailView from '@/views/PacienteDetailView.vue'
 import UsuariosView from '@/views/UsuariosView.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -24,6 +25,12 @@ const router = createRouter({
       path: '/pacientes',
       name: 'pacientes',
       component: PacientesView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/pacientes/:id',
+      name: 'paciente-detail',
+      component: PacienteDetailView,
       meta: { requiresAuth: true },
     },
     {

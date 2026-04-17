@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import {
@@ -12,6 +13,8 @@ import {
   updatePatient,
   deletePatient,
 } from '@/services/patientService'
+
+const router = useRouter()
 
 // ── Estado principal ──────────────────────────────────────────────────────────
 
@@ -137,6 +140,9 @@ type CreateErrors = {
 type EditErrors = {
   firstName?: string
   lastName?: string
+  dni?: string
+  birthDate?: string
+  email?: string
 }
 
 function inputStyle(hasError: boolean) {
@@ -179,7 +185,7 @@ function validateCreate(): boolean {
     e.lastName = 'Máximo 120 caracteres.'
 
   if (!f.dni.trim())
-    e.dni = 'El documento es obligatorio.'
+    e.dni = 'El nro. de cédula es obligatorio.'
   else if (f.dni.trim().length > 30)
     e.dni = 'Máximo 30 caracteres.'
 
@@ -230,7 +236,7 @@ async function submitCreate() {
 
 const showEditModal = ref(false)
 const editingId = ref<number | null>(null)
-const editForm  = ref<UpdatePatientRequest>({ firstName: '', lastName: '', phoneNumber: '', isActive: true })
+const editForm  = ref<UpdatePatientRequest>({ firstName: '', lastName: '', dni: '', birthDate: '', phoneNumber: '', email: '', isActive: true })
 const editErrors = ref<EditErrors>({})
 const editError  = ref('')
 const isSavingEdit = ref(false)
@@ -249,6 +255,17 @@ function validateEdit(): boolean {
   else if (!ONLY_LETTERS.test(f.lastName.trim()))
     e.lastName = 'Solo se permiten letras y espacios.'
 
+  if (!f.dni.trim())
+    e.dni = 'El nro. de cédula es obligatorio.'
+  else if (f.dni.trim().length > 30)
+    e.dni = 'Máximo 30 caracteres.'
+
+  if (!f.birthDate)
+    e.birthDate = 'La fecha de nacimiento es obligatoria.'
+
+  if (f.email?.trim() && !EMAIL_RE.test(f.email.trim()))
+    e.email = 'El formato del email no es válido.'
+
   editErrors.value = e
   return Object.keys(e).length === 0
 }
@@ -258,7 +275,10 @@ function openEditModal(p: Patient) {
   editForm.value = {
     firstName:   p.firstName,
     lastName:    p.lastName,
+    dni:         p.dni,
+    birthDate:   p.birthDate,
     phoneNumber: p.phoneNumber ?? '',
+    email:       p.email ?? '',
     isActive:    p.isActive,
   }
   editErrors.value = {}
@@ -275,6 +295,7 @@ async function submitEdit() {
     await updatePatient(editingId.value, {
       ...editForm.value,
       phoneNumber: editForm.value.phoneNumber || undefined,
+      email:       editForm.value.email       || undefined,
     })
     showEditModal.value = false
     await loadPatients()
@@ -366,7 +387,7 @@ async function confirmDelete() {
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Buscar por nombre, DNI, contacto..."
+              placeholder="Buscar por nombre, cédula, contacto..."
               class="pl-10 pr-10 py-2.5 rounded-full text-sm outline-none transition-all"
               style="background-color: #F1F4F9; border: 1px solid rgba(196,197,213,0.4); color: #181C20; width: 300px;"
             />
@@ -409,7 +430,7 @@ async function confirmDelete() {
             <thead>
               <tr style="background-color: #F1F4F9;">
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Nombre del Paciente</th>
-                <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">DNI</th>
+                <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden sm:table-cell" style="color: #757684;">Nro. de Cédula</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest hidden md:table-cell" style="color: #757684;">Fecha de Registro</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest" style="color: #757684;">Estado</th>
                 <th class="px-6 py-5 text-xs font-bold uppercase tracking-widest text-right" style="color: #757684;">Acciones</th>
@@ -426,10 +447,11 @@ async function confirmDelete() {
               <tr
                 v-for="p in patients"
                 :key="p.id"
-                class="group transition-colors"
+                class="group transition-colors cursor-pointer"
                 style="border-top: 1px solid rgba(196,197,213,0.12);"
                 onmouseover="this.style.backgroundColor='#F1F4F9'"
                 onmouseout="this.style.backgroundColor=''"
+                @click="router.push(`/pacientes/${p.id}`)"
               >
                 <!-- Nombre -->
                 <td class="px-6 py-5">
@@ -467,7 +489,7 @@ async function confirmDelete() {
                 </td>
 
                 <!-- Acciones -->
-                <td class="px-6 py-5">
+                <td class="px-6 py-5" @click.stop>
                   <div class="flex justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                       @click="openEditModal(p)"
@@ -665,7 +687,7 @@ async function confirmDelete() {
               </div>
 
               <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Documento *</label>
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Nro. de Cédula *</label>
                 <input
                   v-model="createForm.dni"
                   type="text"
@@ -785,7 +807,7 @@ async function confirmDelete() {
               </button>
             </div>
 
-            <form @submit.prevent="submitEdit" class="px-8 py-6 space-y-5">
+            <form @submit.prevent="submitEdit" class="px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto">
               <div
                 v-if="editError"
                 class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
@@ -801,7 +823,7 @@ async function confirmDelete() {
                   <input
                     v-model="editForm.firstName"
                     type="text"
-                    class="px-4 py-3 rounded-xl text-sm outline-none"
+                    class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
                     :style="inputStyle(!!editErrors.firstName)"
                   />
                   <p v-if="editErrors.firstName" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.firstName }}</p>
@@ -811,11 +833,33 @@ async function confirmDelete() {
                   <input
                     v-model="editForm.lastName"
                     type="text"
-                    class="px-4 py-3 rounded-xl text-sm outline-none"
+                    class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
                     :style="inputStyle(!!editErrors.lastName)"
                   />
                   <p v-if="editErrors.lastName" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.lastName }}</p>
                 </div>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Nro. de Cédula *</label>
+                <input
+                  v-model="editForm.dni"
+                  type="text"
+                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  :style="inputStyle(!!editErrors.dni)"
+                />
+                <p v-if="editErrors.dni" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.dni }}</p>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Fecha de Nacimiento *</label>
+                <input
+                  v-model="editForm.birthDate"
+                  type="date"
+                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  :style="inputStyle(!!editErrors.birthDate)"
+                />
+                <p v-if="editErrors.birthDate" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.birthDate }}</p>
               </div>
 
               <div class="flex flex-col gap-1.5">
@@ -824,9 +868,21 @@ async function confirmDelete() {
                   v-model="editForm.phoneNumber"
                   type="tel"
                   placeholder="0972123456"
-                  class="px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  :style="inputStyle(false)"
                 />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Email</label>
+                <input
+                  v-model="editForm.email"
+                  type="email"
+                  placeholder="paciente@email.com"
+                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  :style="inputStyle(!!editErrors.email)"
+                />
+                <p v-if="editErrors.email" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.email }}</p>
               </div>
 
               <div class="flex items-center justify-between px-4 py-3 rounded-xl" style="background-color: #F1F4F9;">

@@ -64,9 +64,10 @@ function statusStyle(isActive: boolean) {
 }
 
 function userTypeStyle(type: AppUser['type']) {
-  return type === 'Profesional'
-    ? { bg: 'rgba(32,0,177,0.08)', color: '#2000B1' }
-    : { bg: 'rgba(0,103,128,0.08)', color: '#006780' }
+  if (type === 'Profesional')   return { bg: 'rgba(32,0,177,0.08)',    color: '#2000B1' }
+  if (type === 'Administrador') return { bg: 'rgba(0,40,142,0.08)',    color: '#00288E' }
+  if (type === 'Sin rol')       return { bg: 'rgba(117,118,132,0.08)', color: '#757684' }
+  return { bg: 'rgba(0,103,128,0.08)', color: '#006780' }
 }
 
 function roleChipStyle(roleId: number) {
@@ -87,11 +88,12 @@ const activeFilter = ref('todos')
 const showFilterDropdown = ref(false)
 
 const filters = [
-  { id: 'todos',         label: 'Todos',          icon: 'group' },
-  { id: 'profesionales', label: 'Profesionales',   icon: 'medical_services' },
-  { id: 'pacientes',     label: 'Pacientes',        icon: 'person' },
-  { id: 'activos',       label: 'Activos',          icon: 'check_circle' },
-  { id: 'inactivos',     label: 'Inactivos',        icon: 'cancel' },
+  { id: 'todos',            label: 'Todos',            icon: 'group' },
+  { id: 'profesionales',   label: 'Profesionales',    icon: 'medical_services' },
+  { id: 'pacientes',       label: 'Pacientes',        icon: 'person' },
+  { id: 'administradores', label: 'Administradores',  icon: 'shield_person' },
+  { id: 'activos',         label: 'Activos',          icon: 'check_circle' },
+  { id: 'inactivos',       label: 'Inactivos',        icon: 'cancel' },
 ]
 
 const activeFilterLabel = computed(
@@ -100,10 +102,11 @@ const activeFilterLabel = computed(
 
 const filteredUsers = computed(() => {
   switch (activeFilter.value) {
-    case 'profesionales': return users.value.filter((u) => u.type === 'Profesional')
-    case 'pacientes':     return users.value.filter((u) => u.type === 'Paciente')
-    case 'activos':       return users.value.filter((u) => u.isActive)
-    case 'inactivos':     return users.value.filter((u) => !u.isActive)
+    case 'profesionales':   return users.value.filter((u) => u.type === 'Profesional')
+    case 'pacientes':       return users.value.filter((u) => u.type === 'Paciente')
+    case 'administradores': return users.value.filter((u) => u.type === 'Administrador')
+    case 'activos':         return users.value.filter((u) => u.isActive)
+    case 'inactivos':       return users.value.filter((u) => !u.isActive)
     default:              return users.value
   }
 })

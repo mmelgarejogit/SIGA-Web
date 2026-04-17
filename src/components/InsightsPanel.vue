@@ -1,72 +1,33 @@
 <script setup lang="ts">
-const topFrames = [
-  { name: 'Ray-Ban Wayfarer', sales: '42 vtas', color: '#00288E' },
-  { name: 'Oakley Holbrook', sales: '38 vtas', color: '#006780' },
-  { name: 'Vogue VO5322', sales: '24 vtas', color: '#2000B1' },
-]
 </script>
 
 <template>
   <div class="flex flex-col gap-5">
-    <!-- Primary insight card -->
+    <!-- Ingresos — sin datos -->
     <div
-      class="p-6 rounded-2xl text-white relative overflow-hidden"
+      class="p-6 rounded-2xl relative overflow-hidden"
       style="background: linear-gradient(135deg, #00288E 0%, #1E40AF 100%); box-shadow: 0 8px 32px rgba(0,40,142,0.25);"
     >
-      <!-- Lens flare -->
-      <div
-        class="absolute -right-8 -top-8 w-32 h-32 rounded-full pointer-events-none"
-        style="background-color: rgba(255,255,255,0.05); filter: blur(16px);"
-      ></div>
-      <div
-        class="absolute -left-4 bottom-0 w-24 h-24 rounded-full pointer-events-none"
-        style="background-color: rgba(59,130,246,0.15); filter: blur(20px);"
-      ></div>
-
-      <div class="relative z-10">
-        <h4
-          class="text-[10px] font-bold uppercase tracking-[0.2em] mb-4"
-          style="color: rgba(184,196,255,0.8);"
-        >Top Armazones</h4>
-        <p class="text-3xl font-bold mb-3">₲ 84.200.000</p>
-        <div class="w-full h-1.5 rounded-full mb-2" style="background-color: rgba(255,255,255,0.2);">
-          <div class="h-full rounded-full" style="width: 75%; background-color: white;"></div>
-        </div>
-        <p class="text-xs" style="color: rgba(219,234,254,0.8);">75% de la meta alcanzada para Mayo</p>
+      <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full pointer-events-none" style="background-color: rgba(255,255,255,0.05); filter: blur(16px);"></div>
+      <div class="relative z-10 flex flex-col items-center justify-center py-4 gap-2 text-center">
+        <span class="material-symbols-outlined" style="color: rgba(184,196,255,0.5); font-size:32px;">sell</span>
+        <p class="text-sm font-bold" style="color: rgba(255,255,255,0.7);">Ingresos Semanales</p>
+        <p class="text-xs" style="color: rgba(184,196,255,0.6);">Sin datos — módulo de Ventas pendiente</p>
       </div>
     </div>
 
-    <!-- Top frames breakdown -->
-    <div
-      class="p-6 rounded-2xl"
-      style="background-color: #F1F4F9;"
-    >
-      <div class="flex items-center gap-3 mb-5">
-        <div
-          class="p-2 rounded-xl"
-          style="background-color: white;"
-        >
+    <!-- Top ventas — sin datos -->
+    <div class="p-6 rounded-2xl" style="background-color: #F1F4F9;">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-2 rounded-xl" style="background-color: white;">
           <span class="material-symbols-outlined" style="color: #00288E; width:20px;height:20px;font-size:20px;">trending_up</span>
         </div>
-        <h4 class="font-bold text-sm" style="color: #181C20;">Top Armazones</h4>
+        <h4 class="font-bold text-sm" style="color: #181C20;">Top Productos</h4>
       </div>
-
-      <ul class="space-y-4">
-        <li
-          v-for="frame in topFrames"
-          :key="frame.name"
-          class="flex items-center justify-between"
-        >
-          <div class="flex items-center gap-2.5">
-            <span
-              class="w-2 h-2 rounded-full flex-shrink-0"
-              :style="`background-color: ${frame.color};`"
-            ></span>
-            <span class="text-sm" style="color: #444653;">{{ frame.name }}</span>
-          </div>
-          <span class="text-xs font-bold" style="color: #00288E;">{{ frame.sales }}</span>
-        </li>
-      </ul>
+      <div class="flex flex-col items-center py-4 gap-2 text-center">
+        <span class="material-symbols-outlined" style="color: #C4C5D5; font-size:28px;">inventory_2</span>
+        <p class="text-xs font-medium" style="color: #757684;">No hay datos de ventas disponibles</p>
+      </div>
     </div>
 
     <!-- Promo card -->

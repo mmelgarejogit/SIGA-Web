@@ -42,7 +42,10 @@ export interface CreatePatientRequest {
 export interface UpdatePatientRequest {
   firstName: string
   lastName: string
+  dni: string
+  birthDate: string
   phoneNumber?: string
+  email?: string
   isActive: boolean
 }
 
