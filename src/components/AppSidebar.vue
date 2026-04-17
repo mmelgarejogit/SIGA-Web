@@ -13,7 +13,7 @@ const navItems = [
   { id: 'inventario', label: 'Inventario', icon: 'inventory_2', to: null },
   { id: 'ventas', label: 'Ventas', icon: 'payments', to: null },
   { id: 'reportes', label: 'Reportes', icon: 'analytics', to: null },
-  { id: 'usuarios', label: 'Usuarios y Roles', icon: 'manage_accounts', to: null },
+  { id: 'usuarios', label: 'Usuarios y Roles', icon: 'manage_accounts', to: '/usuarios' },
 ]
 
 const activeId = computed(() => {
