@@ -13,20 +13,20 @@ const user = computed(() => authStore.user)
 
 const displayName = computed(() => {
   if (!user.value) return ''
-  return `${user.value.firstName} ${user.value.lastName}`
+  return `${user.value.firstName ?? ''} ${user.value.lastName ?? ''}`.trim()
 })
 
 const position = computed(() => {
   if (!user.value) return ''
   if (user.value.specialty) return user.value.specialty
-  if (user.value.roles.includes('Admin')) return 'Administrador'
-  if (user.value.roles.length > 0) return user.value.roles[0]
+  if (user.value.roles?.includes('Admin')) return 'Administrador'
+  if (user.value.roles?.length > 0) return user.value.roles[0]
   return 'Usuario'
 })
 
 const initials = computed(() => {
   if (!user.value) return '?'
-  return `${user.value.firstName[0] ?? ''}${user.value.lastName[0] ?? ''}`.toUpperCase()
+  return `${user.value.firstName?.[0] ?? ''}${user.value.lastName?.[0] ?? ''}`.toUpperCase() || '?'
 })
 
 function toggleDropdown() {
