@@ -6,14 +6,15 @@ const router = useRouter()
 const route = useRoute()
 
 const navItems = [
-  { id: 'dashboard', label: 'Panel de Control', icon: 'dashboard', to: '/' },
-  { id: 'pacientes', label: 'Pacientes', icon: 'groups', to: '/pacientes' },
-  { id: 'agendamiento', label: 'Agenda', icon: 'calendar_month', to: null },
-  { id: 'clinico', label: 'Clínica', icon: 'medical_services', to: null },
-  { id: 'inventario', label: 'Inventario', icon: 'inventory_2', to: null },
-  { id: 'ventas', label: 'Ventas', icon: 'payments', to: null },
-  { id: 'reportes', label: 'Reportes', icon: 'analytics', to: null },
-  { id: 'usuarios', label: 'Usuarios y Roles', icon: 'manage_accounts', to: '/usuarios' },
+  { id: 'dashboard',      label: 'Panel de Control',  icon: 'dashboard',        to: '/' },
+  { id: 'pacientes',      label: 'Pacientes',          icon: 'groups',           to: '/pacientes' },
+  { id: 'profesionales',  label: 'Profesionales',      icon: 'stethoscope',      to: null },
+  { id: 'agendamiento',   label: 'Agenda',             icon: 'calendar_month',   to: null },
+  { id: 'clinico',        label: 'Clínica',            icon: 'medical_services', to: null },
+  { id: 'inventario',     label: 'Inventario',         icon: 'inventory_2',      to: null },
+  { id: 'ventas',         label: 'Ventas',             icon: 'payments',         to: null },
+  { id: 'reportes',       label: 'Reportes',           icon: 'analytics',        to: null },
+  { id: 'usuarios',       label: 'Usuarios y Roles',   icon: 'manage_accounts',  to: '/usuarios' },
 ]
 
 const activeId = computed(() => {

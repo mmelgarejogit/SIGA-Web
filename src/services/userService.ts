@@ -2,6 +2,10 @@ import { http } from '@/api/http'
 
 export type UserType = 'Profesional' | 'Paciente'
 
+// Tamaño de página para la vista de admin: paginación client-side, se trae todo de una vez.
+// Una óptica raramente supera esta cantidad combinada de pacientes + profesionales.
+const ADMIN_PAGE_SIZE = 500
+
 // Cache de módulo: sobrevive navegaciones, se resetea al recargar la página.
 let _cache: AppUser[] | null = null
 
@@ -39,15 +43,20 @@ interface ProfessionalItem {
   createdAt: string
 }
 
+// Normaliza respuestas paginadas ({ items: T[] }) o arrays planos (T[])
+function toArray<T>(data: T[] | { items: T[] }): T[] {
+  return Array.isArray(data) ? data : (data.items ?? [])
+}
+
 export async function getAppUsers(forceRefresh = false): Promise<AppUser[]> {
   if (_cache && !forceRefresh) return _cache
 
   const [patientsRes, professionalsRes] = await Promise.all([
-    http.get<PatientItem[]>('/api/patients'),
-    http.get<ProfessionalItem[]>('/api/professionals'),
+    http.get<{ items: PatientItem[] } | PatientItem[]>(`/api/patients?pageSize=${ADMIN_PAGE_SIZE}`),
+    http.get<{ items: ProfessionalItem[] } | ProfessionalItem[]>(`/api/professionals?pageSize=${ADMIN_PAGE_SIZE}`),
   ])
 
-  const professionals: AppUser[] = professionalsRes.data.map((p) => ({
+  const professionals: AppUser[] = toArray(professionalsRes.data).map((p) => ({
     userId: p.userId,
     entityId: p.id,
     type: 'Profesional',
@@ -59,7 +68,7 @@ export async function getAppUsers(forceRefresh = false): Promise<AppUser[]> {
     createdAt: p.createdAt,
   }))
 
-  const patients: AppUser[] = patientsRes.data.map((p) => ({
+  const patients: AppUser[] = toArray(patientsRes.data).map((p) => ({
     userId: p.userId,
     entityId: p.id,
     type: 'Paciente',

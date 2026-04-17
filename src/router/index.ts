@@ -12,7 +12,7 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { requiresGuest: true }, // redirige al dashboard si ya está autenticado
+      meta: { requiresGuest: true },
     },
     {
       path: '/',
