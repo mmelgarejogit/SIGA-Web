@@ -53,8 +53,11 @@ async function handleSubmit() {
 
     // Guardar sesión en el store (y en localStorage)
     authStore.setSession(response.jwtToken, {
-      email: response.email,
-      roles: response.roleClaims,
+      email:       response.email,
+      firstName:   response.firstName,
+      lastName:    response.lastName,
+      specialty:   response.specialty,
+      roles:       response.roleClaims,
       permissions: response.permissions ?? [],
     })
 

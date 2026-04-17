@@ -67,9 +67,10 @@ function statusStyle(isActive: boolean) {
 }
 
 function userTypeStyle(type: AppUser['type']) {
-  if (type === 'Profesional') return { bg: 'rgba(32,0,177,0.08)',   color: '#2000B1' }
-  if (type === 'Paciente')    return { bg: 'rgba(0,103,128,0.08)',  color: '#006780' }
-  return                             { bg: 'rgba(0,40,142,0.08)',   color: '#00288E' }
+  if (type === 'Profesional')   return { bg: 'rgba(32,0,177,0.08)',    color: '#2000B1' }
+  if (type === 'Paciente')      return { bg: 'rgba(0,103,128,0.08)',   color: '#006780' }
+  if (type === 'Administrador') return { bg: 'rgba(0,40,142,0.08)',    color: '#00288E' }
+  return                               { bg: 'rgba(0,40,142,0.08)',    color: '#00288E' }
 }
 
 function roleChipStyle(roleId: number) {
@@ -90,12 +91,13 @@ const activeFilter = ref('todos')
 const showFilterDropdown = ref(false)
 
 const filters = [
-  { id: 'todos',         label: 'Todos',          icon: 'group' },
-  { id: 'profesionales', label: 'Profesionales',  icon: 'medical_services' },
-  { id: 'pacientes',     label: 'Pacientes',       icon: 'person' },
-  { id: 'usuarios',      label: 'Usuarios',        icon: 'manage_accounts' },
-  { id: 'activos',       label: 'Activos',         icon: 'check_circle' },
-  { id: 'inactivos',     label: 'Inactivos',       icon: 'cancel' },
+  { id: 'todos',           label: 'Todos',           icon: 'group' },
+  { id: 'profesionales',   label: 'Profesionales',   icon: 'medical_services' },
+  { id: 'pacientes',       label: 'Pacientes',        icon: 'person' },
+  { id: 'administradores', label: 'Administradores', icon: 'shield_person' },
+  { id: 'usuarios',        label: 'Usuarios',         icon: 'manage_accounts' },
+  { id: 'activos',         label: 'Activos',          icon: 'check_circle' },
+  { id: 'inactivos',       label: 'Inactivos',        icon: 'cancel' },
 ]
 
 const activeFilterLabel = computed(
@@ -104,12 +106,13 @@ const activeFilterLabel = computed(
 
 const filteredUsers = computed(() => {
   switch (activeFilter.value) {
-    case 'profesionales': return users.value.filter((u) => u.type === 'Profesional')
-    case 'pacientes':     return users.value.filter((u) => u.type === 'Paciente')
-    case 'usuarios':      return users.value.filter((u) => u.type === 'Usuario')
-    case 'activos':       return users.value.filter((u) => u.isActive)
-    case 'inactivos':     return users.value.filter((u) => !u.isActive)
-    default:              return users.value
+    case 'profesionales':   return users.value.filter((u) => u.type === 'Profesional')
+    case 'pacientes':       return users.value.filter((u) => u.type === 'Paciente')
+    case 'administradores': return users.value.filter((u) => u.type === 'Administrador')
+    case 'usuarios':        return users.value.filter((u) => u.type === 'Usuario')
+    case 'activos':         return users.value.filter((u) => u.isActive)
+    case 'inactivos':       return users.value.filter((u) => !u.isActive)
+    default:                return users.value
   }
 })
 

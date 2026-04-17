@@ -6,6 +6,10 @@ import KpiCard from '@/components/KpiCard.vue'
 import TodayAppointments from '@/components/TodayAppointments.vue'
 import InsightsPanel from '@/components/InsightsPanel.vue'
 import { getPatients } from '@/services/patientService'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const firstName = computed(() => authStore.user?.firstName ?? '')
 
 const activePatients = ref('—')
 
@@ -30,39 +34,39 @@ const kpis = computed(() => [
   },
   {
     title: 'Agendamientos',
-    value: '24',
+    value: '—',
     icon: 'calendar_today',
-    badge: 'Hoy',
+    badge: 'Sin datos',
     badgeType: 'neutral' as const,
     iconBg: '#B7EAFF',
     iconColor: '#006780',
   },
   {
     title: 'Ingresos Semanales',
-    value: '₲ 12.4M',
+    value: '—',
     icon: 'sell',
-    badge: '+8.4%',
-    badgeType: 'positive' as const,
+    badge: 'Sin datos',
+    badgeType: 'neutral' as const,
     iconBg: '#E2DFFF',
     iconColor: '#2000B1',
   },
   {
     title: 'Stock Crítico',
-    value: '18',
+    value: '—',
     icon: 'warning',
-    badge: 'Crítico',
-    badgeType: 'critical' as const,
+    badge: 'Sin datos',
+    badgeType: 'neutral' as const,
     iconBg: '#FFDAD6',
     iconColor: '#BA1A1A',
   },
 ])
 
-const greeting = () => {
+const greeting = computed(() => {
   const h = new Date().getHours()
   if (h < 12) return 'Buenos días'
   if (h < 18) return 'Buenas tardes'
   return 'Buenas noches'
-}
+})
 
 const todayLabel = new Date().toLocaleDateString('es-PY', {
   weekday: 'long',
@@ -85,7 +89,7 @@ const todayLabel = new Date().toLocaleDateString('es-PY', {
               class="text-sm font-bold uppercase tracking-[0.2em] mb-2"
               style="color: #00288E;"
             >
-              {{ greeting() }}, Beatriz
+              {{ greeting }}, {{ firstName }}
             </p>
             <h1
               class="text-5xl font-extrabold tracking-tight leading-tight"
@@ -97,7 +101,6 @@ const todayLabel = new Date().toLocaleDateString('es-PY', {
           </div>
           <div class="text-right pb-2 hidden lg:block">
             <p class="text-sm font-medium capitalize" style="color: #757684;">{{ todayLabel }}</p>
-            <p class="text-2xl font-bold mt-1" style="color: #00288E;">Buen día, Beatriz</p>
           </div>
         </div>
 

@@ -9,6 +9,9 @@ const USER_KEY = 'siga_user'
 
 export interface AuthUser {
   email: string
+  firstName: string
+  lastName: string
+  specialty?: string
   roles: string[]
   permissions: string[]
 }
