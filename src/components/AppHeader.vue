@@ -11,22 +11,9 @@ const user = {
     class="fixed top-0 right-0 z-40 flex justify-between items-center px-8 h-16"
     style="left: 280px; background: rgba(247,249,254,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(196,197,213,0.15);"
   >
-    <!-- Left: section title + search -->
-    <div class="flex items-center gap-6">
+    <!-- Left: section title -->
+    <div class="flex items-center">
       <h2 class="text-base font-semibold" style="color: #00288E;">Resumen General</h2>
-
-      <div class="relative hidden md:block">
-        <span
-          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-          style="color: #757684; width:18px;height:18px;font-size:18px;"
-        >search</span>
-        <input
-          type="text"
-          placeholder="Buscar pacientes, pedidos..."
-          class="pl-10 pr-4 py-2 rounded-full text-sm w-80 outline-none transition-all"
-          style="background-color: #F1F4F9; border: none; color: #181C20;"
-        />
-      </div>
     </div>
 
     <!-- Right: actions + user -->
