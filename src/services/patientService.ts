@@ -1,14 +1,30 @@
 import { http } from '@/api/http'
 
+export interface PagedResult<T> {
+  items: T[]
+  totalCount: number
+  totalActive: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export interface GetPatientsParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: 'active' | 'inactive'
+}
+
 export interface Patient {
   id: number
-  userId: number
+  userId?: number
   dni: string
   firstName: string
   lastName: string
   birthDate: string
   phoneNumber?: string
-  email: string
+  email?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -20,8 +36,7 @@ export interface CreatePatientRequest {
   lastName: string
   birthDate: string
   phoneNumber?: string
-  email: string
-  password: string
+  email?: string
 }
 
 export interface UpdatePatientRequest {
@@ -31,8 +46,13 @@ export interface UpdatePatientRequest {
   isActive: boolean
 }
 
-export async function getPatients(): Promise<Patient[]> {
-  const { data } = await http.get<Patient[]>('/api/patients')
+export async function getPatients(params: GetPatientsParams = {}): Promise<PagedResult<Patient>> {
+  const query = new URLSearchParams()
+  if (params.page)     query.set('page',     String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  if (params.search)   query.set('search',   params.search)
+  if (params.status)   query.set('status',   params.status)
+  const { data } = await http.get<PagedResult<Patient>>(`/api/patients?${query}`)
   return data
 }
 

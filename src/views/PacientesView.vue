@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import {
   type Patient,
   type CreatePatientRequest,
   type UpdatePatientRequest,
+  type GetPatientsParams,
   getPatients,
   createPatient,
   updatePatient,
@@ -14,23 +15,79 @@ import {
 
 // ── Estado principal ──────────────────────────────────────────────────────────
 
-const patients = ref<Patient[]>([])
-const isLoading = ref(false)
-const loadError = ref('')
+const patients    = ref<Patient[]>([])
+const isLoading   = ref(false)
+const loadError   = ref('')
+const totalCount  = ref(0)
+const totalActive = ref(0)
+const totalPages  = ref(0)
 
-// ── Filtros ───────────────────────────────────────────────────────────────────
+// ── Filtros, búsqueda y paginación ────────────────────────────────────────────
 
+const PAGE_SIZE    = 10
+const currentPage  = ref(1)
 const activeFilter = ref('todos')
+const searchQuery  = ref('')
+let   searchTimer  = 0
+
 const filters = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'activos', label: 'Activos' },
+  { id: 'todos',    label: 'Todos' },
+  { id: 'activos',  label: 'Activos' },
   { id: 'inactivos', label: 'Inactivos' },
 ]
 
-const filteredPatients = computed(() => {
-  if (activeFilter.value === 'activos') return patients.value.filter((p) => p.isActive)
-  if (activeFilter.value === 'inactivos') return patients.value.filter((p) => !p.isActive)
-  return patients.value
+const statusParam = computed<GetPatientsParams['status'] | undefined>(() => {
+  if (activeFilter.value === 'activos')   return 'active'
+  if (activeFilter.value === 'inactivos') return 'inactive'
+  return undefined
+})
+
+// Rango visible para el footer ("Mostrando X–Y de Z")
+const rangeStart = computed(() => totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1)
+const rangeEnd   = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
+// Páginas a mostrar en el paginador (máx 5 botones + ellipsis)
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur   = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const pages: (number | '...')[] = [1]
+  if (cur > 3)       pages.push('...')
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
+})
+
+// ── Carga con paginación ──────────────────────────────────────────────────────
+
+async function loadPatients() {
+  isLoading.value = true
+  loadError.value = ''
+  try {
+    const result = await getPatients({
+      page:     currentPage.value,
+      pageSize: PAGE_SIZE,
+      search:   searchQuery.value.trim() || undefined,
+      status:   statusParam.value,
+    })
+    patients.value    = result.items
+    totalCount.value  = result.totalCount
+    totalActive.value = result.totalActive
+    totalPages.value  = result.totalPages
+  } catch (err: unknown) {
+    loadError.value = err instanceof Error ? err.message : 'Error al cargar pacientes.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+watch(activeFilter, () => { currentPage.value = 1; loadPatients() })
+watch(currentPage,  loadPatients)
+watch(searchQuery,  () => {
+  clearTimeout(searchTimer)
+  searchTimer = window.setTimeout(() => { currentPage.value = 1; loadPatients() }, 350)
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,21 +118,32 @@ function statusStyle(isActive: boolean) {
     : { bg: '#E0E2E7', dot: '#757684', text: '#444653', label: 'Inactivo' }
 }
 
-// ── Carga inicial ─────────────────────────────────────────────────────────────
+onMounted(loadPatients)
 
-async function loadPatients() {
-  isLoading.value = true
-  loadError.value = ''
-  try {
-    patients.value = await getPatients()
-  } catch (err: unknown) {
-    loadError.value = err instanceof Error ? err.message : 'Error al cargar pacientes.'
-  } finally {
-    isLoading.value = false
-  }
+// ── Validación ────────────────────────────────────────────────────────────────
+
+const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
+const EMAIL_RE    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+type CreateErrors = {
+  firstName?: string
+  lastName?: string
+  dni?: string
+  birthDate?: string
+  contact?: string
+  email?: string
 }
 
-onMounted(loadPatients)
+type EditErrors = {
+  firstName?: string
+  lastName?: string
+}
+
+function inputStyle(hasError: boolean) {
+  return hasError
+    ? 'border: 1.5px solid #BA1A1A; color: #181C20; background-color: #FFF8F7;'
+    : 'border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;'
+}
 
 // ── Modal Crear ───────────────────────────────────────────────────────────────
 
@@ -87,28 +155,70 @@ const createForm = ref<CreatePatientRequest>({
   birthDate: '',
   phoneNumber: '',
   email: '',
-  password: '',
 })
-const createError = ref('')
+const createErrors = ref<CreateErrors>({})
+const createError  = ref('')
 const isSavingCreate = ref(false)
 
+function validateCreate(): boolean {
+  const e: CreateErrors = {}
+  const f = createForm.value
+
+  if (!f.firstName.trim())
+    e.firstName = 'El nombre es obligatorio.'
+  else if (!ONLY_LETTERS.test(f.firstName.trim()))
+    e.firstName = 'Solo se permiten letras y espacios.'
+  else if (f.firstName.trim().length > 120)
+    e.firstName = 'Máximo 120 caracteres.'
+
+  if (!f.lastName.trim())
+    e.lastName = 'El apellido es obligatorio.'
+  else if (!ONLY_LETTERS.test(f.lastName.trim()))
+    e.lastName = 'Solo se permiten letras y espacios.'
+  else if (f.lastName.trim().length > 120)
+    e.lastName = 'Máximo 120 caracteres.'
+
+  if (!f.dni.trim())
+    e.dni = 'El documento es obligatorio.'
+  else if (f.dni.trim().length > 30)
+    e.dni = 'Máximo 30 caracteres.'
+
+  if (!f.birthDate)
+    e.birthDate = 'La fecha de nacimiento es obligatoria.'
+
+  const hasPhone = !!f.phoneNumber?.trim()
+  const hasEmail = !!f.email?.trim()
+
+  if (!hasPhone && !hasEmail)
+    e.contact = 'Debe ingresar al menos un dato de contacto: email o teléfono.'
+  else if (hasEmail && !EMAIL_RE.test(f.email!.trim()))
+    e.email = 'El formato del email no es válido.'
+
+  createErrors.value = e
+  return Object.keys(e).length === 0
+}
+
 function openCreateModal() {
-  createForm.value = { dni: '', firstName: '', lastName: '', birthDate: '', phoneNumber: '', email: '', password: '' }
-  createError.value = ''
+  createForm.value = { dni: '', firstName: '', lastName: '', birthDate: '', phoneNumber: '', email: '' }
+  createErrors.value = {}
+  createError.value  = ''
   showCreateModal.value = true
 }
 
 async function submitCreate() {
   if (isSavingCreate.value) return
+  if (!validateCreate()) return
   createError.value = ''
   isSavingCreate.value = true
   try {
-    const created = await createPatient({
+    await createPatient({
       ...createForm.value,
+      email:       createForm.value.email       || undefined,
       phoneNumber: createForm.value.phoneNumber || undefined,
     })
-    patients.value.unshift(created)
     showCreateModal.value = false
+    currentPage.value = 1
+    await loadPatients()
   } catch (err: unknown) {
     createError.value = err instanceof Error ? err.message : 'Error al crear paciente.'
   } finally {
@@ -120,34 +230,54 @@ async function submitCreate() {
 
 const showEditModal = ref(false)
 const editingId = ref<number | null>(null)
-const editForm = ref<UpdatePatientRequest>({ firstName: '', lastName: '', phoneNumber: '', isActive: true })
-const editError = ref('')
+const editForm  = ref<UpdatePatientRequest>({ firstName: '', lastName: '', phoneNumber: '', isActive: true })
+const editErrors = ref<EditErrors>({})
+const editError  = ref('')
 const isSavingEdit = ref(false)
+
+function validateEdit(): boolean {
+  const e: EditErrors = {}
+  const f = editForm.value
+
+  if (!f.firstName.trim())
+    e.firstName = 'El nombre es obligatorio.'
+  else if (!ONLY_LETTERS.test(f.firstName.trim()))
+    e.firstName = 'Solo se permiten letras y espacios.'
+
+  if (!f.lastName.trim())
+    e.lastName = 'El apellido es obligatorio.'
+  else if (!ONLY_LETTERS.test(f.lastName.trim()))
+    e.lastName = 'Solo se permiten letras y espacios.'
+
+  editErrors.value = e
+  return Object.keys(e).length === 0
+}
 
 function openEditModal(p: Patient) {
   editingId.value = p.id
   editForm.value = {
-    firstName: p.firstName,
-    lastName: p.lastName,
+    firstName:   p.firstName,
+    lastName:    p.lastName,
     phoneNumber: p.phoneNumber ?? '',
-    isActive: p.isActive,
+    isActive:    p.isActive,
   }
-  editError.value = ''
+  editErrors.value = {}
+  editError.value  = ''
   showEditModal.value = true
 }
 
 async function submitEdit() {
   if (isSavingEdit.value || editingId.value === null) return
+  if (!validateEdit()) return
   editError.value = ''
   isSavingEdit.value = true
   try {
-    const updated = await updatePatient(editingId.value, {
+    await updatePatient(editingId.value, {
       ...editForm.value,
       phoneNumber: editForm.value.phoneNumber || undefined,
     })
-    const idx = patients.value.findIndex((p) => p.id === editingId.value)
-    if (idx !== -1) patients.value[idx] = updated
     showEditModal.value = false
+    await loadPatients()
   } catch (err: unknown) {
     editError.value = err instanceof Error ? err.message : 'Error al actualizar paciente.'
   } finally {
@@ -174,10 +304,8 @@ async function confirmDelete() {
   deleteError.value = ''
   try {
     await deletePatient(deletingPatient.value.id)
-    // Soft delete: actualizar isActive en local en vez de eliminar la fila
-    const idx = patients.value.findIndex((p) => p.id === deletingPatient.value!.id)
-    if (idx !== -1) patients.value[idx].isActive = false
     showDeleteModal.value = false
+    await loadPatients()
   } catch (err: unknown) {
     deleteError.value = err instanceof Error ? err.message : 'Error al desactivar paciente.'
   } finally {
@@ -216,17 +344,41 @@ async function confirmDelete() {
           </button>
         </div>
 
-        <!-- Filters -->
-        <div class="flex items-center gap-3 mb-8 flex-wrap">
-          <button
-            v-for="f in filters"
-            :key="f.id"
-            @click="activeFilter = f.id"
-            class="px-6 py-2 rounded-full text-sm font-semibold transition-all"
-            :style="activeFilter === f.id
-              ? 'background-color: #1E40AF; color: #A8B8FF;'
-              : 'background-color: #E6E8ED; color: #444653;'"
-          >{{ f.label }}</button>
+        <!-- Filters + Search -->
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div class="flex items-center gap-3 flex-wrap">
+            <button
+              v-for="f in filters"
+              :key="f.id"
+              @click="activeFilter = f.id"
+              class="px-6 py-2 rounded-full text-sm font-semibold transition-all"
+              :style="activeFilter === f.id
+                ? 'background-color: #1E40AF; color: #A8B8FF;'
+                : 'background-color: #E6E8ED; color: #444653;'"
+            >{{ f.label }}</button>
+          </div>
+
+          <div class="relative">
+            <span
+              class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style="color: #757684; font-size: 18px; width: 18px; height: 18px;"
+            >search</span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Buscar por nombre, DNI, contacto..."
+              class="pl-10 pr-10 py-2.5 rounded-full text-sm outline-none transition-all"
+              style="background-color: #F1F4F9; border: 1px solid rgba(196,197,213,0.4); color: #181C20; width: 300px;"
+            />
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="absolute right-3 top-1/2 -translate-y-1/2"
+              style="color: #757684;"
+            >
+              <span class="material-symbols-outlined" style="font-size: 16px; width: 16px; height: 16px;">close</span>
+            </button>
+          </div>
         </div>
 
         <!-- Loading -->
@@ -265,14 +417,14 @@ async function confirmDelete() {
             </thead>
             <tbody>
               <!-- Empty state -->
-              <tr v-if="filteredPatients.length === 0">
+              <tr v-if="patients.length === 0">
                 <td colspan="5" class="px-6 py-16 text-center text-sm font-medium" style="color: #757684;">
                   No hay pacientes para mostrar.
                 </td>
               </tr>
 
               <tr
-                v-for="p in filteredPatients"
+                v-for="p in patients"
                 :key="p.id"
                 class="group transition-colors"
                 style="border-top: 1px solid rgba(196,197,213,0.12);"
@@ -288,7 +440,7 @@ async function confirmDelete() {
                     >{{ initials(p) }}</div>
                     <div>
                       <div class="font-bold text-sm" style="color: #181C20;">{{ p.firstName }} {{ p.lastName }}</div>
-                      <div class="text-xs" style="color: #444653;">{{ p.email }}</div>
+                      <div class="text-xs" style="color: #444653;">{{ p.email ?? p.phoneNumber ?? '—' }}</div>
                     </div>
                   </div>
                 </td>
@@ -341,20 +493,68 @@ async function confirmDelete() {
             </tbody>
           </table>
 
-          <!-- Footer conteo -->
+          <!-- Footer: conteo + paginador -->
           <div
-            class="px-6 py-4 flex items-center"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
             style="border-top: 1px solid rgba(196,197,213,0.12); background-color: #ffffff;"
           >
             <span class="text-sm" style="color: #444653;">
-              Mostrando <strong style="color:#181C20;">{{ filteredPatients.length }}</strong> de
-              <strong style="color:#181C20;">{{ patients.length }}</strong> pacientes
+              Mostrando
+              <strong style="color:#181C20;">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color:#181C20;">{{ totalCount }}</strong>
+              pacientes
             </span>
+
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
+              <!-- Anterior -->
+              <button
+                @click="currentPage--"
+                :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                style="color: #444653;"
+                onmouseover="if(!this.disabled)this.style.backgroundColor='#E6E8ED'"
+                onmouseout="this.style.backgroundColor=''"
+              >
+                <span class="material-symbols-outlined" style="font-size:18px;">chevron_left</span>
+              </button>
+
+              <!-- Números -->
+              <template v-for="p in visiblePages" :key="p">
+                <span
+                  v-if="p === '...'"
+                  class="w-9 h-9 flex items-center justify-center text-sm"
+                  style="color: #757684;"
+                >…</span>
+                <button
+                  v-else
+                  @click="currentPage = p"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :style="currentPage === p
+                    ? 'background-color: #00288E; color: white;'
+                    : 'color: #444653;'"
+                  :onmouseover="currentPage !== p ? 'this.style.backgroundColor=\'#E6E8ED\'' : ''"
+                  :onmouseout="currentPage !== p ? 'this.style.backgroundColor=\'\'' : ''"
+                >{{ p }}</button>
+              </template>
+
+              <!-- Siguiente -->
+              <button
+                @click="currentPage++"
+                :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                style="color: #444653;"
+                onmouseover="if(!this.disabled)this.style.backgroundColor='#E6E8ED'"
+                onmouseout="this.style.backgroundColor=''"
+              >
+                <span class="material-symbols-outlined" style="font-size:18px;">chevron_right</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Bento insight cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
           <div
             class="p-8 rounded-2xl flex flex-col justify-between"
             style="background-color: #F1F4F9; height: 192px;"
@@ -362,7 +562,7 @@ async function confirmDelete() {
             <span class="material-symbols-outlined" style="color: #00288E; font-size:32px; width:32px; height:32px;">group</span>
             <div>
               <div class="text-3xl font-black" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #181C20;">
-                {{ patients.filter(p => p.isActive).length }}
+                {{ totalActive }}
               </div>
               <div class="text-xs font-bold uppercase tracking-widest mt-1" style="color: #757684;">Pacientes Activos</div>
             </div>
@@ -375,24 +575,12 @@ async function confirmDelete() {
             <span class="material-symbols-outlined" style="color: #006780; font-size:32px; width:32px; height:32px;">history_edu</span>
             <div>
               <div class="text-3xl font-black" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #181C20;">
-                {{ patients.length }}
+                {{ totalCount }}
               </div>
               <div class="text-xs font-bold uppercase tracking-widest mt-1" style="color: #757684;">Total Registros</div>
             </div>
           </div>
 
-          <div
-            class="p-8 rounded-2xl flex flex-col justify-between"
-            style="background: linear-gradient(135deg, #00288E 0%, #1E40AF 100%); height: 192px; box-shadow: 0 8px 24px rgba(0,40,142,0.25);"
-          >
-            <span class="material-symbols-outlined" style="color: #DDE1FF; font-size:32px; width:32px; height:32px;">contact_support</span>
-            <div>
-              <div class="text-sm font-medium mb-1" style="color: rgba(221,225,255,0.75);">Recordatorios Pendientes</div>
-              <div class="text-lg font-bold text-white leading-snug">
-                Enviar avisos de retiro de lentes a 12 pacientes.
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -456,82 +644,86 @@ async function confirmDelete() {
                   <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Nombre *</label>
                   <input
                     v-model="createForm.firstName"
-                    required
                     type="text"
                     placeholder="Ana"
                     class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                    style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                    :style="inputStyle(!!createErrors.firstName)"
                   />
+                  <p v-if="createErrors.firstName" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.firstName }}</p>
                 </div>
                 <div class="flex flex-col gap-1.5">
                   <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Apellido *</label>
                   <input
                     v-model="createForm.lastName"
-                    required
                     type="text"
                     placeholder="García"
                     class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                    style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                    :style="inputStyle(!!createErrors.lastName)"
                   />
+                  <p v-if="createErrors.lastName" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.lastName }}</p>
                 </div>
               </div>
 
               <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">DNI *</label>
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Documento *</label>
                 <input
                   v-model="createForm.dni"
-                  required
                   type="text"
                   placeholder="12345678"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                  :style="inputStyle(!!createErrors.dni)"
                 />
+                <p v-if="createErrors.dni" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.dni }}</p>
               </div>
 
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Fecha de Nacimiento *</label>
                 <input
                   v-model="createForm.birthDate"
-                  required
                   type="date"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                  :style="inputStyle(!!createErrors.birthDate)"
                 />
+                <p v-if="createErrors.birthDate" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.birthDate }}</p>
+              </div>
+
+              <!-- Banner contacto -->
+              <div
+                v-if="createErrors.contact"
+                class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+                style="background-color: #FFF0C2; color: #7A5000;"
+              >
+                <span class="material-symbols-outlined" style="font-size:18px;">warning</span>
+                {{ createErrors.contact }}
               </div>
 
               <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Teléfono</label>
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">
+                  Teléfono
+                  <span class="normal-case font-normal tracking-normal ml-1" style="color: #757684;">(requerido si no hay email)</span>
+                </label>
                 <input
                   v-model="createForm.phoneNumber"
                   type="tel"
-                  placeholder="+54 11 1234-5678"
+                  placeholder="0972123456"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                  :style="inputStyle(!!createErrors.contact)"
                 />
               </div>
 
               <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Email *</label>
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">
+                  Email
+                  <span class="normal-case font-normal tracking-normal ml-1" style="color: #757684;">(requerido si no hay teléfono)</span>
+                </label>
                 <input
                   v-model="createForm.email"
-                  required
                   type="email"
                   placeholder="paciente@email.com"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                  :style="inputStyle(!!createErrors.email || !!createErrors.contact)"
                 />
-              </div>
-
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Contraseña *</label>
-                <input
-                  v-model="createForm.password"
-                  required
-                  type="password"
-                  placeholder="••••••••"
-                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
-                />
+                <p v-if="createErrors.email" class="text-xs font-medium" style="color: #BA1A1A;">{{ createErrors.email }}</p>
               </div>
             </form>
 
@@ -608,21 +800,21 @@ async function confirmDelete() {
                   <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Nombre *</label>
                   <input
                     v-model="editForm.firstName"
-                    required
                     type="text"
                     class="px-4 py-3 rounded-xl text-sm outline-none"
-                    style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                    :style="inputStyle(!!editErrors.firstName)"
                   />
+                  <p v-if="editErrors.firstName" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.firstName }}</p>
                 </div>
                 <div class="flex flex-col gap-1.5">
                   <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Apellido *</label>
                   <input
                     v-model="editForm.lastName"
-                    required
                     type="text"
                     class="px-4 py-3 rounded-xl text-sm outline-none"
-                    style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
+                    :style="inputStyle(!!editErrors.lastName)"
                   />
+                  <p v-if="editErrors.lastName" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.lastName }}</p>
                 </div>
               </div>
 
@@ -631,7 +823,7 @@ async function confirmDelete() {
                 <input
                   v-model="editForm.phoneNumber"
                   type="tel"
-                  placeholder="+54 11 1234-5678"
+                  placeholder="0972123456"
                   class="px-4 py-3 rounded-xl text-sm outline-none"
                   style="border: 1px solid #C4C5D5; color: #181C20; background-color: #F7F9FE;"
                 />

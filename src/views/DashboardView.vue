@@ -1,17 +1,30 @@
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import KpiCard from '@/components/KpiCard.vue'
 import TodayAppointments from '@/components/TodayAppointments.vue'
 import InsightsPanel from '@/components/InsightsPanel.vue'
+import { getPatients } from '@/services/patientService'
 
-const kpis = [
+const activePatients = ref('—')
+
+onMounted(async () => {
+  try {
+    const result = await getPatients({ page: 1, pageSize: 1 })
+    activePatients.value = result.totalActive.toLocaleString('es-PY')
+  } catch {
+    activePatients.value = 'N/D'
+  }
+})
+
+const kpis = computed(() => [
   {
     title: 'Pacientes Activos',
-    value: '1.284',
+    value: activePatients.value,
     icon: 'group',
-    badge: '+12%',
-    badgeType: 'positive' as const,
+    badge: 'Total',
+    badgeType: 'neutral' as const,
     iconBg: '#DDE1FF',
     iconColor: '#00288E',
   },
@@ -42,7 +55,7 @@ const kpis = [
     iconBg: '#FFDAD6',
     iconColor: '#BA1A1A',
   },
-]
+])
 
 const greeting = () => {
   const h = new Date().getHours()
