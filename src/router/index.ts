@@ -12,6 +12,7 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     requiresGuest?: boolean
     permission?: string
+    label?: string
   }
 }
 
@@ -47,6 +48,42 @@ const router = createRouter({
       name: 'usuarios',
       component: UsuariosView,
       meta: { requiresAuth: true, permission: 'ver_usuarios' },
+    },
+    {
+      path: '/profesionales',
+      name: 'profesionales',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_profesionales', label: 'Profesionales' },
+    },
+    {
+      path: '/agenda',
+      name: 'agenda',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_calendario', label: 'Agenda' },
+    },
+    {
+      path: '/clinica',
+      name: 'clinica',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_historia_clinica', label: 'Clínica' },
+    },
+    {
+      path: '/inventario',
+      name: 'inventario',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_inventario', label: 'Inventario' },
+    },
+    {
+      path: '/ventas',
+      name: 'ventas',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_ventas', label: 'Ventas' },
+    },
+    {
+      path: '/reportes',
+      name: 'reportes',
+      component: () => import('@/views/ComingSoonView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_reportes', label: 'Reportes' },
     },
   ],
 })

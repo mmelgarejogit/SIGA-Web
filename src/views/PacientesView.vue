@@ -343,7 +343,7 @@ async function confirmDelete() {
     <AppHeader />
 
     <main style="margin-left: 280px; padding-top: 64px;">
-      <div class="px-8 pt-10 pb-12 max-w-7xl mx-auto">
+      <div class="p-8">
 
         <!-- Page header -->
         <div class="flex justify-between items-end mb-8">
@@ -641,7 +641,7 @@ async function confirmDelete() {
           @click.self="showCreateModal = false"
         >
           <div
-            class="w-full max-w-lg rounded-3xl overflow-hidden"
+            class="w-full max-w-2xl rounded-3xl overflow-hidden"
             style="background-color: #ffffff; box-shadow: 0 24px 64px rgba(0,40,142,0.18);"
           >
             <!-- Header modal -->
@@ -800,7 +800,7 @@ async function confirmDelete() {
           @click.self="showEditModal = false"
         >
           <div
-            class="w-full max-w-lg rounded-3xl overflow-hidden"
+            class="w-full max-w-2xl rounded-3xl overflow-hidden"
             style="background-color: #ffffff; box-shadow: 0 24px 64px rgba(0,40,142,0.18);"
           >
             <div class="flex items-center justify-between px-8 pt-8 pb-6" style="border-bottom: 1px solid rgba(196,197,213,0.2);">

@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
-import { type AppUser, getAppUsers } from '@/services/userService'
+import { type AppUser, getAppUsers, deactivateUser } from '@/services/userService'
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ async function loadUsers() {
   isLoadingUsers.value = true
   loadUsersError.value = ''
   try {
-    users.value = await getAppUsers()
+    users.value = await getAppUsers(true)
   } catch (err: unknown) {
     loadUsersError.value = err instanceof Error ? err.message : 'Error al cargar usuarios.'
   } finally {
@@ -166,6 +166,25 @@ async function loadUsers() {
 }
 
 // ── Modal: Gestionar Roles de un Usuario ──────────────────────────────────────
+
+const isDeactivating  = ref(false)
+const deactivateError = ref('')
+
+async function handleDeactivate() {
+  if (!managingUser.value) return
+  isDeactivating.value  = true
+  deactivateError.value = ''
+  try {
+    await deactivateUser(managingUser.value.userId)
+    const u = users.value.find(u => u.userId === managingUser.value!.userId)
+    if (u) u.isActive = false
+    showRolesModal.value = false
+  } catch (err: unknown) {
+    deactivateError.value = err instanceof Error ? err.message : 'Error al desactivar usuario.'
+  } finally {
+    isDeactivating.value = false
+  }
+}
 
 const showRolesModal = ref(false)
 const managingUser = ref<AppUser | null>(null)
@@ -380,7 +399,7 @@ onMounted(() => {
     <AppHeader />
 
     <main style="margin-left: 280px; padding-top: 64px;">
-      <div class="px-8 pt-10 pb-12 max-w-7xl mx-auto">
+      <div class="p-8">
 
         <!-- Page header -->
         <div class="flex justify-between items-end mb-8">
@@ -886,7 +905,7 @@ onMounted(() => {
           @click.self="showRolesModal = false"
         >
           <div
-            class="w-full max-w-md rounded-3xl overflow-hidden"
+            class="w-full max-w-2xl rounded-3xl overflow-hidden"
             style="background-color: #ffffff; box-shadow: 0 24px 64px rgba(0,40,142,0.18);"
           >
             <!-- Header -->
@@ -1055,7 +1074,24 @@ onMounted(() => {
             </div>
 
             <!-- Footer -->
-            <div class="px-8 py-5 flex justify-end" style="border-top: 1px solid rgba(196,197,213,0.2);">
+            <div class="px-8 py-5 flex items-center justify-between" style="border-top: 1px solid rgba(196,197,213,0.2);">
+              <div class="flex items-center gap-3">
+                <button
+                  v-if="managingUser?.isActive && auth.hasPermission('editar_usuario')"
+                  @click="handleDeactivate"
+                  :disabled="isDeactivating"
+                  class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all disabled:opacity-50"
+                  style="background-color: #FFDAD6; color: #BA1A1A;"
+                >
+                  <svg v-if="isDeactivating" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  <span v-else class="material-symbols-outlined" style="font-size:16px;">person_off</span>
+                  {{ isDeactivating ? 'Desactivando...' : 'Desactivar usuario' }}
+                </button>
+                <p v-if="deactivateError" class="text-xs font-medium" style="color: #BA1A1A;">{{ deactivateError }}</p>
+              </div>
               <button
                 @click="showRolesModal = false"
                 class="px-6 py-3 rounded-full text-sm font-bold"
@@ -1087,7 +1123,7 @@ onMounted(() => {
           @click.self="showCreateRoleModal = false"
         >
           <div
-            class="w-full max-w-3xl rounded-3xl overflow-hidden"
+            class="w-full max-w-4xl rounded-3xl overflow-hidden"
             style="background-color: #ffffff; box-shadow: 0 24px 64px rgba(0,40,142,0.18);"
           >
             <div class="flex items-center justify-between px-8 pt-8 pb-6" style="border-bottom: 1px solid rgba(196,197,213,0.2);">
@@ -1252,7 +1288,7 @@ onMounted(() => {
           @click.self="showEditRoleModal = false"
         >
           <div
-            class="w-full max-w-3xl rounded-3xl overflow-hidden"
+            class="w-full max-w-4xl rounded-3xl overflow-hidden"
             style="background-color: #ffffff; box-shadow: 0 24px 64px rgba(0,40,142,0.18);"
           >
             <div class="flex items-center justify-between px-8 pt-8 pb-6" style="border-bottom: 1px solid rgba(196,197,213,0.2);">

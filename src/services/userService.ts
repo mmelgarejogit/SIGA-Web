@@ -29,3 +29,8 @@ export async function getAppUsers(forceRefresh = false): Promise<AppUser[]> {
 export function clearUsersCache(): void {
   _cache = null
 }
+
+export async function deactivateUser(userId: number): Promise<void> {
+  await http.delete(`/api/users/${userId}`)
+  _cache = null
+}

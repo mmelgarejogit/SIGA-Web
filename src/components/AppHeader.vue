@@ -6,8 +6,10 @@ import { useAuthStore } from '@/stores/auth'
 const router    = useRouter()
 const authStore = useAuthStore()
 
-const showDropdown = ref(false)
-const dropdownRef  = ref<HTMLElement | null>(null)
+const showDropdown      = ref(false)
+const dropdownRef       = ref<HTMLElement | null>(null)
+const showNotifications = ref(false)
+const notificationsRef  = ref<HTMLElement | null>(null)
 
 const user = computed(() => authStore.user)
 
@@ -31,12 +33,19 @@ const initials = computed(() => {
 
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
+  if (showDropdown.value) showNotifications.value = false
+}
+
+function toggleNotifications() {
+  showNotifications.value = !showNotifications.value
+  if (showNotifications.value) showDropdown.value = false
 }
 
 function handleClickOutside(e: MouseEvent) {
-  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node))
     showDropdown.value = false
-  }
+  if (notificationsRef.value && !notificationsRef.value.contains(e.target as Node))
+    showNotifications.value = false
 }
 
 function logout() {
@@ -60,10 +69,41 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 
     <!-- Right: acciones + usuario -->
     <div class="flex items-center gap-2">
-      <button class="p-2 rounded-full transition-colors relative hover:bg-blue-50">
-        <span class="material-symbols-outlined" style="color: #444653;">notifications</span>
-        <span class="absolute top-2 right-2 w-2 h-2 rounded-full" style="background-color: #BA1A1A;"></span>
-      </button>
+      <!-- Notificaciones -->
+      <div ref="notificationsRef" class="relative">
+        <button
+          @click="toggleNotifications"
+          class="p-2 rounded-full transition-colors relative"
+          :style="showNotifications ? 'background-color: #E6E8ED;' : ''"
+          onmouseover="if(!this.style.backgroundColor || this.style.backgroundColor==='') this.style.backgroundColor='#F1F4F9'"
+          onmouseout="if(!this.getAttribute('data-active')) this.style.backgroundColor=''"
+        >
+          <span class="material-symbols-outlined" style="color: #444653;">notifications</span>
+        </button>
+
+        <Transition
+          enter-active-class="transition-all duration-150 ease-out"
+          enter-from-class="opacity-0 translate-y-1"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-100 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-1"
+        >
+          <div
+            v-if="showNotifications"
+            class="absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden"
+            style="top: 100%; background-color: #ffffff; box-shadow: 0 8px 32px rgba(0,40,142,0.12); outline: 1px solid rgba(196,197,213,0.2);"
+          >
+            <div class="px-4 py-3" style="border-bottom: 1px solid rgba(196,197,213,0.15);">
+              <p class="text-sm font-bold" style="color: #181C20;">Notificaciones</p>
+            </div>
+            <div class="flex flex-col items-center justify-center py-10 gap-2">
+              <span class="material-symbols-outlined" style="font-size: 36px; color: #C4C5D5;">notifications_off</span>
+              <p class="text-sm" style="color: #757684;">Sin notificaciones por ahora</p>
+            </div>
+          </div>
+        </Transition>
+      </div>
 
       <div class="w-px h-8 mx-2" style="background-color: rgba(196,197,213,0.4);"></div>
 
