@@ -12,6 +12,7 @@ export interface AuthUser {
   firstName: string
   lastName: string
   specialty?: string
+  professionalId?: number
   roles: string[]
   permissions: string[]
 }

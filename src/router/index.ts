@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteMeta } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
 import PacientesView from '@/views/PacientesView.vue'
 import PacienteDetailView from '@/views/PacienteDetailView.vue'
 import UsuariosView from '@/views/UsuariosView.vue'
@@ -24,6 +25,17 @@ const router = createRouter({
       name: 'login',
       component: LoginView,
       meta: { requiresGuest: true },
+    },
+    {
+      path: '/registro',
+      name: 'registro',
+      component: RegisterView,
+      meta: { requiresGuest: true },
+    },
+    {
+      path: '/verificar-email',
+      name: 'verificar-email',
+      component: () => import('@/views/VerifyEmailView.vue'),
     },
     {
       path: '/',
@@ -64,8 +76,8 @@ const router = createRouter({
     {
       path: '/clinica',
       name: 'clinica',
-      component: () => import('@/views/ComingSoonView.vue'),
-      meta: { requiresAuth: true, permission: 'ver_historia_clinica', label: 'Clínica' },
+      component: () => import('@/views/ClinicaView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_historia_clinica' },
     },
     {
       path: '/inventario',
