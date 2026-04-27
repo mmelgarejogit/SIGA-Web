@@ -52,8 +52,8 @@ const router = createRouter({
     {
       path: '/profesionales',
       name: 'profesionales',
-      component: () => import('@/views/ComingSoonView.vue'),
-      meta: { requiresAuth: true, permission: 'ver_profesionales', label: 'Profesionales' },
+      component: () => import('@/views/ProfesionalesView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_profesionales' },
     },
     {
       path: '/agenda',
