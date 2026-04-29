@@ -53,12 +53,13 @@ async function handleSubmit() {
 
     // Guardar sesión en el store (y en localStorage)
     authStore.setSession(response.jwtToken, {
-      email:       response.email,
-      firstName:   response.firstName,
-      lastName:    response.lastName,
-      specialty:   response.specialty,
-      roles:       response.roleClaims,
-      permissions: response.permissions ?? [],
+      email:          response.email,
+      firstName:      response.firstName,
+      lastName:       response.lastName,
+      specialty:      response.specialty,
+      professionalId: response.professionalId,
+      roles:          response.roleClaims,
+      permissions:    response.permissions ?? [],
     })
 
     // Navegar al dashboard
@@ -359,12 +360,12 @@ async function handleSubmit() {
           </button>
 
           <p class="text-sm font-medium" style="color: #444653;">
-            ¿Necesita acceso?
-            <button
-              type="button"
+            ¿Sos paciente y no tenés cuenta?
+            <RouterLink
+              to="/registro"
               class="font-bold ml-1 hover:underline underline-offset-2 transition-colors"
               style="color: #00288E;"
-            >Contactar Soporte</button>
+            >Registrate aquí</RouterLink>
           </p>
         </div>
       </div>

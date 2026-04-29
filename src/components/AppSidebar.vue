@@ -80,7 +80,7 @@ function navigate(item: (typeof navItems)[number]) {
     </div>
 
     <!-- Nueva Cita CTA -->
-    <div class="px-6 mt-6">
+    <div v-if="auth.hasPermission('ver_calendario')" class="px-6 mt-6">
       <button
         class="w-full py-4 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg text-sm"
         style="background-color: #76DCFF; color: #006077;"

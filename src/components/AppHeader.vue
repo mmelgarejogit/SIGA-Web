@@ -21,7 +21,7 @@ const displayName = computed(() => {
 const position = computed(() => {
   if (!user.value) return ''
   if (user.value.specialty) return user.value.specialty
-  if (user.value.roles?.includes('Admin')) return 'Administrador'
+  if (user.value.roles?.includes('Administrador')) return 'Administrador'
   if (user.value.roles?.length > 0) return user.value.roles[0]
   return 'Usuario'
 })
