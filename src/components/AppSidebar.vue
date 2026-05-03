@@ -11,7 +11,7 @@ const navItems = [
   { id: 'dashboard',     label: 'Panel de Control', icon: 'dashboard',        to: '/',          permission: null },
   { id: 'pacientes',     label: 'Pacientes',         icon: 'groups',           to: '/pacientes', permission: 'ver_pacientes' },
   { id: 'profesionales', label: 'Profesionales',     icon: 'stethoscope',      to: '/profesionales', permission: 'ver_profesionales' },
-  { id: 'agenda',        label: 'Agenda',            icon: 'calendar_month',   to: '/agenda',        permission: 'ver_calendario' },
+  { id: 'agenda',        label: 'Agenda',            icon: 'calendar_month',   to: '/agenda',        permission: 'ver_agenda' },
   { id: 'clinica',       label: 'Clínica',           icon: 'medical_services', to: '/clinica',       permission: 'ver_historia_clinica' },
   { id: 'inventario',    label: 'Inventario',        icon: 'inventory_2',      to: '/inventario',    permission: 'ver_inventario' },
   { id: 'ventas',        label: 'Ventas',            icon: 'payments',         to: '/ventas',        permission: 'ver_ventas' },
@@ -80,7 +80,7 @@ function navigate(item: (typeof navItems)[number]) {
     </div>
 
     <!-- Nueva Cita CTA -->
-    <div v-if="auth.hasPermission('ver_calendario')" class="px-6 mt-6">
+    <div v-if="auth.hasPermission('ver_agenda')" class="px-6 mt-6">
       <button
         class="w-full py-4 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg text-sm"
         style="background-color: #76DCFF; color: #006077;"

@@ -70,8 +70,8 @@ const router = createRouter({
     {
       path: '/agenda',
       name: 'agenda',
-      component: () => import('@/views/ComingSoonView.vue'),
-      meta: { requiresAuth: true, permission: 'ver_calendario', label: 'Agenda' },
+      component: () => import('@/views/AgendaView.vue'),
+      meta: { requiresAuth: true, permission: 'ver_agenda' },
     },
     {
       path: '/clinica',
