@@ -29,40 +29,5 @@
         <p class="text-xs font-medium" style="color: #757684;">No hay datos de ventas disponibles</p>
       </div>
     </div>
-
-    <!-- Promo card -->
-    <div
-      class="relative rounded-2xl overflow-hidden cursor-pointer group"
-      style="height: 160px;"
-    >
-      <!-- Gradient placeholder (no external image) -->
-      <div
-        class="absolute inset-0 transition-transform duration-700 group-hover:scale-110"
-        style="background: linear-gradient(135deg, #1E3A5F 0%, #006780 50%, #2000B1 100%);"
-      >
-        <!-- Decorative lens circles -->
-        <div class="absolute top-4 right-8 w-20 h-20 rounded-full" style="border: 2px solid rgba(255,255,255,0.15);"></div>
-        <div class="absolute top-8 right-12 w-10 h-10 rounded-full" style="border: 1px solid rgba(255,255,255,0.1);"></div>
-        <div class="absolute -bottom-4 left-4 w-24 h-24 rounded-full" style="border: 2px solid rgba(255,255,255,0.08);"></div>
-        <span
-          class="material-symbols-outlined absolute top-1/2 right-10 -translate-y-1/2 opacity-20"
-          style="font-size: 64px; width:64px; height:64px; color:white; font-variation-settings:'FILL' 0,'wght' 100,'GRAD' 0,'opsz' 48;"
-        >visibility</span>
-      </div>
-
-      <div class="absolute inset-0 flex flex-col justify-end p-4" style="background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);">
-        <p class="text-white font-bold text-sm">Colección Primavera</p>
-        <p class="text-[10px] uppercase tracking-wider" style="color: rgba(255,255,255,0.65);">
-          Llegada de nuevos modelos
-        </p>
-      </div>
-
-      <button
-        class="absolute bottom-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
-        style="background-color: white;"
-      >
-        <span class="material-symbols-outlined" style="color: #00288E; width:16px;height:16px;font-size:16px; font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20;">add</span>
-      </button>
-    </div>
   </div>
 </template>

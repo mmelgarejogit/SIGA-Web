@@ -10,12 +10,12 @@ const auth   = useAuthStore()
 const navItems = [
   { id: 'dashboard',     label: 'Panel de Control', icon: 'dashboard',        to: '/',          permission: null },
   { id: 'pacientes',     label: 'Pacientes',         icon: 'groups',           to: '/pacientes', permission: 'ver_pacientes' },
-  { id: 'profesionales', label: 'Profesionales',     icon: 'stethoscope',      to: null,         permission: null },
-  { id: 'agendamiento',  label: 'Agenda',            icon: 'calendar_month',   to: null,         permission: null },
-  { id: 'clinico',       label: 'Clínica',           icon: 'medical_services', to: null,         permission: null },
-  { id: 'inventario',    label: 'Inventario',        icon: 'inventory_2',      to: null,         permission: null },
-  { id: 'ventas',        label: 'Ventas',            icon: 'payments',         to: null,         permission: null },
-  { id: 'reportes',      label: 'Reportes',          icon: 'analytics',        to: null,         permission: null },
+  { id: 'profesionales', label: 'Profesionales',     icon: 'stethoscope',      to: '/profesionales', permission: 'ver_profesionales' },
+  { id: 'agenda',        label: 'Agenda',            icon: 'calendar_month',   to: '/agenda',        permission: 'ver_agenda' },
+  { id: 'clinica',       label: 'Clínica',           icon: 'medical_services', to: '/clinica',       permission: 'ver_historia_clinica' },
+  { id: 'inventario',    label: 'Inventario',        icon: 'inventory_2',      to: '/inventario',    permission: 'ver_inventario' },
+  { id: 'ventas',        label: 'Ventas',            icon: 'payments',         to: '/ventas',        permission: 'ver_ventas' },
+  { id: 'reportes',      label: 'Reportes',          icon: 'analytics',        to: '/reportes',      permission: 'ver_reportes' },
   { id: 'usuarios',      label: 'Usuarios y Roles',  icon: 'manage_accounts',  to: '/usuarios',  permission: 'ver_usuarios' },
 ]
 
@@ -62,12 +62,10 @@ function navigate(item: (typeof navItems)[number]) {
         v-for="item in visibleNavItems"
         :key="item.id"
         @click="navigate(item)"
-        :title="!item.to ? 'Próximamente' : ''"
         :class="[
-          'w-full flex items-center gap-3 py-3 px-4 rounded-full transition-all duration-200 text-left',
+          'w-full flex items-center gap-3 py-3 px-4 rounded-full transition-all duration-200 text-left cursor-pointer',
           activeId === item.id ? 'font-bold' : 'font-medium',
-          !item.to ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-          activeId !== item.id && item.to ? 'text-blue-100/70 hover:text-white hover:bg-white/10' : '',
+          activeId !== item.id ? 'text-blue-100/70 hover:text-white hover:bg-white/10' : '',
         ]"
         :style="activeId === item.id ? 'background-color: #DBEAFE; color: #00288E;' : ''"
       >
@@ -78,16 +76,11 @@ function navigate(item: (typeof navItems)[number]) {
             : 'font-variation-settings: \'FILL\' 0, \'wght\' 300, \'GRAD\' 0, \'opsz\' 24;'"
         >{{ item.icon }}</span>
         <span class="text-sm tracking-wide">{{ item.label }}</span>
-        <span
-          v-if="!item.to"
-          class="ml-auto text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-          style="background-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4);"
-        >soon</span>
       </button>
     </div>
 
     <!-- Nueva Cita CTA -->
-    <div class="px-6 mt-6">
+    <div v-if="auth.hasPermission('ver_agenda')" class="px-6 mt-6">
       <button
         class="w-full py-4 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg text-sm"
         style="background-color: #76DCFF; color: #006077;"

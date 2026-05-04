@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { ref, computed, onMounted, watch, defineComponent, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppHeader from '@/components/AppHeader.vue'
@@ -11,6 +11,11 @@ import {
   updatePatient,
   deletePatient,
 } from '@/services/patientService'
+
+import {
+  type ConsultaClinica,
+  getConsultasByPatient,
+} from '@/services/clinicaService'
 
 const TabPending = defineComponent({
   props: {
@@ -53,10 +58,10 @@ const patientId = computed(() => Number(route.params.id))
 type TabId = 'info' | 'citas' | 'clinico' | 'ventas'
 
 const tabs: { id: TabId; label: string; icon: string; available: boolean }[] = [
-  { id: 'info',    label: 'Información',      icon: 'badge',              available: true  },
-  { id: 'citas',   label: 'Citas y Turnos',   icon: 'calendar_month',     available: false },
-  { id: 'clinico', label: 'Historial Clínico', icon: 'medical_information', available: false },
-  { id: 'ventas',  label: 'Ventas',            icon: 'receipt_long',       available: false },
+  { id: 'info',    label: 'Información',      icon: 'badge',               available: true  },
+  { id: 'citas',   label: 'Citas y Turnos',   icon: 'calendar_month',      available: false },
+  { id: 'clinico', label: 'Historial Clínico', icon: 'medical_information', available: true  },
+  { id: 'ventas',  label: 'Ventas',            icon: 'receipt_long',        available: false },
 ]
 
 const activeTab = ref<TabId>('info')
@@ -80,6 +85,8 @@ async function loadPatient() {
 }
 
 onMounted(loadPatient)
+
+watch(activeTab, (tab) => { if (tab === 'clinico' && !consultas.value.length) loadConsultas() })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -109,6 +116,27 @@ function calcAge(birthDateIso: string): number {
   const m = today.getMonth() - birth.getMonth()
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
   return age
+}
+
+// ── Historial Clínico ─────────────────────────────────────────────────────────
+
+const consultas         = ref<ConsultaClinica[]>([])
+const isLoadingConsultas = ref(false)
+
+async function loadConsultas() {
+  if (!patientId.value) return
+  isLoadingConsultas.value = true
+  try {
+    consultas.value = await getConsultasByPatient(patientId.value)
+  } catch {
+    // silencioso
+  } finally {
+    isLoadingConsultas.value = false
+  }
+}
+
+function formatConsultaDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 // ── Modal Editar ──────────────────────────────────────────────────────────────
@@ -444,13 +472,82 @@ async function confirmDelete() {
 
           <!-- ── Tab: Historial Clínico ─────────────────────────────────────── -->
           <div v-else-if="activeTab === 'clinico'">
-            <TabPending
-              icon="medical_information"
-              title="Historial Clínico"
-              description="Las consultas clínicas, diagnósticos y recetas del paciente estarán disponibles cuando se implemente el módulo Clínico."
-              accent="#2000B1"
-              accent-bg="rgba(32,0,177,0.06)"
-            />
+            <div
+              class="rounded-2xl overflow-hidden"
+              style="background-color: #ffffff; box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15);"
+            >
+              <!-- Encabezado del historial -->
+              <div class="flex items-center justify-between px-6 py-5" style="border-bottom: 1px solid rgba(196,197,213,0.2);">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined" style="color: #2000B1; font-size:20px;">medical_information</span>
+                  <h2 class="text-sm font-bold uppercase tracking-widest" style="color: #757684;">Historial Clínico</h2>
+                </div>
+                <button
+                  @click="() => router.push({ path: '/clinica' })"
+                  class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all"
+                  style="background-color: #E6E8ED; color: #444653;"
+                  onmouseover="this.style.backgroundColor='rgba(32,0,177,0.08)'; this.style.color='#2000B1'"
+                  onmouseout="this.style.backgroundColor='#E6E8ED'; this.style.color='#444653'"
+                >
+                  <span class="material-symbols-outlined" style="font-size:14px;">open_in_new</span>
+                  Ver en Clínica
+                </button>
+              </div>
+
+              <!-- Loading -->
+              <div v-if="isLoadingConsultas" class="flex justify-center py-16">
+                <svg class="animate-spin w-7 h-7" style="color: #2000B1;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+              </div>
+
+              <!-- Vacío -->
+              <div v-else-if="!consultas.length" class="py-16 text-center">
+                <span class="material-symbols-outlined block mx-auto mb-3" style="color: #C4C5D5; font-size:40px;">medical_information</span>
+                <p class="text-sm font-semibold" style="color: #757684;">Sin consultas registradas</p>
+                <p class="text-xs mt-1" style="color: #C4C5D5;">Las consultas aparecerán aquí una vez registradas.</p>
+              </div>
+
+              <!-- Lista de consultas -->
+              <div v-else class="divide-y" style="--tw-divide-opacity: 1; border-color: rgba(196,197,213,0.2);">
+                <div
+                  v-for="c in consultas"
+                  :key="c.id"
+                  class="px-6 py-4 flex items-start justify-between gap-4"
+                  onmouseover="this.style.backgroundColor='#F7F9FE'"
+                  onmouseout="this.style.backgroundColor='transparent'"
+                >
+                  <div class="flex items-start gap-4 flex-1 min-w-0">
+                    <div
+                      class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style="background-color: rgba(32,0,177,0.06);"
+                    >
+                      <span class="material-symbols-outlined" style="color: #2000B1; font-size:18px;">description</span>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span class="text-sm font-bold" style="color: #181C20;">{{ c.diagnosticoPrincipal }}</span>
+                        <span
+                          v-if="c.receta"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                          style="background-color: #D1FAE5; color: #065F46;"
+                        >
+                          <span class="material-symbols-outlined" style="font-size:10px;">check</span>
+                          Con receta
+                        </span>
+                      </div>
+                      <p class="text-xs truncate" style="color: #757684;">
+                        {{ c.motivo }}
+                        <span class="mx-1.5" style="color: #C4C5D5;">·</span>
+                        {{ c.professionalFirstName }} {{ c.professionalLastName }}
+                      </p>
+                    </div>
+                  </div>
+                  <span class="text-xs font-semibold flex-shrink-0" style="color: #757684;">{{ formatConsultaDate(c.fechaConsulta) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- ── Tab: Ventas ────────────────────────────────────────────────── -->
