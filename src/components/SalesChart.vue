@@ -76,7 +76,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
         <!-- Today dot highlight -->
         <circle
           :cx="(6 / (values.length - 1)) * 240 + 20"
-          :cy="100 - normalize(values[6])"
+          :cy="100 - normalize(values[6]!)"
           r="5"
           fill="#1E40AF"
           stroke="white"
@@ -110,7 +110,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
         </div>
         <div class="text-center">
           <p class="text-xs text-slate-500">Hoy</p>
-          <p class="text-sm font-bold text-[#1E40AF] mt-0.5">{{ formatM(values[6]) }}</p>
+          <p class="text-sm font-bold text-[#1E40AF] mt-0.5">{{ formatM(values[6]!) }}</p>
         </div>
       </div>
     </div>

@@ -23,7 +23,7 @@ function toDateStr(d: Date): string {
 
 function formatHour(iso: string): string {
   const match = iso.match(/T(\d{2}:\d{2})/)
-  return match ? match[1] : iso
+  return match ? match[1]! : iso
 }
 
 // ── Navegación de fecha ───────────────────────────────────────────────────────
