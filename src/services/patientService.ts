@@ -42,7 +42,7 @@ export interface CreatePatientRequest {
 export interface UpdatePatientRequest {
   firstName: string
   lastName: string
-  dni: string
+  ci: string
   birthDate: string
   phoneNumber?: string
   email?: string

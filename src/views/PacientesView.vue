@@ -106,7 +106,7 @@ const AVATAR_PALETTE = [
 
 function avatarStyle(p: Patient) {
   const idx = (p.id ?? 0) % AVATAR_PALETTE.length
-  return AVATAR_PALETTE[idx]
+  return AVATAR_PALETTE[idx]!
 }
 
 function initials(p: Patient) {

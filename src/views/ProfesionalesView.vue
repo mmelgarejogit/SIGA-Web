@@ -79,7 +79,7 @@ const AVATAR_PALETTE = [
 ]
 
 function avatarStyle(p: Professional) {
-  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]
+  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]!
 }
 
 function initials(p: Professional) {

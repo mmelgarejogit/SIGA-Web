@@ -98,7 +98,7 @@ const AVATAR_PALETTE = [
 ]
 
 function avatarStyle(p: Patient) {
-  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]
+  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]!
 }
 
 function initials(p: Patient) {
@@ -142,11 +142,11 @@ function formatConsultaDate(iso: string) {
 // ── Modal Editar ──────────────────────────────────────────────────────────────
 
 const showEditModal  = ref(false)
-const editForm       = ref<UpdatePatientRequest>({ firstName: '', lastName: '', dni: '', birthDate: '', phoneNumber: '', email: '', isActive: true })
+const editForm       = ref<UpdatePatientRequest>({ firstName: '', lastName: '', ci: '', birthDate: '', phoneNumber: '', email: '', isActive: true })
 const editError      = ref('')
 const isSavingEdit   = ref(false)
 
-type EditErrors = { firstName?: string; lastName?: string; dni?: string; birthDate?: string; email?: string }
+type EditErrors = { firstName?: string; lastName?: string; ci?: string; birthDate?: string; email?: string }
 const editErrors = ref<EditErrors>({})
 
 const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
@@ -159,8 +159,8 @@ function validateEdit(): boolean {
   else if (!ONLY_LETTERS.test(f.firstName.trim())) e.firstName = 'Solo letras y espacios.'
   if (!f.lastName.trim())                          e.lastName  = 'El apellido es obligatorio.'
   else if (!ONLY_LETTERS.test(f.lastName.trim()))  e.lastName  = 'Solo letras y espacios.'
-  if (!f.dni.trim())                               e.dni       = 'El nro. de cédula es obligatorio.'
-  else if (f.dni.trim().length > 30)               e.dni       = 'Máximo 30 caracteres.'
+  if (!f.ci.trim())                               e.ci       = 'El nro. de cédula es obligatorio.'
+  else if (f.ci.trim().length > 30)               e.ci       = 'Máximo 30 caracteres.'
   if (!f.birthDate)                                e.birthDate = 'La fecha de nacimiento es obligatoria.'
   if (f.email?.trim() && !EMAIL_RE.test(f.email.trim())) e.email = 'El formato del email no es válido.'
   editErrors.value = e
@@ -172,7 +172,7 @@ function openEditModal() {
   editForm.value = {
     firstName:   patient.value.firstName,
     lastName:    patient.value.lastName,
-    dni:         patient.value.dni,
+    ci:          patient.value.ci,
     birthDate:   patient.value.birthDate,
     phoneNumber: patient.value.phoneNumber ?? '',
     email:       patient.value.email ?? '',
@@ -302,7 +302,7 @@ async function confirmDelete() {
                   </span>
                 </div>
                 <p class="text-sm font-medium" style="color: #757684;">
-                  Nro. de Cédula {{ patient.dni }}
+                  Nro. de Cédula {{ patient.ci }}
                   <span class="mx-2" style="color: #C4C5D5;">·</span>
                   {{ calcAge(patient.birthDate) }} años
                   <span class="mx-2" style="color: #C4C5D5;">·</span>
@@ -380,7 +380,7 @@ async function confirmDelete() {
                 </div>
                 <div>
                   <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: #757684;">Nro. de Cédula</dt>
-                  <dd class="text-sm font-bold tracking-wider" style="color: #181C20;">{{ patient.dni }}</dd>
+                  <dd class="text-sm font-bold tracking-wider" style="color: #181C20;">{{ patient.ci }}</dd>
                 </div>
                 <div>
                   <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: #757684;">Fecha de Nacimiento</dt>
@@ -633,12 +633,12 @@ async function confirmDelete() {
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: #757684;">Nro. de Cédula *</label>
                 <input
-                  v-model="editForm.dni"
+                  v-model="editForm.ci"
                   type="text"
                   class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  :style="inputStyle(!!editErrors.dni)"
+                  :style="inputStyle(!!editErrors.ci)"
                 />
-                <p v-if="editErrors.dni" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.dni }}</p>
+                <p v-if="editErrors.ci" class="text-xs font-medium" style="color: #BA1A1A;">{{ editErrors.ci }}</p>
               </div>
 
               <div class="flex flex-col gap-1.5">
