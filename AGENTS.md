@@ -31,7 +31,9 @@ CSS variables en `src/assets/main.css`:
 --font-body:           "Manrope"
 ```
 
-Usar `var(--color-primary)` en `style` binding cuando Tailwind no alcance. No hardcodear colores fuera del tema.
+Usar Tailwind utilities (`bg-primary`, `text-on-surface`) siempre que existan. Cuando Tailwind no alcance, usar `var(--color-*)` en `style` binding. **Prohibido hardcodear hex codes** (`#181c20`, `#444653`, etc.) fuera de `main.css`.
+
+> **Regla:** `main.css` aplica las fuentes globalmente vía `body` y `h1–h6`. **No declarar `font-family` inline en vistas ni componentes.**
 
 ## Iconos
 
@@ -47,6 +49,20 @@ Usar `var(--color-primary)` en `style` binding cuando Tailwind no alcance. No ha
 ## No instalar librerías de componentes UI
 
 Todo se construye con Tailwind. **No usar Vuetify, Quasar, PrimeVue, etc.**
+
+## Componentes compartidos (Design System)
+
+Toda nueva vista CRUD debe usar los componentes del Design System:
+
+| Componente | Uso |
+|---|---|
+| `BaseButton` | Botones con variantes (`primary`, `secondary`, `danger`, `ghost`) y tamaños (`sm`, `default`, `lg`) |
+| `BaseModal` | Shell de modal con overlay, header con borde, body scrollable, footer. Tamaños: `sm`, `md`, `lg`, `xl` |
+| `BaseTable` | Tabla con header themed, filas hover, estado vacío, skeleton loading. Usar slots scoped para celdas personalizadas |
+| `FilterTabs` | Grupo de pills para filtros. Activo: `bg-primary text-on-primary`. Inactivo: `bg-surface-container-high text-on-surface-variant` |
+| `SearchInput` | Input de búsqueda `rounded-xl`, `bg-surface-container-lowest`, borde `outline-variant`, con icono y botón limpiar |
+
+> Ver especificación completa (tipografía, layout, botones, tablas, modales, formularios) en `CLAUDE.md` → *Design System*.
 
 ## Proxy API
 
