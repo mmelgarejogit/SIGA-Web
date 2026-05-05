@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface Especialidad {
   id: number
@@ -44,7 +44,7 @@ export interface UpdateProfessionalRequest {
 }
 
 export async function getProfessionals(): Promise<Professional[]> {
-  const { data } = await http.get<Professional[]>('/api/professionals')
+  const { data } = await http.get<Professional[]>("/api/professionals")
   return data
 }
 
@@ -53,12 +53,17 @@ export async function getProfessionalById(id: number): Promise<Professional> {
   return data
 }
 
-export async function createProfessional(request: CreateProfessionalRequest): Promise<Professional> {
-  const { data } = await http.post<Professional>('/api/professionals', request)
+export async function createProfessional(
+  request: CreateProfessionalRequest,
+): Promise<Professional> {
+  const { data } = await http.post<Professional>("/api/professionals", request)
   return data
 }
 
-export async function updateProfessional(id: number, request: UpdateProfessionalRequest): Promise<Professional> {
+export async function updateProfessional(
+  id: number,
+  request: UpdateProfessionalRequest,
+): Promise<Professional> {
   const { data } = await http.put<Professional>(`/api/professionals/${id}`, request)
   return data
 }
@@ -68,7 +73,7 @@ export async function deleteProfessional(id: number): Promise<void> {
 }
 
 export async function getEspecialidades(): Promise<Especialidad[]> {
-  const { data } = await http.get<Especialidad[]>('/api/especialidades')
+  const { data } = await http.get<Especialidad[]>("/api/especialidades")
   return data
 }
 
@@ -83,8 +88,8 @@ export interface PausaHorario {
 
 export interface HorarioProfesional {
   id: number
-  diaSemana: number   // 0=Domingo … 6=Sábado (C# DayOfWeek)
-  horaInicio: string  // "HH:MM:SS"
+  diaSemana: number // 0=Domingo … 6=Sábado (C# DayOfWeek)
+  horaInicio: string // "HH:MM:SS"
   horaFin: string
   activo: boolean
   pausas: PausaHorario[]
@@ -109,11 +114,19 @@ export interface SetHorariosRequest {
 }
 
 export async function getHorarios(professionalId: number): Promise<HorarioProfesional[]> {
-  const { data } = await http.get<HorarioProfesional[]>(`/api/professionals/${professionalId}/horarios`)
+  const { data } = await http.get<HorarioProfesional[]>(
+    `/api/professionals/${professionalId}/horarios`,
+  )
   return data
 }
 
-export async function setHorarios(professionalId: number, request: SetHorariosRequest): Promise<HorarioProfesional[]> {
-  const { data } = await http.put<HorarioProfesional[]>(`/api/professionals/${professionalId}/horarios`, request)
+export async function setHorarios(
+  professionalId: number,
+  request: SetHorariosRequest,
+): Promise<HorarioProfesional[]> {
+  const { data } = await http.put<HorarioProfesional[]>(
+    `/api/professionals/${professionalId}/horarios`,
+    request,
+  )
   return data
 }

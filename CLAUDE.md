@@ -25,7 +25,12 @@ src/
 ├── components/
 │   ├── AppHeader.vue         # Header fijo superior (64px)
 │   ├── AppSidebar.vue        # Sidebar fijo izquierdo (280px)
-│   └── KpiCard.vue           # Card reutilizable para métricas
+│   ├── BaseButton.vue        # Botón con variantes y tamaños
+│   ├── BaseModal.vue         # Shell de modal con overlay, header, body scrollable, footer
+│   ├── BaseTable.vue         # Tabla con header, filas hover, estado vacío, skeleton
+│   ├── FilterTabs.vue        # Grupo de pills para filtros
+│   ├── KpiCard.vue           # Card reutilizable para métricas
+│   └── SearchInput.vue       # Input de búsqueda con icono y botón limpiar
 ├── composables/
 │   └── useHttp.ts            # Wrapper de axios → retorna .data directamente
 ├── router/
@@ -51,6 +56,8 @@ src/
 --font-body:     "Manrope"             /* body text, UI */
 ```
 
+> **Regla:** `main.css` aplica las fuentes globales vía `body` y `h1–h6`. **No declarar `font-family` inline en vistas ni componentes.** Usar `var(--font-headline)` solo en casos excepcionales donde Tailwind no alcance.
+
 ### Paleta de colores (CSS variables en main.css)
 ```css
 /* Primarios */
@@ -71,6 +78,8 @@ src/
 --color-error:           #BA1A1A
 --color-error-container: #FFDAD6
 ```
+
+> **Regla:** usar Tailwind utilities (`bg-primary`, `text-on-surface`, etc.) siempre que existan. Cuando Tailwind no alcance, usar `var(--color-*)` en `style` binding. **Prohibido hardcodear hexes** (`#181c20`, `#444653`, etc.) fuera de `main.css`.
 
 ### Border radius
 ```css
@@ -105,7 +114,159 @@ Todas las vistas autenticadas usan este layout fijo:
 └──────────┴──────────────────────────────────────┘
 ```
 
-Cada vista define su propio `<main class="ml-[280px] pt-16 ...">`.
+### Wrapper obligatorio
+
+```html
+<div class="min-h-screen" style="background-color: var(--color-background)">
+  <AppSidebar />
+  <AppHeader />
+  <main style="margin-left: 280px; padding-top: 64px">
+    <div class="p-8">
+      <!-- contenido de la vista -->
+    </div>
+  </main>
+</div>
+```
+
+> **Reglas:**
+> - Usar **inline `style`** en `<main>`, no `class="ml-[280px] pt-16"`.
+> - El `<div class="p-8">` interior **no debe tener `max-w-*` ni `mx-auto`**. El contenido es edge-to-edge con `padding: 32px`.
+> - **No declarar `font-family` ni `color` en `<main>`** — confiar en `main.css`.
+> - `DashboardView` puede usar su propio layout hero; el resto sigue este wrapper estrictamente.
+
+---
+
+## Design System
+
+### Tipografía
+
+| Rol | Tag | Clases Tailwind | Style binding (si es necesario) |
+|-----|-----|-----------------|--------------------------------|
+| Título de página | `<h1>` | `text-4xl font-extrabold tracking-tight` | `color: var(--color-on-surface)` |
+| Subtítulo | `<p>` | `font-medium` | `color: var(--color-on-surface-variant)` |
+| Título de sección | `<h3>` | `text-xl font-extrabold` | `color: var(--color-primary)` |
+| Label de formulario | `<label>` | `text-xs font-bold uppercase tracking-wider` | `color: var(--color-outline)` |
+| Body / tabla | — | — | Hereda de `main.css` |
+| Dashboard hero | `<h1>` | `text-5xl font-extrabold tracking-tight leading-tight` | `color: var(--color-on-surface)` |
+
+> **Nota:** `text-4xl` es el estándar para todas las vistas de listado. Solo `DashboardView` usa `text-5xl` como excepción.
+
+### Botones (`BaseButton`)
+
+| Variante | Fondo | Texto | Radio | Sombra |
+|----------|-------|-------|-------|--------|
+| `primary` | `bg-primary` | `text-on-primary` | `rounded-full` | `0 4px 20px rgba(0, 40, 142, 0.2)` |
+| `secondary` | `bg-surface-container-high` | `text-on-surface-variant` | `rounded-full` | — |
+| `danger` | `bg-error` | `text-on-error` | `rounded-full` | — |
+| `ghost` | transparent | `text-on-surface-variant` | `rounded-full` | — |
+
+| Tamaño | Padding | Altura |
+|--------|---------|--------|
+| `sm` | `px-5` | `h-10` |
+| `default` | `px-6 py-3` | — |
+| `lg` | `px-8 py-4` | — |
+
+> **Regla:** todos los botones llevan `font-bold`, `transition-all`, `active:scale-95`. Los botones de acción principal en listados usan tamaño `lg`.
+
+### Pills de filtro (`FilterTabs`)
+
+- **Activo:** `bg-primary text-on-primary rounded-full px-6 py-2 text-sm font-semibold transition-all`
+- **Inactivo:** `bg-surface-container-high text-on-surface-variant rounded-full px-6 py-2 text-sm font-semibold transition-all`
+
+> **Regla:** usar `bg-primary` + `text-on-primary` para activo en **todos** los filtros. No usar `#1E40AF` ni `#A8B8FF`.
+
+### Input de búsqueda (`SearchInput`)
+
+```html
+<input
+  class="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition-all"
+  style="background-color: var(--color-surface-container-lowest);
+         border: 1px solid var(--color-outline-variant);
+         color: var(--color-on-surface);"
+/>
+```
+
+> **Regla:** forma `rounded-xl` (no `rounded-full`), fondo `surface-container-lowest`, borde sólido `outline-variant`.
+
+### Tablas (`BaseTable`)
+
+- **Wrapper:** `rounded-2xl overflow-hidden` + `bg-surface-container-lowest` + shadow suave
+- **Header:** `bg-surface-container-low`, `py-5`, `text-xs font-bold uppercase tracking-widest`, `color: var(--color-outline)`
+- **Filas:** `border-bottom: 1px solid rgba(196, 197, 213, 0.12)`, hover `hover:bg-surface-container-low` (Tailwind class)
+- **Celdas:** `px-6 py-4`
+
+> **Regla:** usar **siempre** `hover:bg-surface-container-low` como clase Tailwind. Prohibido `onmouseover="this.style.backgroundColor = '...'"`.
+
+### Modales (`BaseModal`)
+
+```html
+<Teleport to="body">
+  <Transition name="fade">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <!-- overlay -->
+      <div class="absolute inset-0" style="background-color: rgba(24, 28, 32, 0.5)"
+           @click.self="close" />
+      <!-- panel -->
+      <div class="relative w-full rounded-3xl overflow-hidden"
+           style="background-color: var(--color-surface-container-lowest);
+                  box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);">
+        <!-- header -->
+        <div class="flex items-center justify-between px-8 pt-8 pb-6"
+             style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)">
+          <h3 class="text-xl font-extrabold"
+              style="font-family: var(--font-headline); color: var(--color-primary)">Título</h3>
+          <button class="p-1 rounded-full transition-colors" style="color: var(--color-outline)">
+            <span class="material-symbols-outlined" style="font-size: 22px">close</span>
+          </button>
+        </div>
+        <!-- body (scrollable) -->
+        <form class="px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto">...</form>
+        <!-- footer -->
+        <div class="px-8 py-6 flex justify-end gap-3"
+             style="border-top: 1px solid rgba(196, 197, 213, 0.2)">...</div>
+      </div>
+    </div>
+  </Transition>
+</Teleport>
+```
+
+| Tamaño | `max-w` | Uso típico |
+|--------|---------|-----------|
+| `sm` | `max-w-sm` | Confirmaciones, alertas |
+| `md` | `max-w-md` | Formularios pequeños |
+| `lg` | `max-w-2xl` | CRUD create/edit |
+| `xl` | `max-w-3xl` | Formularios complejos |
+
+> **Reglas:**
+> - Siempre `rounded-3xl overflow-hidden`.
+> - Siempre header con borde inferior `rgba(196, 197, 213, 0.2)`.
+> - Título del modal en `color: var(--color-primary)`.
+> - Body scrollable con `max-h-[70vh] overflow-y-auto`.
+> - Footer con borde superior.
+> - No usar `backdrop-blur-sm` en el overlay (inconsistente con el resto del sistema).
+
+### Formularios
+
+- **Input estándar:**
+  ```html
+  <input
+    class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+    :style="inputStyle(hasError)"
+  />
+  ```
+- **Helper `inputStyle`:**
+  ```ts
+  function inputStyle(hasError: boolean) {
+    return hasError
+      ? 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+      : 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);'
+  }
+  ```
+- **Select:** igual que input pero con `appearance-none`.
+- **Label:** `<label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">`
+- **Error text:** `<p class="text-xs font-medium" style="color: var(--color-error)">...</p>`
+
+> **Regla:** todos los inputs usan `px-4 py-3`. No mezclar `px-3 py-2.5` (estilo antiguo de AgendaView).
 
 ---
 
@@ -244,18 +405,18 @@ Toda vista de listado + CRUD sigue este patrón:
 ### Estructura del template
 ```
 <main layout>
-  ├── Encabezado (título + botón "Añadir X")
-  ├── Filtros opcionales (Todos / Activos / Inactivos)
-  ├── Tabla responsive
+  ├── Encabezado (<h1> text-4xl + botón "Añadir X" primary lg)
+  ├── Filtros (FilterTabs + SearchInput)
+  ├── Tabla responsive (BaseTable)
   │   └── Filas con: avatar/icono · datos · estado badge · acciones (edit/delete)
   ├── Footer "Mostrando X de Y registros"
   ├── Bento cards insight (métricas rápidas)
   └── FAB button (esquina inferior derecha)
 
   <!-- Fuera del layout, con Teleport -->
-  ├── Modal Crear
-  ├── Modal Editar
-  └── Modal Eliminar (confirmación)
+  ├── Modal Crear   (BaseModal size="lg")
+  ├── Modal Editar  (BaseModal size="lg")
+  └── Modal Eliminar (BaseModal size="sm")
 ```
 
 ### Estado reactivo en `<script setup>`

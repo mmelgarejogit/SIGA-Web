@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface PagedResult<T> {
   items: T[]
@@ -103,13 +103,15 @@ export interface GetConsultasParams {
   professionalId?: number
 }
 
-export async function getConsultas(params: GetConsultasParams = {}): Promise<PagedResult<ConsultaClinica>> {
+export async function getConsultas(
+  params: GetConsultasParams = {},
+): Promise<PagedResult<ConsultaClinica>> {
   const query = new URLSearchParams()
-  if (params.page)           query.set('page',           String(params.page))
-  if (params.pageSize)       query.set('pageSize',       String(params.pageSize))
-  if (params.search)         query.set('search',         params.search)
-  if (params.patientId)      query.set('patientId',      String(params.patientId))
-  if (params.professionalId) query.set('professionalId', String(params.professionalId))
+  if (params.page) query.set("page", String(params.page))
+  if (params.pageSize) query.set("pageSize", String(params.pageSize))
+  if (params.search) query.set("search", params.search)
+  if (params.patientId) query.set("patientId", String(params.patientId))
+  if (params.professionalId) query.set("professionalId", String(params.professionalId))
   const { data } = await http.get<PagedResult<ConsultaClinica>>(`/api/consultas?${query}`)
   return data
 }
@@ -124,12 +126,17 @@ export async function getConsultaById(id: number): Promise<ConsultaClinica> {
   return data
 }
 
-export async function createConsulta(request: CreateConsultaClinicaRequest): Promise<ConsultaClinica> {
-  const { data } = await http.post<ConsultaClinica>('/api/consultas', request)
+export async function createConsulta(
+  request: CreateConsultaClinicaRequest,
+): Promise<ConsultaClinica> {
+  const { data } = await http.post<ConsultaClinica>("/api/consultas", request)
   return data
 }
 
-export async function updateConsulta(id: number, request: UpdateConsultaClinicaRequest): Promise<ConsultaClinica> {
+export async function updateConsulta(
+  id: number,
+  request: UpdateConsultaClinicaRequest,
+): Promise<ConsultaClinica> {
   const { data } = await http.put<ConsultaClinica>(`/api/consultas/${id}`, request)
   return data
 }
@@ -138,7 +145,10 @@ export async function deleteConsulta(id: number): Promise<void> {
   await http.delete(`/api/consultas/${id}`)
 }
 
-export async function createOrUpdateReceta(consultaId: number, request: CreateRecetaRequest): Promise<Receta> {
+export async function createOrUpdateReceta(
+  consultaId: number,
+  request: CreateRecetaRequest,
+): Promise<Receta> {
   const { data } = await http.post<Receta>(`/api/consultas/${consultaId}/receta`, request)
   return data
 }

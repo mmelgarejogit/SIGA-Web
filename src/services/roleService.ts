@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface Role {
   id: number
@@ -13,105 +13,197 @@ export interface RoleRequest {
 }
 
 // Lista canónica de todas las acciones del sistema (usada para mostrar labels en tabla)
+// DEBE mantenerse sincronizada con DbSeeder.cs y Program.cs del backend.
 export const SYSTEM_PERMISSIONS = [
-  { id: 'ver_pacientes',           label: 'Ver pacientes' },
-  { id: 'crear_paciente',          label: 'Crear paciente' },
-  { id: 'editar_paciente',         label: 'Editar paciente' },
-  { id: 'desactivar_paciente',     label: 'Desactivar paciente' },
-  { id: 'ver_calendario',          label: 'Ver calendario' },
-  { id: 'crear_turno',             label: 'Crear turno' },
-  { id: 'reagendar_turno',         label: 'Reagendar turno' },
-  { id: 'cancelar_turno',          label: 'Cancelar turno' },
-  { id: 'ver_historia_clinica',    label: 'Ver historia clínica' },
-  { id: 'editar_historia_clinica', label: 'Editar historia clínica' },
-  { id: 'ver_recetas',             label: 'Ver recetas' },
-  { id: 'ver_profesionales',       label: 'Ver profesionales' },
-  { id: 'crear_profesional',       label: 'Crear profesional' },
-  { id: 'editar_profesional',      label: 'Editar profesional' },
-  { id: 'ver_inventario',          label: 'Ver inventario' },
-  { id: 'crear_inventario',        label: 'Agregar al inventario' },
-  { id: 'editar_inventario',       label: 'Editar inventario' },
-  { id: 'desactivar_inventario',   label: 'Desactivar del inventario' },
-  { id: 'ver_ventas',              label: 'Ver ventas' },
-  { id: 'registrar_venta',         label: 'Registrar venta' },
-  { id: 'ver_reportes',            label: 'Ver reportes' },
-  { id: 'ver_usuarios',            label: 'Ver usuarios' },
-  { id: 'crear_usuario',           label: 'Crear usuario' },
-  { id: 'editar_usuario',          label: 'Editar usuario' },
-  { id: 'desactivar_usuario',      label: 'Desactivar usuario' },
-  { id: 'ver_roles',               label: 'Ver roles' },
-  { id: 'crear_rol',               label: 'Crear rol' },
-  { id: 'editar_rol',              label: 'Editar rol' },
-  { id: 'eliminar_rol',            label: 'Eliminar rol' },
+  { id: "ver_pacientes", label: "Ver pacientes" },
+  { id: "crear_paciente", label: "Crear paciente" },
+  { id: "editar_paciente", label: "Editar paciente" },
+  { id: "desactivar_paciente", label: "Desactivar paciente" },
+
+  { id: "ver_profesionales", label: "Ver profesionales" },
+  { id: "crear_profesional", label: "Crear profesional" },
+  { id: "editar_profesional", label: "Editar profesional" },
+
+  { id: "ver_especialidades", label: "Ver especialidades" },
+  { id: "gestionar_especialidades", label: "Gestionar especialidades" },
+
+  { id: "ver_agenda", label: "Ver agenda" },
+  { id: "gestionar_agenda", label: "Gestionar agenda" },
+  { id: "ver_mis_turnos", label: "Ver mis turnos" },
+
+  { id: "ver_calendario", label: "Ver calendario" },
+
+  { id: "ver_historia_clinica", label: "Ver historia clínica" },
+
+  { id: "ver_consultas", label: "Ver consultas" },
+  { id: "registrar_consulta", label: "Registrar consulta" },
+  { id: "editar_consulta", label: "Editar consulta" },
+  { id: "eliminar_consulta", label: "Eliminar consulta" },
+
+  { id: "ver_recetas", label: "Ver recetas" },
+
+  { id: "ver_inventario", label: "Ver inventario" },
+
+  { id: "ver_ventas", label: "Ver ventas" },
+  { id: "registrar_venta", label: "Registrar venta" },
+
+  { id: "ver_reportes", label: "Ver reportes" },
+
+  { id: "ver_dashboard", label: "Ver dashboard" },
+  { id: "ver_notificaciones", label: "Ver notificaciones" },
+
+  { id: "ver_usuarios", label: "Ver usuarios" },
+  { id: "editar_usuario", label: "Editar usuario" },
+
+  { id: "ver_roles", label: "Ver roles" },
+  { id: "crear_rol", label: "Crear rol" },
+  { id: "editar_rol", label: "Editar rol" },
+  { id: "eliminar_rol", label: "Eliminar rol" },
 ] as const
 
 // Columnas de la matriz de permisos
 export const MATRIX_COLUMNS = [
-  { id: 'ver',        label: 'Ver' },
-  { id: 'crear',      label: 'Crear' },
-  { id: 'editar',     label: 'Editar' },
-  { id: 'desactivar', label: 'Desactivar' },
+  { id: "ver", label: "Ver" },
+  { id: "crear", label: "Crear" },
+  { id: "editar", label: "Editar" },
+  { id: "desactivar", label: "Desactivar" },
 ] as const
 
 export interface MatrixRow {
-  module:      string
-  icon:        string
+  module: string
+  icon: string
   description: string
   // mapa colId → permissionId (si la celda aplica al módulo)
   permissions: Partial<Record<string, string>>
 }
 
 // Módulos del sistema con sus permisos mapeados a columnas
+// DEBE mantenerse sincronizado con los controllers del backend.
 export const PERMISSION_MATRIX: MatrixRow[] = [
   {
-    module: 'Pacientes', icon: 'groups', description: 'Historial clínico y datos personales',
-    permissions: { ver: 'ver_pacientes', crear: 'crear_paciente', editar: 'editar_paciente', desactivar: 'desactivar_paciente' },
+    module: "Pacientes",
+    icon: "groups",
+    description: "Historial clínico y datos personales",
+    permissions: {
+      ver: "ver_pacientes",
+      crear: "crear_paciente",
+      editar: "editar_paciente",
+      desactivar: "desactivar_paciente",
+    },
   },
   {
-    module: 'Agenda', icon: 'calendar_month', description: 'Gestión de citas y turnos',
-    permissions: { ver: 'ver_calendario', crear: 'crear_turno', editar: 'reagendar_turno', desactivar: 'cancelar_turno' },
+    module: "Profesionales",
+    icon: "stethoscope",
+    description: "Gestión del equipo profesional",
+    permissions: {
+      ver: "ver_profesionales",
+      crear: "crear_profesional",
+      editar: "editar_profesional",
+    },
   },
   {
-    module: 'Historia Clínica', icon: 'medical_services', description: 'Evoluciones y registros clínicos',
-    permissions: { ver: 'ver_historia_clinica', editar: 'editar_historia_clinica' },
+    module: "Especialidades",
+    icon: "medical_services",
+    description: "Especialidades del staff",
+    permissions: { ver: "ver_especialidades", editar: "gestionar_especialidades" },
   },
   {
-    module: 'Recetas', icon: 'medication', description: 'Prescripciones y recetas médicas',
-    permissions: { ver: 'ver_recetas' },
+    module: "Agenda",
+    icon: "calendar_month",
+    description: "Gestión de citas y turnos",
+    permissions: { ver: "ver_agenda", editar: "gestionar_agenda" },
   },
   {
-    module: 'Profesionales', icon: 'stethoscope', description: 'Gestión del equipo profesional',
-    permissions: { ver: 'ver_profesionales', crear: 'crear_profesional', editar: 'editar_profesional' },
+    module: "Mis Turnos",
+    icon: "event_available",
+    description: "Autogestión de turnos por pacientes",
+    permissions: { ver: "ver_mis_turnos" },
   },
   {
-    module: 'Inventario', icon: 'inventory_2', description: 'Control de stock y productos',
-    permissions: { ver: 'ver_inventario', crear: 'crear_inventario', editar: 'editar_inventario', desactivar: 'desactivar_inventario' },
+    module: "Calendario",
+    icon: "event",
+    description: "Vista de calendario de turnos",
+    permissions: { ver: "ver_calendario" },
   },
   {
-    module: 'Ventas', icon: 'payments', description: 'Facturación y órdenes de trabajo',
-    permissions: { ver: 'ver_ventas', crear: 'registrar_venta' },
+    module: "Clínica",
+    icon: "clinical_notes",
+    description: "Consultas y recetas ópticas",
+    permissions: {
+      ver: "ver_consultas",
+      crear: "registrar_consulta",
+      editar: "editar_consulta",
+      desactivar: "eliminar_consulta",
+    },
   },
   {
-    module: 'Reportes', icon: 'analytics', description: 'Informes financieros y operativos',
-    permissions: { ver: 'ver_reportes' },
+    module: "Historia Clínica",
+    icon: "folder_shared",
+    description: "Acceso al historial clínico global",
+    permissions: { ver: "ver_historia_clinica" },
   },
   {
-    module: 'Usuarios', icon: 'manage_accounts', description: 'Gestión de cuentas y accesos',
-    permissions: { ver: 'ver_usuarios', crear: 'crear_usuario', editar: 'editar_usuario', desactivar: 'desactivar_usuario' },
+    module: "Recetas",
+    icon: "medication",
+    description: "Prescripciones y recetas médicas",
+    permissions: { ver: "ver_recetas" },
   },
   {
-    module: 'Roles', icon: 'shield_person', description: 'Configuración de permisos del sistema',
-    permissions: { ver: 'ver_roles', crear: 'crear_rol', editar: 'editar_rol', desactivar: 'eliminar_rol' },
+    module: "Inventario",
+    icon: "inventory_2",
+    description: "Control de stock y productos",
+    permissions: { ver: "ver_inventario" },
+  },
+  {
+    module: "Ventas",
+    icon: "payments",
+    description: "Facturación y órdenes de trabajo",
+    permissions: { ver: "ver_ventas", crear: "registrar_venta" },
+  },
+  {
+    module: "Reportes",
+    icon: "analytics",
+    description: "Informes financieros y operativos",
+    permissions: { ver: "ver_reportes" },
+  },
+  {
+    module: "Dashboard",
+    icon: "dashboard",
+    description: "Panel de control principal",
+    permissions: { ver: "ver_dashboard" },
+  },
+  {
+    module: "Notificaciones",
+    icon: "notifications",
+    description: "Centro de notificaciones del sistema",
+    permissions: { ver: "ver_notificaciones" },
+  },
+  {
+    module: "Usuarios",
+    icon: "manage_accounts",
+    description: "Gestión de cuentas y accesos",
+    permissions: { ver: "ver_usuarios", editar: "editar_usuario" },
+  },
+  {
+    module: "Roles",
+    icon: "shield_person",
+    description: "Configuración de permisos del sistema",
+    permissions: {
+      ver: "ver_roles",
+      crear: "crear_rol",
+      editar: "editar_rol",
+      desactivar: "eliminar_rol",
+    },
   },
 ]
 
 export async function getRoles(): Promise<Role[]> {
-  const { data } = await http.get<Role[]>('/api/roles')
+  const { data } = await http.get<Role[]>("/api/roles")
   return data
 }
 
 export async function createRole(request: RoleRequest): Promise<Role> {
-  const { data } = await http.post<Role>('/api/roles', request)
+  const { data } = await http.post<Role>("/api/roles", request)
   return data
 }
 

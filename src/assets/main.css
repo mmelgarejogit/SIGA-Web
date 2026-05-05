@@ -1,65 +1,65 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
   /* ── Brand colors ── */
-  --color-primary: #00288E;
-  --color-primary-container: #1E40AF;
-  --color-primary-fixed: #DDE1FF;
-  --color-primary-fixed-dim: #B8C4FF;
+  --color-primary: #00288e;
+  --color-primary-container: #1e40af;
+  --color-primary-fixed: #dde1ff;
+  --color-primary-fixed-dim: #b8c4ff;
   --color-on-primary: #ffffff;
   --color-on-primary-fixed: #001453;
-  --color-on-primary-fixed-variant: #173BAB;
-  --color-on-primary-container: #A8B8FF;
-  --color-inverse-primary: #B8C4FF;
+  --color-on-primary-fixed-variant: #173bab;
+  --color-on-primary-container: #a8b8ff;
+  --color-inverse-primary: #b8c4ff;
 
   --color-secondary: #006780;
-  --color-secondary-container: #76DCFF;
-  --color-secondary-fixed: #B7EAFF;
-  --color-secondary-fixed-dim: #6CD3F7;
+  --color-secondary-container: #76dcff;
+  --color-secondary-fixed: #b7eaff;
+  --color-secondary-fixed-dim: #6cd3f7;
   --color-on-secondary: #ffffff;
-  --color-on-secondary-fixed: #001F28;
+  --color-on-secondary-fixed: #001f28;
   --color-on-secondary-container: #006077;
-  --color-on-secondary-fixed-variant: #004E61;
+  --color-on-secondary-fixed-variant: #004e61;
 
-  --color-tertiary: #2000B1;
-  --color-tertiary-container: #382AD0;
-  --color-tertiary-fixed: #E2DFFF;
-  --color-tertiary-fixed-dim: #C3C0FF;
+  --color-tertiary: #2000b1;
+  --color-tertiary-container: #382ad0;
+  --color-tertiary-fixed: #e2dfff;
+  --color-tertiary-fixed-dim: #c3c0ff;
   --color-on-tertiary: #ffffff;
-  --color-on-tertiary-fixed: #0F0069;
-  --color-on-tertiary-container: #B6B4FF;
-  --color-on-tertiary-fixed-variant: #3323CC;
+  --color-on-tertiary-fixed: #0f0069;
+  --color-on-tertiary-container: #b6b4ff;
+  --color-on-tertiary-fixed-variant: #3323cc;
 
-  --color-error: #BA1A1A;
-  --color-error-container: #FFDAD6;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
   --color-on-error: #ffffff;
-  --color-on-error-container: #93000A;
+  --color-on-error-container: #93000a;
 
   /* ── Surface scale ── */
-  --color-surface: #F7F9FE;
-  --color-surface-bright: #F7F9FE;
-  --color-surface-dim: #D8DADF;
-  --color-surface-variant: #E0E2E7;
-  --color-surface-tint: #3755C3;
+  --color-surface: #f7f9fe;
+  --color-surface-bright: #f7f9fe;
+  --color-surface-dim: #d8dadf;
+  --color-surface-variant: #e0e2e7;
+  --color-surface-tint: #3755c3;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #F1F4F9;
-  --color-surface-container: #ECEEF3;
-  --color-surface-container-high: #E6E8ED;
-  --color-surface-container-highest: #E0E2E7;
-  --color-inverse-surface: #2D3135;
-  --color-inverse-on-surface: #EFF1F6;
+  --color-surface-container-low: #f1f4f9;
+  --color-surface-container: #eceef3;
+  --color-surface-container-high: #e6e8ed;
+  --color-surface-container-highest: #e0e2e7;
+  --color-inverse-surface: #2d3135;
+  --color-inverse-on-surface: #eff1f6;
 
   /* ── Neutral ── */
-  --color-on-surface: #181C20;
+  --color-on-surface: #181c20;
   --color-on-surface-variant: #444653;
-  --color-on-background: #181C20;
-  --color-background: #F7F9FE;
+  --color-on-background: #181c20;
+  --color-background: #f7f9fe;
   --color-outline: #757684;
-  --color-outline-variant: #C4C5D5;
+  --color-outline-variant: #c4c5d5;
 
   /* ── Typography ── */
-  --font-headline: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-headline: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
 
   /* ── Border radius ── */
   --radius-DEFAULT: 1rem;
@@ -69,7 +69,9 @@
 }
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
   body {
     font-family: var(--font-body);
@@ -77,12 +79,21 @@
     color: var(--color-on-surface);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-headline);
   }
 
   .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 300,
+      "GRAD" 0,
+      "opsz" 24;
     display: inline-block;
     line-height: 1;
     width: 24px;
