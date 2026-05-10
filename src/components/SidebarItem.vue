@@ -76,8 +76,10 @@ function handleChildClick(route: string) {
       :class="active ? 'font-bold' : 'font-medium'"
       :style="`background-color: ${headerBg}; color: ${headerTextColor};`"
       onmouseover="
-        this.style.backgroundColor = 'rgba(255,255,255,0.08)'
-        this.style.color = 'white'
+        if (!this.getAttribute('data-active')) {
+          this.style.backgroundColor = 'rgba(255,255,255,0.08)'
+          this.style.color = 'white'
+        }
       "
       onmouseout="
         if (!this.getAttribute('data-active')) {
@@ -110,9 +112,10 @@ function handleChildClick(route: string) {
           :class="activeChildRoute === child.route ? 'font-bold' : 'font-medium'"
           :style="`background-color: ${activeChildRoute === child.route ? '#DBEAFE' : ''}; color: ${activeChildRoute === child.route ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)'};`"
           onmouseover="
-            if (!this.getAttribute('data-active'))
+            if (!this.getAttribute('data-active')) {
               this.style.backgroundColor = 'rgba(255,255,255,0.06)'
-            this.style.color = 'rgba(255,255,255,0.75)'
+              this.style.color = 'rgba(255,255,255,0.75)'
+            }
           "
           onmouseout="
             if (!this.getAttribute('data-active')) {
@@ -142,8 +145,10 @@ function handleChildClick(route: string) {
     :class="active ? 'font-bold' : 'font-medium'"
     :style="`background-color: ${active ? '#DBEAFE' : ''}; color: ${active ? 'var(--color-primary)' : 'rgba(255,255,255,0.65)'};`"
     onmouseover="
-      if (!this.getAttribute('data-active')) this.style.backgroundColor = 'rgba(255,255,255,0.08)'
-      this.style.color = 'white'
+      if (!this.getAttribute('data-active')) {
+        this.style.backgroundColor = 'rgba(255,255,255,0.08)'
+        this.style.color = 'white'
+      }
     "
     onmouseout="
       if (!this.getAttribute('data-active')) {

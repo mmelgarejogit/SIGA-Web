@@ -5,10 +5,8 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import { useAuthStore } from "@/stores/auth"
 import {
   type Turno,
-  type SlotDisponible,
   type SelfBookTurnoRequest,
   getMisTurnos,
   getSlotsDisponibles,
@@ -17,7 +15,12 @@ import {
 } from "@/services/turnoService"
 import { getProfessionals, type Professional } from "@/services/professionalService"
 
-const auth = useAuthStore()
+interface SlotConProfesional {
+  horaInicio: string
+  horaFin: string
+  professionalId: number
+  professionalNombre: string
+}
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 
@@ -75,7 +78,7 @@ async function loadMisTurnos() {
 onMounted(async () => {
   await loadMisTurnos()
   try {
-    professionals.value = await getProfessionals()
+    professionals.value = (await getProfessionals()).filter((p) => p.isActive)
   } catch {
     /* no crítico */
   }
@@ -111,37 +114,64 @@ async function confirmCancelRequest() {
 
 // ── Self-booking form ─────────────────────────────────────────────────────────
 
-const selectedProfessionalId = ref<number | null>(null)
 const selectedDate = ref(toDateStr(new Date()))
-const slots = ref<SlotDisponible[]>([])
+const slots = ref<SlotConProfesional[]>([])
 const isLoadingSlots = ref(false)
 const selectedSlot = ref("")
+const selectedSlotData = ref<SlotConProfesional | null>(null)
 const bookMotivo = ref("")
 const isBooking = ref(false)
 const bookError = ref("")
 
 const isPastDate = computed(() => selectedDate.value < toDateStr(new Date()))
 
+function selectSlot(slot: SlotConProfesional) {
+  selectedSlot.value = slot.horaInicio
+  selectedSlotData.value = slot
+}
+
 async function loadSlots() {
   slots.value = []
   selectedSlot.value = ""
-  if (!selectedProfessionalId.value || !selectedDate.value) return
-  if (isPastDate.value) return
+  selectedSlotData.value = null
+  if (!selectedDate.value || isPastDate.value || professionals.value.length === 0) return
 
   isLoadingSlots.value = true
   try {
-    slots.value = await getSlotsDisponibles(selectedProfessionalId.value, selectedDate.value)
-  } catch {
-    slots.value = []
+    const results = await Promise.all(
+      professionals.value.map(async (p) => {
+        try {
+          const s = await getSlotsDisponibles(p.id, selectedDate.value)
+          return s.map((slot) => ({
+            ...slot,
+            professionalId: p.id,
+            professionalNombre: `${p.firstName} ${p.lastName}`,
+          }))
+        } catch {
+          return []
+        }
+      }),
+    )
+    const seen = new Set<string>()
+    const merged: SlotConProfesional[] = []
+    for (const profSlots of results) {
+      for (const slot of profSlots) {
+        if (!seen.has(slot.horaInicio)) {
+          seen.add(slot.horaInicio)
+          merged.push(slot)
+        }
+      }
+    }
+    slots.value = merged.sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
   } finally {
     isLoadingSlots.value = false
   }
 }
 
-watch([selectedProfessionalId, selectedDate], loadSlots)
+watch(selectedDate, loadSlots)
 
 async function submitBooking() {
-  if (!selectedProfessionalId.value || !selectedSlot.value) return
+  if (!selectedSlotData.value) return
   if (activeTurno.value) {
     bookError.value =
       "Ya tenés un turno activo. Cancelá o completá el existente antes de reservar uno nuevo."
@@ -152,12 +182,13 @@ async function submitBooking() {
   bookError.value = ""
   try {
     const payload: SelfBookTurnoRequest = {
-      professionalId: selectedProfessionalId.value,
-      fechaHora: `${selectedDate.value}T${selectedSlot.value}Z`,
+      professionalId: selectedSlotData.value.professionalId,
+      fechaHora: `${selectedDate.value}T${selectedSlotData.value.horaInicio}Z`,
       motivo: bookMotivo.value.trim() || undefined,
     }
     await selfBookTurno(payload)
     selectedSlot.value = ""
+    selectedSlotData.value = null
     bookMotivo.value = ""
     await loadMisTurnos()
   } catch (err: unknown) {
@@ -356,54 +387,24 @@ async function submitBooking() {
               {{ bookError }}
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-              <div class="flex flex-col gap-1.5">
-                <label
-                  class="text-xs font-bold uppercase tracking-wider"
-                  style="color: var(--color-outline)"
-                  >Profesional *</label
-                >
-                <div class="relative">
-                  <span
-                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
-                    style="color: var(--color-outline); font-size: 16px"
-                    >person</span
-                  >
-                  <select
-                    v-model="selectedProfessionalId"
-                    class="w-full pl-9 pr-8 py-3 rounded-xl text-sm outline-none appearance-none"
-                    style="
-                      border: 1px solid var(--color-outline-variant);
-                      background-color: var(--color-surface);
-                      color: var(--color-on-surface);
-                    "
-                  >
-                    <option :value="null" disabled>Seleccioná un profesional...</option>
-                    <option v-for="p in professionals" :key="p.id" :value="p.id">
-                      {{ p.firstName }} {{ p.lastName }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-1.5">
-                <label
-                  class="text-xs font-bold uppercase tracking-wider"
-                  style="color: var(--color-outline)"
-                  >Fecha *</label
-                >
-                <input
-                  v-model="selectedDate"
-                  type="date"
-                  :min="toDateStr(new Date())"
-                  class="px-4 py-3 rounded-xl text-sm outline-none"
-                  style="
-                    border: 1px solid var(--color-outline-variant);
-                    background-color: var(--color-surface);
-                    color: var(--color-on-surface);
-                  "
-                />
-              </div>
+            <div class="flex flex-col gap-1.5 mb-5">
+              <label
+                class="text-xs font-bold uppercase tracking-wider"
+                style="color: var(--color-outline)"
+                >Fecha *</label
+              >
+              <input
+                v-model="selectedDate"
+                type="date"
+                :min="toDateStr(new Date())"
+                class="px-4 py-3 rounded-xl text-sm outline-none"
+                style="
+                  border: 1px solid var(--color-outline-variant);
+                  background-color: var(--color-surface);
+                  color: var(--color-on-surface);
+                  max-width: 220px;
+                "
+              />
             </div>
 
             <div class="flex flex-col gap-1.5 mb-5">
@@ -426,7 +427,7 @@ async function submitBooking() {
             </div>
 
             <!-- Slots -->
-            <div v-if="selectedProfessionalId && selectedDate" class="mb-5">
+            <div class="mb-5">
               <label
                 class="text-xs font-bold uppercase tracking-wider block mb-2"
                 style="color: var(--color-outline)"
@@ -472,15 +473,19 @@ async function submitBooking() {
                 <button
                   v-for="slot in slots"
                   :key="slot.horaInicio"
-                  @click="selectedSlot = slot.horaInicio"
-                  class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                  @click="selectSlot(slot)"
+                  class="flex flex-col items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                   :style="
                     selectedSlot === slot.horaInicio
                       ? 'background-color: var(--color-primary); color: white;'
                       : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant); border: 1px solid var(--color-surface-container-highest);'
                   "
                 >
-                  {{ slot.horaInicio.slice(0, 5) }}
+                  <span>{{ slot.horaInicio.slice(0, 5) }}</span>
+                  <span
+                    class="text-[10px] font-medium mt-0.5 leading-none"
+                    :style="selectedSlot === slot.horaInicio ? 'opacity: 0.8' : 'color: var(--color-outline)'"
+                  >{{ slot.professionalNombre }}</span>
                 </button>
               </div>
             </div>
@@ -489,7 +494,7 @@ async function submitBooking() {
               <BaseButton
                 variant="primary"
                 size="lg"
-                :disabled="isBooking || !selectedProfessionalId || !selectedSlot"
+                :disabled="isBooking || !selectedSlot"
                 @click="submitBooking"
               >
                 <svg

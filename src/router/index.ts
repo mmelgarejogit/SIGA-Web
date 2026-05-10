@@ -94,7 +94,7 @@ const router = createRouter({
       path: "/agenda",
       name: "agenda",
       component: () => import("@/views/AgendaView.vue"),
-      meta: { requiresAuth: true, permission: "ver_calendario" },
+      meta: { requiresAuth: true, permission: "ver_agenda" },
     },
     {
       path: "/agenda/nueva",
@@ -139,19 +139,19 @@ const router = createRouter({
     {
       path: "/inventario/productos",
       name: "inventario-productos",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/ProductosView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Productos" },
     },
     {
       path: "/inventario/movimientos",
       name: "inventario-movimientos",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/MovimientosView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Movimientos de Stock" },
     },
     {
       path: "/inventario/pedidos",
       name: "inventario-pedidos",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/PedidosView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Pedidos a Proveedores" },
     },
     {
@@ -240,13 +240,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.permission && !auth.hasPermission(to.meta.permission)) {
-    // Redirect to the first accessible route instead of hardcoding dashboard
     const fallback = findFirstAccessibleRoute(auth.user?.permissions ?? [])
-    // Avoid redirecting to the same restricted route
-    if (fallback === to.path) {
-      // No accessible routes at all — show a safe fallback without killing the session
-      return { name: "dashboard" }
-    }
+    // Si no hay ninguna ruta accesible o el fallback es la misma ruta que falló, dejamos pasar
+    // para evitar el loop infinito. El contenido de la vista puede manejar el estado vacío.
+    if (!fallback || fallback === to.path) return true
     return fallback
   }
 })

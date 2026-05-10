@@ -33,47 +33,22 @@ export const menuConfig: MenuItem[] = [
     id: "pacientes",
     label: "Pacientes",
     icon: "groups",
+    route: "/pacientes",
     permission: "ver_pacientes",
-    children: [
-      {
-        label: "Lista de Pacientes",
-        icon: "list",
-        route: "/pacientes",
-        permission: "ver_pacientes",
-      },
-      {
-        label: "Registrar Paciente",
-        icon: "person_add",
-        route: "/pacientes/nuevo",
-        permission: "crear_paciente",
-      },
-    ],
   },
   {
     id: "agenda",
     label: "Agenda",
     icon: "calendar_month",
-    permission: "ver_calendario",
-    children: [
-      {
-        label: "Vista Semanal",
-        icon: "view_week",
-        route: "/agenda",
-        permission: "ver_calendario",
-      },
-      {
-        label: "Nueva Cita",
-        icon: "edit_calendar",
-        route: "/agenda/nueva",
-        permission: "gestionar_agenda",
-      },
-      {
-        label: "Mis Turnos",
-        icon: "event_available",
-        route: "/mis-turnos",
-        permission: "ver_mis_turnos",
-      },
-    ],
+    route: "/agenda",
+    permission: "ver_agenda",
+  },
+  {
+    id: "mis-turnos",
+    label: "Mis Turnos",
+    icon: "event_available",
+    route: "/mis-turnos",
+    permission: "ver_mis_turnos",
   },
   {
     id: "clinica",
