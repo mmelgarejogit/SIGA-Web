@@ -152,3 +152,40 @@ export async function createOrUpdateReceta(
   const { data } = await http.post<Receta>(`/api/consultas/${consultaId}/receta`, request)
   return data
 }
+
+export interface ProfessionalDashboardStats {
+  consultasHoy: number
+  consultasEstaSemana: number
+  consultasEsteMes: number
+  pacientesUnicosEsteMes: number
+  recetasEmitidasEsteMes: number
+  ultimasConsultas: ConsultaClinica[]
+}
+
+export async function getProfessionalStats(): Promise<ProfessionalDashboardStats> {
+  const { data } = await http.get<ProfessionalDashboardStats>("/api/consultas/profesional/stats")
+  return data
+}
+
+export async function downloadRecetaPdf(consultaId: number, patientLastName: string): Promise<void> {
+  try {
+    const { data } = await http.get(`/api/consultas/${consultaId}/receta/pdf`, { responseType: "blob" })
+    const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `receta_${patientLastName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    if (err?.response?.data instanceof Blob) {
+      const text = await err.response.data.text()
+      try {
+        const json = JSON.parse(text)
+        throw new Error(json.message ?? text)
+      } catch {
+        throw new Error(text)
+      }
+    }
+    throw err
+  }
+}

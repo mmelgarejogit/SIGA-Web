@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import { useAuthStore } from "@/stores/auth"
 
 import {
   type Patient,
@@ -99,6 +100,7 @@ const TabPending = defineComponent({
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const patientId = computed(() => Number(route.params.id))
 
@@ -460,12 +462,17 @@ async function confirmDelete() {
 
             <!-- Acciones -->
             <div class="flex items-center gap-3">
-              <BaseButton variant="secondary" size="default" @click="openEditModal">
+              <BaseButton
+                v-if="auth.hasPermission('editar_paciente')"
+                variant="secondary"
+                size="default"
+                @click="openEditModal"
+              >
                 <span class="material-symbols-outlined" style="font-size: 18px">edit</span>
                 Editar
               </BaseButton>
               <BaseButton
-                v-if="patient.isActive"
+                v-if="patient.isActive && auth.hasPermission('desactivar_paciente')"
                 variant="danger"
                 size="default"
                 @click="showDeleteModal = true"

@@ -12,6 +12,7 @@ import {
   updateConsulta,
   deleteConsulta,
   createOrUpdateReceta,
+  downloadRecetaPdf,
 } from "@/services/clinicaService"
 import { http } from "@/api/http"
 import BaseButton from "@/components/BaseButton.vue"
@@ -21,6 +22,11 @@ import SearchInput from "@/components/SearchInput.vue"
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const isProfessional = computed(() => !!auth.user?.professionalId)
+const showProfessionalFilter = computed(
+  () => auth.hasPermission("ver_reportes") && !isProfessional.value,
+)
 
 // ── Profesionales (para filtro) ────────────────────────────────────────────
 
@@ -99,7 +105,7 @@ watch([searchQuery, filterProfessional, filterDateFrom, filterDateTo], () => {
 
 onMounted(() => {
   loadConsultas()
-  loadProfessionals()
+  if (showProfessionalFilter.value) loadProfessionals()
 })
 
 // ── Modal: Editar Consulta ────────────────────────────────────────────────
@@ -180,8 +186,10 @@ async function submitEdit() {
 
 const showRecetaModal = ref(false)
 const isSavingReceta = ref(false)
+const isDownloadingPdf = ref(false)
 const recetaError = ref("")
 const recetaConsultaId = ref(0)
+const recetaConsulta = ref<ConsultaClinica | null>(null)
 
 const recetaEditForm = reactive({
   fechaEmision: "",
@@ -201,6 +209,7 @@ const recetaEditForm = reactive({
 
 function openRecetaModal(c: ConsultaClinica) {
   recetaConsultaId.value = c.id
+  recetaConsulta.value = c
   const r = c.receta
   recetaEditForm.fechaEmision = r?.fechaEmision ?? c.fechaConsulta.slice(0, 10)
   recetaEditForm.odEsferico = r?.odEsferico != null ? String(r.odEsferico) : ""
@@ -252,6 +261,19 @@ async function submitReceta() {
     recetaError.value = err instanceof Error ? err.message : "Error al guardar la receta."
   } finally {
     isSavingReceta.value = false
+  }
+}
+
+async function downloadPdf() {
+  if (isDownloadingPdf.value || !recetaConsulta.value) return
+  isDownloadingPdf.value = true
+  recetaError.value = ""
+  try {
+    await downloadRecetaPdf(recetaConsulta.value.id, recetaConsulta.value.patientLastName)
+  } catch (err: unknown) {
+    recetaError.value = err instanceof Error ? err.message : "Error al generar el PDF."
+  } finally {
+    isDownloadingPdf.value = false
   }
 }
 
@@ -373,7 +395,7 @@ function handleRowClick(item: ConsultaClinica) {
             placeholder="Buscar por paciente, CI, diagnóstico..."
             class="flex-1 min-w-48"
           />
-          <div class="relative">
+          <div v-if="showProfessionalFilter" class="relative">
             <span
               class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
               style="color: var(--color-outline); font-size: 16px"
@@ -1017,49 +1039,77 @@ function handleRowClick(item: ConsultaClinica) {
             </form>
 
             <div
-              class="px-8 py-6 flex justify-end gap-3"
+              class="px-8 py-6 flex items-center justify-between gap-3"
               style="border-top: 1px solid rgba(196, 197, 213, 0.2)"
             >
               <button
+                v-if="recetaConsulta?.receta"
                 type="button"
-                @click="showRecetaModal = false"
-                class="px-6 py-3 rounded-full text-sm font-bold transition-all"
+                @click="downloadPdf"
+                :disabled="isDownloadingPdf"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all disabled:opacity-60"
                 style="
-                  background-color: var(--color-surface-container-high);
-                  color: var(--color-on-surface-variant);
+                  background-color: rgba(0, 40, 142, 0.07);
+                  color: var(--color-primary);
                 "
               >
-                Cancelar
-              </button>
-              <button
-                @click="submitReceta"
-                :disabled="isSavingReceta"
-                class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-                style="background-color: var(--color-primary); color: white"
-              >
                 <svg
-                  v-if="isSavingReceta"
+                  v-if="isDownloadingPdf"
                   class="animate-spin w-4 h-4"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  />
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {{ isSavingReceta ? "Guardando..." : "Guardar Receta" }}
+                <span v-else class="material-symbols-outlined" style="font-size: 18px">download</span>
+                {{ isDownloadingPdf ? "Generando..." : "Descargar PDF" }}
               </button>
+              <div v-else />
+
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  @click="showRecetaModal = false"
+                  class="px-6 py-3 rounded-full text-sm font-bold transition-all"
+                  style="
+                    background-color: var(--color-surface-container-high);
+                    color: var(--color-on-surface-variant);
+                  "
+                >
+                  Cancelar
+                </button>
+                <button
+                  @click="submitReceta"
+                  :disabled="isSavingReceta"
+                  class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
+                  style="background-color: var(--color-primary); color: white"
+                >
+                  <svg
+                    v-if="isSavingReceta"
+                    class="animate-spin w-4 h-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    />
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  {{ isSavingReceta ? "Guardando..." : "Guardar Receta" }}
+                </button>
+              </div>
             </div>
           </div>
         </div>

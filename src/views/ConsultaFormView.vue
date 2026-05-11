@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue"
+import { ref, reactive, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -16,10 +16,12 @@ const router = useRouter()
 
 // ── Profesionales ─────────────────────────────────────────────────────────
 
+const isProfessional = computed(() => !!auth.user?.professionalId)
 const professionals = ref<Professional[]>([])
 const selectedProfessionalId = ref<number | null>(auth.user?.professionalId ?? null)
 
 onMounted(async () => {
+  if (isProfessional.value) return
   try {
     professionals.value = await getProfessionals()
   } catch {
@@ -123,7 +125,8 @@ const createErrors = ref<CreateErrors>({})
 function validateCreate(): boolean {
   const e: CreateErrors = {}
   if (!selectedPatient.value) e.patient = "Seleccioná un paciente."
-  if (!selectedProfessionalId.value) e.professional = "Seleccioná un profesional."
+  if (!isProfessional.value && !selectedProfessionalId.value)
+    e.professional = "Seleccioná un profesional."
   if (!createForm.fechaConsulta) e.fechaConsulta = "La fecha es obligatoria."
   if (!createForm.motivo.trim()) e.motivo = "El motivo es obligatorio."
   if (!createForm.diagnosticoPrincipal.trim())
@@ -253,7 +256,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
           {{ createError }}
         </div>
 
-        <form @submit.prevent="submitCreate" class="space-y-6 max-w-5xl">
+        <form @submit.prevent="submitCreate" class="space-y-6">
           <!-- Paciente -->
           <div
             class="rounded-2xl p-6 space-y-5"
@@ -335,9 +338,25 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               <label
                 class="text-xs font-bold uppercase tracking-wider"
                 style="color: var(--color-outline)"
-                >Profesional *</label
+                >Profesional</label
               >
-              <div class="relative">
+
+              <!-- Profesional logueado: solo lectura -->
+              <div
+                v-if="isProfessional"
+                class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+                style="
+                  border: 1px solid var(--color-outline-variant);
+                  background-color: var(--color-surface-container-low);
+                  color: var(--color-on-surface-variant);
+                "
+              >
+                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">person</span>
+                {{ auth.user?.firstName }} {{ auth.user?.lastName }}
+              </div>
+
+              <!-- Admin: selector -->
+              <div v-else class="relative">
                 <span
                   class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
                   style="color: var(--color-outline); font-size: 16px"
@@ -354,6 +373,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   </option>
                 </select>
               </div>
+
               <p
                 v-if="createErrors.professional"
                 class="text-xs font-medium"

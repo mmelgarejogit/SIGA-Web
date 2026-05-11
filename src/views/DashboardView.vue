@@ -9,16 +9,20 @@ import InsightsPanel from "@/components/InsightsPanel.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import { getPatients } from "@/services/patientService"
 import { getTurnos, getMisTurnos, type Turno } from "@/services/turnoService"
+import { getProfessionalStats, type ProfessionalDashboardStats, type ConsultaClinica } from "@/services/clinicaService"
 import { useAuthStore } from "@/stores/auth"
 
 const router  = useRouter()
 const auth    = useAuthStore()
 
 const firstName = computed(() => auth.user?.firstName ?? "")
+const specialty = computed(() => auth.user?.specialty ?? "")
 
 const isPatient = computed(
   () => auth.hasPermission("ver_mis_turnos") && !auth.hasPermission("ver_agenda"),
 )
+
+const isProfessional = computed(() => !!auth.user?.professionalId)
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +58,90 @@ const todayLabel = new Date().toLocaleDateString("es-PY", {
   day:     "numeric",
   month:   "long",
 })
+
+// ── Professional data ──────────────────────────────────────────────────────────
+
+const profStats     = ref<ProfessionalDashboardStats | null>(null)
+const isProfLoading = ref(false)
+
+async function loadProfessionalData() {
+  isProfLoading.value = true
+  try {
+    profStats.value = await getProfessionalStats()
+  } catch {
+    profStats.value = null
+  } finally {
+    isProfLoading.value = false
+  }
+}
+
+const profKpis = computed(() => [
+  {
+    title:     "Consultas hoy",
+    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasHoy ?? 0),
+    icon:      "today",
+    badge:     "Hoy",
+    badgeType: "neutral" as const,
+    iconBg:    "var(--color-primary-fixed)",
+    iconColor: "var(--color-primary)",
+  },
+  {
+    title:     "Esta semana",
+    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasEstaSemana ?? 0),
+    icon:      "date_range",
+    badge:     "Semana",
+    badgeType: "neutral" as const,
+    iconBg:    "var(--color-secondary-fixed)",
+    iconColor: "var(--color-secondary)",
+  },
+  {
+    title:     "Este mes",
+    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasEsteMes ?? 0),
+    icon:      "calendar_month",
+    badge:     "Mes",
+    badgeType: "neutral" as const,
+    iconBg:    "#E2DFFF",
+    iconColor: "var(--color-tertiary)",
+  },
+  {
+    title:     "Pacientes atendidos",
+    value:     isProfLoading.value ? "—" : String(profStats.value?.pacientesUnicosEsteMes ?? 0),
+    icon:      "group",
+    badge:     "Mes",
+    badgeType: "neutral" as const,
+    iconBg:    "rgba(0,40,142,0.08)",
+    iconColor: "var(--color-primary)",
+  },
+  {
+    title:     "Recetas emitidas",
+    value:     isProfLoading.value ? "—" : String(profStats.value?.recetasEmitidasEsteMes ?? 0),
+    icon:      "medical_services",
+    badge:     "Mes",
+    badgeType: "neutral" as const,
+    iconBg:    "rgba(0,103,128,0.08)",
+    iconColor: "var(--color-secondary)",
+  },
+])
+
+function profAvatarStyle(id: number) {
+  const palette = [
+    { bg: "rgba(0,40,142,0.08)",    color: "var(--color-primary)" },
+    { bg: "rgba(0,103,128,0.08)",   color: "var(--color-secondary)" },
+    { bg: "rgba(32,0,177,0.08)",    color: "var(--color-tertiary)" },
+    { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  ]
+  return palette[id % palette.length] ?? palette[0]!
+}
+
+function profInitials(fn: string, ln: string) {
+  return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
+}
+
+function profFormatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "2-digit", month: "short", year: "numeric",
+  })
+}
 
 // ── Staff data ─────────────────────────────────────────────────────────────────
 
@@ -180,8 +268,9 @@ function estadoBadgeClass(estado: string) {
 
 onMounted(() => {
   document.addEventListener("mousedown", handleClickOutside)
-  if (isPatient.value) loadPatientData()
-  else                 loadStaffData()
+  if (isPatient.value)        loadPatientData()
+  else if (isProfessional.value) loadProfessionalData()
+  else                        loadStaffData()
 })
 onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 </script>
@@ -378,6 +467,126 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                 <span class="px-3 py-1 rounded-full text-xs font-bold flex-shrink-0"
                       :class="estadoBadgeClass(turno.estado)">
                   {{ turno.estado }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </template>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!--  DASHBOARD PROFESIONAL                                  -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <template v-else-if="isProfessional">
+
+          <div class="mb-10 flex items-end justify-between" style="padding-right: 8rem">
+            <div>
+              <p class="text-sm font-bold uppercase tracking-[0.2em] mb-2"
+                 style="color: var(--color-primary)">
+                {{ greeting }}, {{ firstName }}
+              </p>
+              <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
+                  style="color: var(--color-on-surface)">
+                Tu actividad,<br />
+                <span style="color: var(--color-primary)">de un vistazo.</span>
+              </h1>
+              <p v-if="specialty" class="mt-3 text-sm font-semibold"
+                 style="color: var(--color-outline)">
+                {{ specialty }}
+              </p>
+            </div>
+            <div class="text-right pb-2 hidden lg:block">
+              <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
+                {{ todayLabel }}
+              </p>
+            </div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-8">
+            <KpiCard v-for="kpi in profKpis" :key="kpi.title" v-bind="kpi" />
+          </div>
+
+          <!-- Últimas consultas -->
+          <div
+            class="rounded-3xl overflow-hidden"
+            style="
+              background-color: var(--color-surface-container-lowest);
+              box-shadow: 0 2px 16px rgba(0,40,142,0.07);
+            "
+          >
+            <div
+              class="flex items-center justify-between px-7 py-5"
+              style="border-bottom: 1px solid rgba(196,197,213,0.15)"
+            >
+              <h2 class="text-xs font-bold uppercase tracking-widest"
+                  style="color: var(--color-outline)">
+                Últimas consultas
+              </h2>
+              <button
+                @click="router.push('/clinica/consultas')"
+                class="flex items-center gap-1 text-sm font-bold transition-opacity hover:opacity-70"
+                style="color: var(--color-primary)"
+              >
+                <span>Ver todas</span>
+                <span class="material-symbols-outlined" style="font-size: 16px">arrow_forward</span>
+              </button>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="isProfLoading" class="flex items-center gap-3 px-7 py-8">
+              <div class="w-5 h-5 rounded-full border-2 animate-spin"
+                   style="border-color: var(--color-primary); border-top-color: transparent"></div>
+              <span class="text-sm" style="color: var(--color-outline)">Cargando...</span>
+            </div>
+
+            <!-- Sin consultas -->
+            <div v-else-if="!profStats?.ultimasConsultas.length"
+                 class="flex flex-col items-center justify-center py-12 gap-3">
+              <div class="w-14 h-14 rounded-2xl flex items-center justify-center"
+                   style="background-color: var(--color-surface-container-low)">
+                <span class="material-symbols-outlined"
+                      style="color: var(--color-outline); font-size: 28px">
+                  clinical_notes
+                </span>
+              </div>
+              <p class="text-sm font-medium" style="color: var(--color-outline)">
+                No tenés consultas registradas aún
+              </p>
+            </div>
+
+            <!-- Lista -->
+            <div v-else>
+              <div
+                v-for="c in profStats.ultimasConsultas"
+                :key="c.id"
+                class="flex items-center gap-4 px-7 py-4 hover:bg-surface-container-low transition-colors"
+                style="border-bottom: 1px solid rgba(196,197,213,0.08)"
+              >
+                <div
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                  :style="`background-color: ${profAvatarStyle(c.patientId).bg}; color: ${profAvatarStyle(c.patientId).color};`"
+                >
+                  {{ profInitials(c.patientFirstName, c.patientLastName) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-bold truncate" style="color: var(--color-on-surface)">
+                    {{ c.patientFirstName }} {{ c.patientLastName }}
+                  </p>
+                  <p class="text-xs truncate" style="color: var(--color-outline)">
+                    {{ c.diagnosticoPrincipal }}
+                  </p>
+                </div>
+                <span
+                  v-if="c.receta"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0"
+                  style="background-color: #d1fae5; color: #065f46"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 12px">check</span>
+                  Con receta
+                </span>
+                <span class="text-xs font-medium flex-shrink-0" style="color: var(--color-outline)">
+                  {{ profFormatDate(c.fechaConsulta) }}
                 </span>
               </div>
             </div>
