@@ -161,12 +161,12 @@ export async function getMovimientos(params: {
   page?: number
   pageSize?: number
   tipo?: string
-} = {}): Promise<MovimientoStock[]> {
+} = {}): Promise<PagedResult<MovimientoStock>> {
   const q = new URLSearchParams()
   if (params.page) q.set("page", String(params.page))
   if (params.pageSize) q.set("pageSize", String(params.pageSize))
   if (params.tipo) q.set("tipo", params.tipo)
-  const { data } = await http.get<MovimientoStock[]>(`/api/productos/movimientos?${q}`)
+  const { data } = await http.get<PagedResult<MovimientoStock>>(`/api/productos/movimientos?${q}`)
   return data
 }
 

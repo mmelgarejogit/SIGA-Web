@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import("@/views/VerifyEmailView.vue"),
     },
     {
+      path: "/confirmar-turno",
+      name: "confirmar-turno",
+      component: () => import("@/views/ConfirmarTurnoView.vue"),
+    },
+    {
       path: "/",
       name: "dashboard",
       component: DashboardView,

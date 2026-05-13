@@ -797,7 +797,7 @@ async function confirmGestionar(aprobar: boolean) {
               v-for="p in filteredPatients"
               :key="p.id"
               type="button"
-              @click="selectPatient(p)"
+              @mousedown.prevent="selectPatient(p)"
               class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-surface)] transition-colors"
             >
               <span class="font-medium" style="color: var(--color-on-surface)"
