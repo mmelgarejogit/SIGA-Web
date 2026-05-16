@@ -176,7 +176,7 @@ export const menuConfig: MenuItem[] = [
         label: "Configuración",
         icon: "settings",
         route: "/admin/config",
-        permission: "ver_usuarios",
+        permission: "gestionar_configuracion",
       },
       {
         label: "Auditoría",

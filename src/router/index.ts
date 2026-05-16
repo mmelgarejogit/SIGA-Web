@@ -199,8 +199,8 @@ const router = createRouter({
     {
       path: "/admin/config",
       name: "admin-config",
-      component: () => import("@/views/ComingSoonView.vue"),
-      meta: { requiresAuth: true, permission: "ver_usuarios", label: "Configuración" },
+      component: () => import("@/views/ConfiguracionView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Configuración" },
     },
     {
       path: "/admin/auditoria",
