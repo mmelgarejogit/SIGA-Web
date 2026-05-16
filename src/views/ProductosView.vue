@@ -237,7 +237,7 @@ async function confirmDeactivate() {
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: 280px; padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="p-8">
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">

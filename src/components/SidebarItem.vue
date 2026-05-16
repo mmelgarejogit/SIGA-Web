@@ -7,55 +7,46 @@ const props = defineProps<{
   expanded: boolean
   active: boolean
   activeChildRoute: string | null
+  collapsed: boolean
 }>()
 
 const emit = defineEmits<{
   navigate: [route: string]
   toggle: []
+  "collapsed-group-click": []
 }>()
 
 const isGroup = computed(() => !!props.item.children && props.item.children.length > 0)
 
-// Styles for group header icon
 const headerIconStyle = computed(() =>
   props.active
     ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
     : "font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;",
 )
 
-// Styles for simple item icon
 const simpleIconStyle = computed(() =>
   props.active
     ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
     : "font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;",
 )
 
-// Styles for child item icon
-const childIconStyle = computed(() =>
-  props.activeChildRoute === props.item.route
+const childIconStyleFor = (route: string) =>
+  props.activeChildRoute === route
     ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
-    : "font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;",
-)
+    : "font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;"
 
-// Text color for group header
 const headerTextColor = computed(() =>
   props.active ? "var(--color-primary)" : "rgba(255,255,255,0.65)",
 )
-
-// Background for group header
 const headerBg = computed(() => (props.active ? "#DBEAFE" : ""))
-
-// Text color for child items
-const childTextColor = computed(() =>
-  props.activeChildRoute === props.item.route ? "var(--color-primary)" : "rgba(255,255,255,0.5)",
-)
-
-// Background for child items
-const childBg = computed(() => (props.activeChildRoute === props.item.route ? "#DBEAFE" : ""))
 
 function handleClick() {
   if (isGroup.value) {
-    emit("toggle")
+    if (props.collapsed) {
+      emit("collapsed-group-click")
+    } else {
+      emit("toggle")
+    }
   } else if (props.item.route) {
     emit("navigate", props.item.route)
   }
@@ -69,12 +60,12 @@ function handleChildClick(route: string) {
 <template>
   <!-- ── Grupo con submenú ─────────────────────────────────── -->
   <div v-if="isGroup">
-    <!-- Header del grupo -->
     <button
       @click="handleClick"
-      class="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-200 text-left cursor-pointer group"
-      :class="active ? 'font-bold' : 'font-medium'"
+      class="w-full flex items-center py-2.5 rounded-xl transition-all duration-200 text-left cursor-pointer group overflow-hidden"
+      :class="[active ? 'font-bold' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
       :style="`background-color: ${headerBg}; color: ${headerTextColor};`"
+      :title="collapsed ? item.label : undefined"
       onmouseover="
         if (!this.getAttribute('data-active')) {
           this.style.backgroundColor = 'rgba(255,255,255,0.08)'
@@ -92,18 +83,20 @@ function handleChildClick(route: string) {
       <span class="material-symbols-outlined flex-shrink-0" :style="headerIconStyle">{{
         item.icon
       }}</span>
-      <span class="flex-1 text-sm tracking-wide">{{ item.label }}</span>
-      <span
-        class="material-symbols-outlined flex-shrink-0 transition-transform duration-200"
-        style="font-size: 18px"
-        :class="expanded ? 'rotate-180' : ''"
-        >expand_more</span
-      >
+      <template v-if="!collapsed">
+        <span class="flex-1 text-sm tracking-wide">{{ item.label }}</span>
+        <span
+          class="material-symbols-outlined flex-shrink-0 transition-transform duration-200"
+          style="font-size: 18px"
+          :class="expanded ? 'rotate-180' : ''"
+          >expand_more</span
+        >
+      </template>
     </button>
 
-    <!-- Sub-ítems con transición -->
+    <!-- Sub-ítems (solo visible cuando expandido y no colapsado) -->
     <Transition name="sidebar-expand">
-      <div v-if="expanded" class="ml-3 mt-1 mb-1 flex flex-col gap-0.5">
+      <div v-if="expanded && !collapsed" class="ml-3 mt-1 mb-1 flex flex-col gap-0.5">
         <button
           v-for="child in item.children"
           :key="child.route"
@@ -127,7 +120,7 @@ function handleChildClick(route: string) {
         >
           <span
             class="material-symbols-outlined flex-shrink-0"
-            :style="childIconStyle"
+            :style="childIconStyleFor(child.route)"
             style="font-size: 16px"
             >{{ child.icon }}</span
           >
@@ -141,9 +134,10 @@ function handleChildClick(route: string) {
   <button
     v-else
     @click="handleClick"
-    class="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-200 text-left cursor-pointer"
-    :class="active ? 'font-bold' : 'font-medium'"
+    class="w-full flex items-center py-2.5 rounded-xl transition-all duration-200 text-left cursor-pointer overflow-hidden"
+    :class="[active ? 'font-bold' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
     :style="`background-color: ${active ? '#DBEAFE' : ''}; color: ${active ? 'var(--color-primary)' : 'rgba(255,255,255,0.65)'};`"
+    :title="collapsed ? item.label : undefined"
     onmouseover="
       if (!this.getAttribute('data-active')) {
         this.style.backgroundColor = 'rgba(255,255,255,0.08)'
@@ -161,7 +155,10 @@ function handleChildClick(route: string) {
     <span class="material-symbols-outlined flex-shrink-0" :style="simpleIconStyle">{{
       item.icon
     }}</span>
-    <span class="text-sm tracking-wide">{{ item.label }}</span>
+    <span
+      v-if="!collapsed"
+      class="text-sm tracking-wide"
+    >{{ item.label }}</span>
   </button>
 </template>
 

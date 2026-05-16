@@ -54,8 +54,13 @@ export const menuConfig: MenuItem[] = [
     id: "clinica",
     label: "Clínica",
     icon: "medical_services",
-    permission: "ver_consultas",
     children: [
+      {
+        label: "Recepción",
+        icon: "person_check",
+        route: "/recepcion",
+        permission: "ver_agenda",
+      },
       {
         label: "Consultas",
         icon: "stethoscope",

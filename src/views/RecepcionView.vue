@@ -1,0 +1,255 @@
+<script setup lang="ts">
+import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import AppSidebar from "@/components/AppSidebar.vue"
+import AppHeader from "@/components/AppHeader.vue"
+import BaseButton from "@/components/BaseButton.vue"
+import BaseModal from "@/components/BaseModal.vue"
+import BaseTable from "@/components/BaseTable.vue"
+import { useAuthStore } from "@/stores/auth"
+import { getTurnos, updateTurnoEstado, cancelTurno, type Turno } from "@/services/turnoService"
+
+const auth = useAuthStore()
+const router = useRouter()
+
+function toDateStr(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
+function formatHour(iso: string): string {
+  const match = iso.match(/T(\d{2}:\d{2})/)
+  return match ? match[1]! : iso
+}
+
+const today = toDateStr(new Date())
+const todayLabel = new Date().toLocaleDateString("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+})
+
+const turnos = ref<Turno[]>([])
+const isLoading = ref(false)
+const loadError = ref("")
+
+const columns = [
+  { key: "hora", label: "Hora" },
+  { key: "profesional", label: "Profesional" },
+  { key: "paciente", label: "Paciente" },
+  { key: "motivo", label: "Motivo" },
+  { key: "acciones", label: "Acciones", align: "right" as const },
+]
+
+async function loadTurnos() {
+  isLoading.value = true
+  loadError.value = ""
+  try {
+    turnos.value = await getTurnos({ fecha: today, estado: "Presente" })
+  } catch (err: unknown) {
+    loadError.value = err instanceof Error ? err.message : "Error al cargar los turnos."
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadTurnos)
+
+// Cancelar
+
+const showCancelModal = ref(false)
+const turnoToCancel = ref<Turno | null>(null)
+const isCancelling = ref(false)
+const cancelError = ref("")
+
+function openCancelModal(t: Turno) {
+  turnoToCancel.value = t
+  cancelError.value = ""
+  showCancelModal.value = true
+}
+
+async function confirmCancel() {
+  if (!turnoToCancel.value) return
+  isCancelling.value = true
+  cancelError.value = ""
+  try {
+    await cancelTurno(turnoToCancel.value.id)
+    showCancelModal.value = false
+    await loadTurnos()
+  } catch (err: unknown) {
+    cancelError.value = err instanceof Error ? err.message : "Error al cancelar el turno."
+  } finally {
+    isCancelling.value = false
+  }
+}
+
+// Iniciar consulta
+
+const isStartingConsulta = ref<number | null>(null)
+
+async function iniciarConsulta(t: Turno) {
+  isStartingConsulta.value = t.id
+  try {
+    await updateTurnoEstado(t.id, "Completado")
+  } catch {
+    /* no bloquear la navegacion si el cambio de estado falla */
+  }
+  const query: Record<string, string> = {
+    patientId: String(t.patientId),
+    turnoId: String(t.id),
+  }
+  if (t.motivo) query.motivo = t.motivo
+  router.push({ path: "/clinica/consultas/nueva", query })
+}
+</script>
+
+<template>
+  <div class="min-h-screen" style="background-color: var(--color-background)">
+    <AppSidebar />
+    <AppHeader />
+
+    <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
+      <div class="p-8">
+
+        <div class="flex items-start justify-between mb-8">
+          <div>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Recepcion</h1>
+            <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
+              {{ todayLabel }}
+            </p>
+          </div>
+          <BaseButton variant="secondary" size="sm" @click="loadTurnos">
+            <span class="material-symbols-outlined" style="font-size: 18px">refresh</span>
+            Actualizar
+          </BaseButton>
+        </div>
+
+        <div class="mb-6">
+          <div
+            class="inline-flex items-center gap-3 rounded-2xl px-5 py-4"
+            style="background: white; border: 1px solid var(--color-surface-container-highest)"
+          >
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style="background-color: #ede9fe"
+            >
+              <span class="material-symbols-outlined" style="font-size: 20px; color: #7c3aed"
+                >person_check</span
+              >
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-outline)">
+                Pacientes en sala
+              </p>
+              <p class="text-3xl font-bold" style="color: #7c3aed">{{ turnos.length }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="loadError" class="px-6 py-4 text-sm font-medium" style="color: var(--color-error)">
+          {{ loadError }}
+        </div>
+
+        <BaseTable
+          v-else
+          :columns="columns"
+          :items="turnos"
+          :loading="isLoading"
+          empty-text="No hay pacientes en sala por ahora"
+        >
+          <template #hora="{ item }">
+            <span class="text-sm font-bold" style="color: var(--color-primary); font-variant-numeric: tabular-nums">
+              {{ formatHour(item.fechaHora) }}
+            </span>
+          </template>
+
+          <template #profesional="{ item }">
+            <span class="text-sm font-medium" style="color: var(--color-on-surface)">
+              {{ item.professionalNombre }}
+            </span>
+          </template>
+
+          <template #paciente="{ item }">
+            <p class="text-sm font-semibold" style="color: var(--color-on-surface)">
+              {{ item.patientNombre }}
+            </p>
+          </template>
+
+          <template #motivo="{ item }">
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              {{ item.motivo || "Sin motivo" }}
+            </span>
+          </template>
+
+          <template #acciones="{ item }">
+            <div class="flex items-center justify-end gap-2">
+              <button
+                v-if="auth.hasPermission('registrar_consulta')"
+                @click.stop="iniciarConsulta(item)"
+                :disabled="isStartingConsulta === item.id"
+                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold transition-colors hover:opacity-80 disabled:opacity-50"
+                style="background-color: #ede9fe; color: #4c1d95"
+                title="Iniciar consulta clinica"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">stethoscope</span>
+                Iniciar consulta
+              </button>
+              <button
+                v-if="auth.hasPermission('gestionar_agenda')"
+                @click.stop="openCancelModal(item)"
+                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                style="background-color: var(--color-error-container)"
+                title="Cancelar turno"
+              >
+                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-error)">close</span>
+              </button>
+            </div>
+          </template>
+        </BaseTable>
+
+        <div
+          v-if="!isLoading && turnos.length > 0"
+          class="px-6 py-3 text-xs font-medium"
+          style="color: var(--color-outline); border-top: 1px solid #f0f1f5"
+        >
+          {{ turnos.length }} paciente{{ turnos.length !== 1 ? "s" : "" }} en sala
+        </div>
+
+      </div>
+    </main>
+
+    <BaseModal :show="showCancelModal" size="sm" @close="showCancelModal = false">
+      <div class="text-center">
+        <div
+          class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+          style="background-color: var(--color-error-container)"
+        >
+          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 24px">cancel</span>
+        </div>
+        <h3 class="text-lg font-bold mb-2" style="color: var(--color-on-surface)">Cancelar turno</h3>
+        <p class="text-sm mb-5" style="color: var(--color-on-surface-variant)" v-if="turnoToCancel">
+          Cancelar el turno de
+          <strong>{{ turnoToCancel.patientNombre }}</strong>
+          de las <strong>{{ formatHour(turnoToCancel.fechaHora) }}</strong>?
+        </p>
+        <p v-if="cancelError" class="text-sm font-medium mb-3" style="color: var(--color-error)">{{ cancelError }}</p>
+      </div>
+
+      <template #footer>
+        <BaseButton class="flex-1" variant="secondary" size="default" @click="showCancelModal = false">
+          Volver
+        </BaseButton>
+        <BaseButton class="flex-1" variant="danger" size="default" :disabled="isCancelling" @click="confirmCancel">
+          <svg v-if="isCancelling" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ isCancelling ? "Cancelando..." : "Si, cancelar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+  </div>
+</template>

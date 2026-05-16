@@ -7,7 +7,7 @@ export interface Turno {
   patientId: number
   patientNombre: string
   fechaHora: string
-  estado: "Pendiente" | "Completado" | "Cancelado"
+  estado: "Pendiente" | "Confirmado" | "Presente" | "Completado" | "Cancelado"
   solicitudCancelacion: boolean
   motivo?: string
   notas?: string

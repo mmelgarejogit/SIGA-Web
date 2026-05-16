@@ -362,7 +362,7 @@ async function confirmDelete() {
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: 280px; padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="px-8 pt-10 pb-16 max-w-7xl mx-auto">
         <!-- Breadcrumb / Back -->
         <BaseButton variant="ghost" size="sm" class="mb-8" @click="router.push('/pacientes')">

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+:root {
+  --sidebar-width: 280px;
+}
+
 @theme {
   /* ── Brand colors ── */
   --color-primary: #00288e;

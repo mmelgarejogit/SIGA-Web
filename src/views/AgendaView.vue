@@ -89,6 +89,8 @@ const estadoFilter = ref<string>("")
 const estadoTabs = [
   { value: "", label: "Todos" },
   { value: "Pendiente", label: "Pendientes" },
+  { value: "Confirmado", label: "Confirmados" },
+  { value: "Presente", label: "En sala" },
   { value: "Completado", label: "Completados" },
   { value: "Cancelado", label: "Cancelados" },
 ]
@@ -121,6 +123,8 @@ const filteredTurnos = computed(() =>
 const stats = computed(() => ({
   total: turnos.value.length,
   pendientes: turnos.value.filter((t) => t.estado === "Pendiente").length,
+  confirmados: turnos.value.filter((t) => t.estado === "Confirmado").length,
+  presentes: turnos.value.filter((t) => t.estado === "Presente").length,
   completados: turnos.value.filter((t) => t.estado === "Completado").length,
   cancelados: turnos.value.filter((t) => t.estado === "Cancelado").length,
   solicitudes: turnos.value.filter((t) => t.solicitudCancelacion).length,
@@ -161,6 +165,10 @@ function estadoStyle(estado: string) {
   switch (estado) {
     case "Pendiente":
       return { bg: "#FEF3C7", dot: "#D97706", text: "#92400E" }
+    case "Confirmado":
+      return { bg: "#DBEAFE", dot: "#2563EB", text: "#1E40AF" }
+    case "Presente":
+      return { bg: "#EDE9FE", dot: "#7C3AED", text: "#4C1D95" }
     case "Completado":
       return { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
     case "Cancelado":
@@ -336,9 +344,9 @@ async function confirmCancel() {
   }
 }
 
-async function completarTurno(t: Turno) {
+async function confirmarLlegada(t: Turno) {
   try {
-    await updateTurnoEstado(t.id, "Completado")
+    await updateTurnoEstado(t.id, "Presente")
     await loadTurnos()
   } catch {
     /* silent */
@@ -379,7 +387,7 @@ async function confirmGestionar(aprobar: boolean) {
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: 280px; padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="p-8">
         <!-- ── HEADER ──────────────────────────────────────────────────── -->
         <div class="flex items-start justify-between mb-8">
@@ -460,72 +468,34 @@ async function confirmGestionar(aprobar: boolean) {
         </div>
 
         <!-- ── STATS CARDS ─────────────────────────────────────────────── -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div
-            class="rounded-2xl p-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <p
-              class="text-xs font-semibold uppercase tracking-wider mb-2"
-              style="color: var(--color-outline)"
-            >
-              Total
-            </p>
-            <p class="text-3xl font-bold" style="color: var(--color-on-surface)">
-              {{ stats.total }}
-            </p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Total</p>
+            <p class="text-3xl font-bold" style="color: var(--color-on-surface)">{{ stats.total }}</p>
           </div>
-          <div
-            class="rounded-2xl p-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <p
-              class="text-xs font-semibold uppercase tracking-wider mb-2"
-              style="color: var(--color-outline)"
-            >
-              Pendientes
-            </p>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Pendientes</p>
             <p class="text-3xl font-bold" style="color: #d97706">{{ stats.pendientes }}</p>
           </div>
-          <div
-            class="rounded-2xl p-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <p
-              class="text-xs font-semibold uppercase tracking-wider mb-2"
-              style="color: var(--color-outline)"
-            >
-              Completados
-            </p>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Confirmados</p>
+            <p class="text-3xl font-bold" style="color: #2563eb">{{ stats.confirmados }}</p>
+          </div>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">En sala</p>
+            <p class="text-3xl font-bold" style="color: #7c3aed">{{ stats.presentes }}</p>
+          </div>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Completados</p>
             <p class="text-3xl font-bold" style="color: #16a34a">{{ stats.completados }}</p>
           </div>
-          <div
-            class="rounded-2xl p-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <p
-              class="text-xs font-semibold uppercase tracking-wider mb-2"
-              style="color: var(--color-outline)"
-            >
-              Cancelados
-            </p>
-            <p class="text-3xl font-bold" style="color: var(--color-outline)">
-              {{ stats.cancelados }}
-            </p>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Cancelados</p>
+            <p class="text-3xl font-bold" style="color: var(--color-outline)">{{ stats.cancelados }}</p>
           </div>
-          <div
-            class="rounded-2xl p-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <p
-              class="text-xs font-semibold uppercase tracking-wider mb-2"
-              style="color: var(--color-outline)"
-            >
-              Solicitudes
-            </p>
-            <p class="text-3xl font-bold" style="color: var(--color-error)">
-              {{ stats.solicitudes }}
-            </p>
+          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Solicitudes</p>
+            <p class="text-3xl font-bold" style="color: var(--color-error)">{{ stats.solicitudes }}</p>
           </div>
         </div>
 
@@ -614,14 +584,14 @@ async function confirmGestionar(aprobar: boolean) {
                 >
               </button>
               <button
-                v-if="item.estado === 'Pendiente' && auth.hasPermission('gestionar_agenda')"
-                @click.stop="completarTurno(item)"
+                v-if="(item.estado === 'Pendiente' || item.estado === 'Confirmado') && auth.hasPermission('gestionar_agenda')"
+                @click.stop="confirmarLlegada(item)"
                 class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: #dcfce7"
-                title="Marcar como completado"
+                style="background-color: #ede9fe"
+                title="Confirmar llegada al local"
               >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #16a34a"
-                  >check</span
+                <span class="material-symbols-outlined" style="font-size: 16px; color: #7c3aed"
+                  >person_check</span
                 >
               </button>
               <button

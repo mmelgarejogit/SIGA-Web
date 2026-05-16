@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue"
-import { useRouter } from "vue-router"
+import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -13,6 +13,11 @@ import { getProfessionals, type Professional } from "@/services/professionalServ
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+const turnoId = ref<number | null>(
+  route.query.turnoId ? Number(route.query.turnoId) : null,
+)
 
 // ── Profesionales ─────────────────────────────────────────────────────────
 
@@ -21,11 +26,32 @@ const professionals = ref<Professional[]>([])
 const selectedProfessionalId = ref<number | null>(auth.user?.professionalId ?? null)
 
 onMounted(async () => {
-  if (isProfessional.value) return
-  try {
-    professionals.value = await getProfessionals()
-  } catch {
-    /* no crítico */
+  const tasks: Promise<unknown>[] = []
+
+  if (!isProfessional.value) {
+    tasks.push(
+      getProfessionals()
+        .then((p) => { professionals.value = p })
+        .catch(() => {}),
+    )
+  }
+
+  const prePatientId = route.query.patientId ? Number(route.query.patientId) : null
+  if (prePatientId) {
+    tasks.push(
+      getPatients({ pageSize: 500 })
+        .then((res) => {
+          const found = res.items.find((p) => p.id === prePatientId)
+          if (found) selectPatient(found)
+        })
+        .catch(() => {}),
+    )
+  }
+
+  await Promise.all(tasks)
+
+  if (route.query.motivo) {
+    createForm.motivo = String(route.query.motivo)
   }
 })
 
@@ -148,6 +174,7 @@ async function submitCreate() {
     const payload: CreateConsultaClinicaRequest = {
       patientId: selectedPatient.value!.id,
       professionalId: selectedProfessionalId.value!,
+      citaId: turnoId.value ?? undefined,
       fechaConsulta: createForm.fechaConsulta,
       motivo: createForm.motivo.trim(),
       anamnesis: createForm.anamnesis.trim() || undefined,
@@ -229,7 +256,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: 280px; padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="p-8">
         <!-- Header -->
         <div class="flex items-center gap-4 mb-8">

@@ -60,7 +60,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
   <header
     class="fixed top-0 right-0 z-40 flex justify-between items-center px-8 h-16"
     style="
-      left: 280px;
+      left: var(--sidebar-width);
+      transition: left 0.25s ease;
       background: rgba(247, 249, 254, 0.85);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(196, 197, 213, 0.15);
