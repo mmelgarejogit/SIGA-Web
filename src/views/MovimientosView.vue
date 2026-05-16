@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
+import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterTabs from "@/components/FilterTabs.vue"
 import { type MovimientoStock, getMovimientos } from "@/services/inventarioService"
@@ -11,6 +12,9 @@ const isLoading = ref(false)
 const loadError = ref("")
 const tipoFilter = ref("")
 const page = ref(1)
+const totalPages = ref(1)
+const totalCount = ref(0)
+const PAGE_SIZE = 20
 
 const tipoTabs = [
   { value: "", label: "Todos" },
@@ -46,11 +50,14 @@ async function load() {
   isLoading.value = true
   loadError.value = ""
   try {
-    movimientos.value = await getMovimientos({
+    const result = await getMovimientos({
       page: page.value,
-      pageSize: 50,
+      pageSize: PAGE_SIZE,
       tipo: tipoFilter.value || undefined,
     })
+    movimientos.value = result.items
+    totalPages.value = result.totalPages
+    totalCount.value = result.totalCount
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar movimientos."
   } finally {
@@ -77,7 +84,7 @@ function onTipoChange(val: string) {
         <div class="mb-8">
           <h1 class="text-4xl font-extrabold tracking-tight mb-2">Movimientos de Stock</h1>
           <p class="text-sm font-medium" style="color: var(--color-outline)">
-            Historial de entradas, salidas y ajustes de inventario.
+            {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
           </p>
         </div>
 
@@ -134,6 +141,19 @@ function onTipoChange(val: string) {
             </span>
           </template>
         </BaseTable>
+
+        <!-- Paginación -->
+        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6">
+          <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; load()">
+            <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
+          </BaseButton>
+          <span class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
+            {{ page }} / {{ totalPages }}
+          </span>
+          <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; load()">
+            <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
+          </BaseButton>
+        </div>
       </div>
     </main>
   </div>
