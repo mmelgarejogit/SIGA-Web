@@ -94,12 +94,25 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
-        label: "Pedidos a Proveedores",
+        label: "Órdenes de Compra",
         icon: "local_shipping",
         route: "/inventario/pedidos",
         permission: "ver_inventario",
       },
+      {
+        label: "Proveedores",
+        icon: "storefront",
+        route: "/inventario/proveedores",
+        permission: "ver_inventario",
+      },
     ],
+  },
+  {
+    id: "egresos",
+    label: "Egresos",
+    icon: "account_balance_wallet",
+    route: "/egresos",
+    permission: "ver_egresos",
   },
   {
     id: "ventas",

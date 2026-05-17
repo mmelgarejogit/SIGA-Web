@@ -163,7 +163,13 @@ const router = createRouter({
       path: "/inventario/pedidos",
       name: "inventario-pedidos",
       component: () => import("@/views/PedidosView.vue"),
-      meta: { requiresAuth: true, permission: "ver_inventario", label: "Pedidos a Proveedores" },
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Órdenes de Compra" },
+    },
+    {
+      path: "/inventario/proveedores",
+      name: "inventario-proveedores",
+      component: () => import("@/views/ProveedoresView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Proveedores" },
     },
     {
       path: "/ventas",
@@ -212,6 +218,12 @@ const router = createRouter({
       name: "admin-config",
       component: () => import("@/views/ConfiguracionView.vue"),
       meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Configuración" },
+    },
+    {
+      path: "/egresos",
+      name: "egresos",
+      component: () => import("@/views/EgresosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_egresos", label: "Egresos" },
     },
     {
       path: "/admin/auditoria",

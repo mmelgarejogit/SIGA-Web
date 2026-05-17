@@ -43,6 +43,11 @@ export const SYSTEM_PERMISSIONS = [
   { id: "ver_recetas", label: "Ver recetas" },
 
   { id: "ver_inventario", label: "Ver inventario" },
+  { id: "gestionar_inventario", label: "Gestionar inventario" },
+  { id: "gestionar_pedidos", label: "Gestionar pedidos" },
+
+  { id: "ver_egresos", label: "Ver egresos" },
+  { id: "gestionar_egresos", label: "Gestionar egresos" },
 
   { id: "ver_ventas", label: "Ver ventas" },
   { id: "registrar_venta", label: "Registrar venta" },
@@ -151,8 +156,18 @@ export const PERMISSION_MATRIX: MatrixRow[] = [
   {
     module: "Inventario",
     icon: "inventory_2",
-    description: "Control de stock y productos",
-    permissions: { ver: "ver_inventario" },
+    description: "Control de stock, productos y órdenes de compra",
+    permissions: {
+      ver: "ver_inventario",
+      editar: "gestionar_inventario",
+      crear: "gestionar_pedidos",
+    },
+  },
+  {
+    module: "Egresos",
+    icon: "account_balance_wallet",
+    description: "Facturas, honorarios y gastos generales",
+    permissions: { ver: "ver_egresos", editar: "gestionar_egresos" },
   },
   {
     module: "Ventas",
