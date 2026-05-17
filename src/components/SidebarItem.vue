@@ -86,9 +86,9 @@ function handleChildClick(route: string) {
       <template v-if="!collapsed">
         <span class="flex-1 text-sm tracking-wide">{{ item.label }}</span>
         <span
-          class="material-symbols-outlined flex-shrink-0 transition-transform duration-200"
+          class="material-symbols-outlined sidebar-chevron"
+          :class="{ rotated: expanded }"
           style="font-size: 18px"
-          :class="expanded ? 'rotate-180' : ''"
           >expand_more</span
         >
       </template>
@@ -163,6 +163,18 @@ function handleChildClick(route: string) {
 </template>
 
 <style scoped>
+.sidebar-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.sidebar-chevron.rotated {
+  transform: rotate(180deg);
+}
+
 .sidebar-expand-enter-active {
   transition:
     opacity 0.2s ease,

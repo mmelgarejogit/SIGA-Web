@@ -9,6 +9,7 @@ import FilterTabs from "@/components/FilterTabs.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Pedido,
+  type PedidoItem,
   type Proveedor,
   type Producto,
   type CreatePedidoItemRequest,
@@ -313,7 +314,7 @@ async function submitProveedor() {
             <template #items="{ item }">
               <span class="text-sm" style="color: var(--color-on-surface-variant)">
                 {{ item.items.length }} ítem{{ item.items.length !== 1 ? "s" : "" }}
-                — {{ formatPrice(item.items.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0)) }}
+                — {{ formatPrice(item.items.reduce((s: number, i: PedidoItem) => s + i.cantidad * i.precioUnitario, 0)) }}
               </span>
             </template>
 

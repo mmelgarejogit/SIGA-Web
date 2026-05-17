@@ -17,8 +17,9 @@ import {
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterTabs from "@/components/FilterTabs.vue"
+import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -36,15 +37,9 @@ const totalPages = ref(0)
 
 const PAGE_SIZE = 10
 const currentPage = ref(1)
-const activeFilter = ref("todos")
+const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
 let searchTimer = 0
-
-const filters = [
-  { id: "todos", label: "Todos" },
-  { id: "activos", label: "Activos" },
-  { id: "inactivos", label: "Inactivos" },
-]
 
 const columns = [
   { key: "nombre", label: "Nombre del Paciente" },
@@ -55,8 +50,9 @@ const columns = [
 ]
 
 const statusParam = computed<GetPatientsParams["status"] | undefined>(() => {
-  if (activeFilter.value === "activos") return "active"
-  if (activeFilter.value === "inactivos") return "inactive"
+  const f = activeFilters.value
+  if (f.includes("activo") && !f.includes("inactivo")) return "active"
+  if (f.includes("inactivo") && !f.includes("activo")) return "inactive"
   return undefined
 })
 
@@ -103,7 +99,7 @@ async function loadPatients() {
   }
 }
 
-watch(activeFilter, () => {
+watch(activeFilters, () => {
   currentPage.value = 1
   loadPatients()
 })
@@ -142,17 +138,6 @@ function formatDate(iso: string) {
   })
 }
 
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534", label: "Activo" }
-    : {
-        bg: "var(--color-surface-container-highest)",
-        dot: "var(--color-outline)",
-        text: "var(--color-on-surface-variant)",
-        label: "Inactivo",
-      }
-}
-
 onMounted(loadPatients)
 
 // ── Validación ────────────────────────────────────────────────────────────────
@@ -180,7 +165,7 @@ type EditErrors = {
 function inputStyle(hasError: boolean) {
   return hasError
     ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
 // ── Modal Crear ───────────────────────────────────────────────────────────────
@@ -339,6 +324,33 @@ async function submitEdit() {
   }
 }
 
+// ── Menú contextual de fila ───────────────────────────────────────────────────
+
+function menuItems(p: Patient): ContextMenuItem[] {
+  const canDeactivate = auth.hasPermission("desactivar_paciente") && p.isActive
+  return [
+    {
+      type: "item",
+      label: "Ver detalle",
+      icon: "visibility",
+      action: () => router.push(`/pacientes/${p.id}`),
+    },
+    {
+      type: "item",
+      label: "Editar",
+      icon: "edit",
+      action: () => openEditModal(p),
+      hidden: !auth.hasPermission("editar_paciente"),
+    },
+    ...(canDeactivate
+      ? [
+          { type: "separator" } as const,
+          { type: "item", label: "Desactivar", icon: "person_off", action: () => openDeleteModal(p), danger: true } as const,
+        ]
+      : []),
+  ]
+}
+
 // ── Modal Eliminar ────────────────────────────────────────────────────────────
 
 const showDeleteModal = ref(false)
@@ -369,7 +381,7 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div class="min-h-screen" style="background-color: var(--color-surface)">
+  <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
 
@@ -401,13 +413,13 @@ async function confirmDelete() {
 
         <!-- Filters + Search -->
         <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
-          <FilterTabs
-            v-model="activeFilter"
-            :tabs="[
-              { label: 'Todos', value: 'todos' },
-              { label: 'Activos', value: 'activos' },
-              { label: 'Inactivos', value: 'inactivos' },
+          <FilterChips
+            v-model="activeFilters"
+            :options="[
+              { value: 'activo',   label: 'Activo',   dot: '#16a34a' },
+              { value: 'inactivo', label: 'Inactivo', dot: 'var(--color-outline)' },
             ]"
+            placeholder="Estado"
           />
 
           <SearchInput v-model="searchQuery" placeholder="Buscar por nombre, C.I., contacto..." />
@@ -476,41 +488,18 @@ async function confirmDelete() {
             <template #estado="{ item: p }">
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                :style="`background-color: ${statusStyle(p.isActive).bg}; color: ${statusStyle(p.isActive).text};`"
+                :class="p.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
               >
                 <span
                   class="w-1.5 h-1.5 rounded-full"
-                  :style="`background-color: ${statusStyle(p.isActive).dot};`"
+                  :class="p.isActive ? 'bg-green-600' : 'bg-red-400'"
                 ></span>
-                {{ statusStyle(p.isActive).label }}
+                {{ p.isActive ? "Activo" : "Inactivo" }}
               </span>
             </template>
             <template #acciones="{ item: p }">
-              <div class="flex justify-end gap-1">
-                <BaseButton
-                  v-if="auth.hasPermission('editar_paciente')"
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="openEditModal(p)"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="width: 20px; height: 20px; font-size: 20px"
-                    >edit</span
-                  >
-                </BaseButton>
-                <BaseButton
-                  v-if="auth.hasPermission('desactivar_paciente')"
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="openDeleteModal(p)"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="width: 20px; height: 20px; font-size: 20px"
-                    >delete</span
-                  >
-                </BaseButton>
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(p)" />
               </div>
             </template>
           </BaseTable>
@@ -539,13 +528,8 @@ async function confirmDelete() {
               <button
                 @click="currentPage--"
                 :disabled="currentPage === 1"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
                 style="color: var(--color-on-surface-variant)"
-                onmouseover="
-                  if (!this.disabled)
-                    this.style.backgroundColor = 'var(--color-surface-container-high)'
-                "
-                onmouseout="this.style.backgroundColor = ''"
               >
                 <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
               </button>
@@ -560,19 +544,9 @@ async function confirmDelete() {
                 >
                 <button
                   v-else
-                  @click="currentPage = p"
+                  @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :style="
-                    currentPage === p
-                      ? 'background-color: var(--color-primary); color: white;'
-                      : 'color: var(--color-on-surface-variant);'
-                  "
-                  :onmouseover="
-                    currentPage !== p
-                      ? 'this.style.backgroundColor=\'var(--color-surface-container-high)\''
-                      : ''
-                  "
-                  :onmouseout="currentPage !== p ? 'this.style.backgroundColor=\'\'' : ''"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >
                   {{ p }}
                 </button>
@@ -582,13 +556,8 @@ async function confirmDelete() {
               <button
                 @click="currentPage++"
                 :disabled="currentPage === totalPages"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
                 style="color: var(--color-on-surface-variant)"
-                onmouseover="
-                  if (!this.disabled)
-                    this.style.backgroundColor = 'var(--color-surface-container-high)'
-                "
-                onmouseout="this.style.backgroundColor = ''"
               >
                 <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
               </button>
@@ -644,17 +613,6 @@ async function confirmDelete() {
         </div>
       </div>
     </main>
-
-    <!-- FAB -->
-    <BaseButton
-      variant="primary"
-      class="fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-2xl z-50"
-      style="box-shadow: 0 8px 32px rgba(0, 103, 128, 0.35)"
-    >
-      <span class="material-symbols-outlined" style="font-size: 32px; width: 32px; height: 32px"
-        >qr_code_scanner</span
-      >
-    </BaseButton>
 
     <!-- MODAL: CREAR PACIENTE -->
     <BaseModal
