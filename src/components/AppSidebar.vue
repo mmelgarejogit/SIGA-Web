@@ -157,42 +157,22 @@ watch(
       />
     </div>
 
-    <!-- Nueva Cita CTA -->
-    <div v-if="auth.hasPermission('gestionar_agenda')" class="px-3 mt-4 flex-shrink-0">
-      <button
-        @click="router.push('/agenda/nueva')"
-        class="w-full py-3 rounded-full font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg text-sm overflow-hidden"
-        style="
-          background-color: var(--color-secondary-container);
-          color: var(--color-on-secondary-container);
-        "
-        :title="sidebar.collapsed ? 'Nueva Cita' : undefined"
-      >
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 20px">add</span>
-        <span
-          class="overflow-hidden whitespace-nowrap"
-          style="transition: opacity 0.2s ease, max-width 0.25s ease"
-          :style="sidebar.collapsed ? 'opacity: 0; max-width: 0;' : 'opacity: 1; max-width: 120px;'"
-        >
-          Nueva Cita
-        </span>
-      </button>
-    </div>
-
     <!-- Toggle button -->
     <div class="px-3 mt-2 flex-shrink-0" :class="sidebar.collapsed ? 'flex justify-center' : ''">
       <button
         @click="sidebar.toggle"
-        class="flex items-center gap-2 py-2 px-3 rounded-xl transition-all w-full text-left"
+        class="flex items-center py-2 px-3 rounded-xl transition-all w-full"
+        :class="sidebar.collapsed ? 'justify-center gap-0' : 'gap-2'"
         style="color: rgba(255,255,255,0.4)"
-        :class="sidebar.collapsed ? 'justify-center' : ''"
         onmouseover="this.style.backgroundColor='rgba(255,255,255,0.08)'; this.style.color='rgba(255,255,255,0.75)'"
         onmouseout="this.style.backgroundColor=''; this.style.color='rgba(255,255,255,0.4)'"
         :title="sidebar.collapsed ? 'Expandir menú' : 'Colapsar menú'"
       >
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">
-          {{ sidebar.collapsed ? "chevron_right" : "chevron_left" }}
-        </span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 18px; display: inline-flex; align-items: center; justify-content: center; transform-origin: center; transition: transform 0.25s ease; flex-shrink: 0;"
+          :style="{ transform: sidebar.collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }"
+        >chevron_left</span>
         <span
           class="text-xs font-medium overflow-hidden whitespace-nowrap"
           style="transition: opacity 0.2s ease, max-width 0.25s ease"

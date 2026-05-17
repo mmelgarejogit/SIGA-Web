@@ -197,6 +197,38 @@ Todas las vistas autenticadas usan este layout fijo:
 
 > **Regla:** usar **siempre** `hover:bg-surface-container-low` como clase Tailwind. Prohibido `onmouseover="this.style.backgroundColor = '...'"`.
 
+### Botones de acción en tabla
+
+Botones de ícono dentro de filas (editar, eliminar, confirmar, etc.). **No usar `BaseButton`** para estas acciones — usar el patrón directo:
+
+```html
+<button
+  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+  style="background-color: var(--color-surface-container-high)"
+  title="Editar"
+>
+  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">edit</span>
+</button>
+```
+
+**Paleta semántica:**
+
+| Tipo de acción | Clase / Style fondo | Clase / Style ícono |
+|---------------|---------------------|---------------------|
+| Editar | `style="background-color: var(--color-surface-container-high)"` | `style="color: var(--color-on-surface-variant)"` |
+| Eliminar / Desactivar | `style="background-color: var(--color-error-container)"` | `style="color: var(--color-error)"` |
+| Acción positiva (confirmar, aprobar) | `class="bg-violet-100"` | `class="text-violet-700"` |
+| Alerta / Gestionar | `class="bg-amber-50"` | `class="text-amber-800"` |
+| Ver / Navegar | `class="bg-blue-100"` | `class="text-blue-700"` |
+
+> **Reglas:**
+> - Tamaño fijo `w-9 h-9` — nunca `w-7` ni `w-8`
+> - Siempre `title` con descripción legible de la acción
+> - Ícono siempre `font-size: 18px`
+> - Hover: `hover:scale-105 active:scale-95` — nunca `hover:opacity-80`
+> - Fondo semántico siempre visible (nunca transparente)
+> - Usar CSS vars con `style=` para colores del design system; Tailwind para colores semánticos externos (amber, violet, blue)
+
 ### Modales (`BaseModal`)
 
 ```html
@@ -230,12 +262,11 @@ Todas las vistas autenticadas usan este layout fijo:
 </Teleport>
 ```
 
-| Tamaño | `max-w` | Uso típico |
-|--------|---------|-----------|
-| `sm` | `max-w-sm` | Confirmaciones, alertas |
-| `md` | `max-w-md` | Formularios pequeños |
-| `lg` | `max-w-2xl` | CRUD create/edit |
-| `xl` | `max-w-3xl` | Formularios complejos |
+| Tamaño | `max-w` | Uso |
+|--------|---------|-----|
+| `sm` | `max-w-sm` | **Siempre** para confirmaciones y alertas destructivas |
+| `lg` | `max-w-2xl` | **Siempre** para cualquier formulario CRUD (crear, editar, gestionar) |
+| `md` / `xl` | — | Reservados — no usar salvo caso excepcional documentado |
 
 > **Reglas:**
 > - Siempre `rounded-3xl overflow-hidden`.
@@ -244,6 +275,7 @@ Todas las vistas autenticadas usan este layout fijo:
 > - Body scrollable con `max-h-[70vh] overflow-y-auto`.
 > - Footer con borde superior.
 > - No usar `backdrop-blur-sm` en el overlay (inconsistente con el resto del sistema).
+> - **Nunca usar `size="md"` o `size="xl"` para formularios nuevos** — elegir entre `sm` (confirmación) o `lg` (formulario).
 
 ### Formularios
 

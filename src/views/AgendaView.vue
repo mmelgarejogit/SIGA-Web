@@ -5,7 +5,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterTabs from "@/components/FilterTabs.vue"
+import FilterChips from "@/components/FilterChips.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   getTurnos,
@@ -19,6 +19,8 @@ import {
 } from "@/services/turnoService"
 import { getProfessionals, type Professional } from "@/services/professionalService"
 import { getPatients, type Patient } from "@/services/patientService"
+import DateRangeBar from "@/components/DateRangeBar.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
 const auth = useAuthStore()
 
@@ -48,13 +50,7 @@ function formatDateLabel(iso: string): string {
 // ── Navegación de fecha ───────────────────────────────────────────────────────
 
 const selectedDate = ref(new Date())
-
-const selectedDateInput = computed({
-  get: () => toDateStr(selectedDate.value),
-  set: (v) => {
-    selectedDate.value = new Date(v + "T12:00:00")
-  },
-})
+const viewMode = ref<"dia" | "semana" | "mes">("dia")
 
 const selectedDateLabel = computed(() =>
   selectedDate.value.toLocaleDateString("es-AR", {
@@ -65,35 +61,63 @@ const selectedDateLabel = computed(() =>
   }),
 )
 
-const isToday = computed(() => toDateStr(selectedDate.value) === toDateStr(new Date()))
+const rangeStart = computed(() => {
+  const d = new Date(selectedDate.value)
+  if (viewMode.value === "dia") return d
+  if (viewMode.value === "semana") {
+    const day = d.getDay()
+    d.setDate(d.getDate() - day)
+    return d
+  }
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+})
 
-function prevDay() {
+const rangeEnd = computed(() => {
   const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() - 1)
-  selectedDate.value = d
-}
-function nextDay() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() + 1)
-  selectedDate.value = d
-}
-function goToToday() {
-  selectedDate.value = new Date()
-}
+  if (viewMode.value === "dia") return d
+  if (viewMode.value === "semana") {
+    const day = d.getDay()
+    d.setDate(d.getDate() + (6 - day))
+    return d
+  }
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0)
+})
+
+const headerSubtitle = computed(() => {
+  if (viewMode.value === "dia") return selectedDateLabel.value
+  if (viewMode.value === "semana") {
+    const s = rangeStart.value
+    const e = rangeEnd.value
+    return `Semana del ${s.getDate()} al ${e.getDate()} de ${s.toLocaleDateString("es-AR", { month: "long" })}`
+  }
+  const label = selectedDate.value.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+})
+
+const weekRangeLabel = computed(() => {
+  const s = rangeStart.value
+  const e = rangeEnd.value
+  return `${s.getDate()}–${e.getDate()} de ${s.toLocaleDateString("es-AR", { month: "long" })}`
+})
 
 // ── Filtros ───────────────────────────────────────────────────────────────────
 
 const selectedProfessionalId = ref<number | null>(null)
 const estadoFilter = ref<string>("")
+const estadoFilterChips = ref<string[]>([])
 
-const estadoTabs = [
-  { value: "", label: "Todos" },
-  { value: "Pendiente", label: "Pendientes" },
-  { value: "Confirmado", label: "Confirmados" },
-  { value: "Presente", label: "En sala" },
-  { value: "Completado", label: "Completados" },
-  { value: "Cancelado", label: "Cancelados" },
+const estadoOptions = [
+  { value: "Pendiente", label: "Pendientes", dot: "var(--color-tertiary)" },
+  { value: "Confirmado", label: "Confirmados", dot: "var(--color-primary)" },
+  { value: "Presente", label: "En sala", dot: "var(--color-secondary)" },
+  { value: "Completado", label: "Completados", dot: "var(--color-on-primary-container)" },
+  { value: "Cancelado", label: "Cancelados", dot: "var(--color-outline)" },
 ]
+
+watch(estadoFilterChips, (val) => {
+  estadoFilter.value = val[0] ?? ""
+  loadTurnos()
+})
 
 const turnoColumns = [
   { key: "hora", label: "Hora" },
@@ -105,7 +129,7 @@ const turnoColumns = [
 ]
 
 const tableEmptyText = computed(() =>
-  turnos.value.length === 0 ? "No hay turnos para este día" : "No hay turnos con ese estado",
+  viewMode.value === "semana" ? "No hay turnos para esta semana" : "No hay turnos para este día",
 )
 
 // ── Datos ─────────────────────────────────────────────────────────────────────
@@ -116,10 +140,6 @@ const patients = ref<Patient[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 
-const filteredTurnos = computed(() =>
-  estadoFilter.value ? turnos.value.filter((t) => t.estado === estadoFilter.value) : turnos.value,
-)
-
 const stats = computed(() => ({
   total: turnos.value.length,
   pendientes: turnos.value.filter((t) => t.estado === "Pendiente").length,
@@ -127,17 +147,37 @@ const stats = computed(() => ({
   presentes: turnos.value.filter((t) => t.estado === "Presente").length,
   completados: turnos.value.filter((t) => t.estado === "Completado").length,
   cancelados: turnos.value.filter((t) => t.estado === "Cancelado").length,
-  solicitudes: turnos.value.filter((t) => t.solicitudCancelacion).length,
 }))
 
 async function loadTurnos() {
   isLoading.value = true
   loadError.value = ""
   try {
-    turnos.value = await getTurnos({
-      fecha: toDateStr(selectedDate.value),
-      professionalId: selectedProfessionalId.value ?? undefined,
-    })
+    if (viewMode.value === "dia") {
+      turnos.value = await getTurnos({
+        fecha: toDateStr(selectedDate.value),
+        professionalId: selectedProfessionalId.value ?? undefined,
+        estado: estadoFilter.value || undefined,
+      })
+    } else if (viewMode.value === "semana") {
+      const dates: string[] = []
+      const d = new Date(rangeStart.value)
+      while (d <= rangeEnd.value) {
+        dates.push(toDateStr(new Date(d)))
+        d.setDate(d.getDate() + 1)
+      }
+      const results = await Promise.all(
+        dates.map((fecha) =>
+          getTurnos({
+            fecha,
+            professionalId: selectedProfessionalId.value ?? undefined,
+            estado: estadoFilter.value || undefined,
+          }),
+        ),
+      )
+      turnos.value = results.flat()
+    }
+    // mes: deshabilitado hasta que la API soporte rango de fechas
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar turnos."
   } finally {
@@ -157,33 +197,24 @@ async function loadInit() {
 }
 
 onMounted(loadInit)
-watch([selectedDate, selectedProfessionalId], loadTurnos)
+watch([selectedDate, selectedProfessionalId, viewMode], loadTurnos)
 
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
-function estadoStyle(estado: string) {
-  switch (estado) {
-    case "Pendiente":
-      return { bg: "#FEF3C7", dot: "#D97706", text: "#92400E" }
-    case "Confirmado":
-      return { bg: "#DBEAFE", dot: "#2563EB", text: "#1E40AF" }
-    case "Presente":
-      return { bg: "#EDE9FE", dot: "#7C3AED", text: "#4C1D95" }
-    case "Completado":
-      return { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
-    case "Cancelado":
-      return {
-        bg: "var(--color-surface-container-highest)",
-        dot: "var(--color-outline)",
-        text: "var(--color-on-surface-variant)",
-      }
-    default:
-      return {
-        bg: "var(--color-surface-container-highest)",
-        dot: "var(--color-outline)",
-        text: "var(--color-on-surface-variant)",
-      }
-  }
+const ESTADO_BADGE: Record<string, string> = {
+  Pendiente:  "bg-amber-50 text-amber-700",
+  Confirmado: "bg-blue-100 text-blue-700",
+  Presente:   "bg-violet-100 text-violet-700",
+  Completado: "bg-green-100 text-green-700",
+  Cancelado:  "bg-surface-container-high text-on-surface-variant",
+}
+
+const ESTADO_DOT: Record<string, string> = {
+  Pendiente:  "bg-amber-500",
+  Confirmado: "bg-blue-600",
+  Presente:   "bg-violet-600",
+  Completado: "bg-green-600",
+  Cancelado:  "bg-on-surface-variant",
 }
 
 // ── Modal Nuevo Turno ─────────────────────────────────────────────────────────
@@ -380,6 +411,40 @@ async function confirmGestionar(aprobar: boolean) {
     isGestionando.value = false
   }
 }
+
+// ── Menú contextual de fila ───────────────────────────────────────────────────
+
+function menuItems(t: Turno): ContextMenuItem[] {
+  const canGestionar = t.solicitudCancelacion && auth.hasPermission("gestionar_agenda")
+  const canConfirmar = (t.estado === "Pendiente" || t.estado === "Confirmado") && auth.hasPermission("gestionar_agenda")
+  const hasTopActions = canGestionar || canConfirmar
+
+  return [
+    {
+      type: "item",
+      label: "Gestionar solicitud",
+      icon: "assignment",
+      action: () => openGestionarModal(t),
+      hidden: !canGestionar,
+    },
+    {
+      type: "item",
+      label: "Confirmar llegada",
+      icon: "person_check",
+      action: () => confirmarLlegada(t),
+      hidden: !canConfirmar,
+    },
+    ...(hasTopActions ? [{ type: "separator" } as ContextMenuItem] : []),
+    {
+      type: "item",
+      label: "Cancelar turno",
+      icon: "close",
+      action: () => openCancelModal(t),
+      danger: true,
+      hidden: !(t.estado !== "Cancelado" && auth.hasPermission("gestionar_agenda")),
+    },
+  ]
+}
 </script>
 
 <template>
@@ -394,7 +459,7 @@ async function confirmGestionar(aprobar: boolean) {
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Agenda</h1>
             <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
-              {{ selectedDateLabel }}
+              {{ headerSubtitle }}
             </p>
           </div>
           <BaseButton
@@ -410,52 +475,15 @@ async function confirmGestionar(aprobar: boolean) {
 
         <!-- ── CONTROLES ───────────────────────────────────────────────── -->
         <div class="flex items-center gap-3 mb-6 flex-wrap">
-          <!-- Navegación de fecha -->
-          <div
-            class="flex items-center rounded-2xl overflow-hidden"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
-          >
-            <button
-              @click="prevDay"
-              class="px-3 py-2 hover:bg-[var(--color-surface)] transition-colors"
-              title="Día anterior"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 20px; color: var(--color-on-surface-variant)"
-                >chevron_left</span
-              >
-            </button>
-            <input
-              type="date"
-              v-model="selectedDateInput"
-              class="px-2 py-2 text-sm font-semibold outline-none"
-              style="color: var(--color-on-surface); background: transparent; min-width: 145px"
-            />
-            <button
-              @click="nextDay"
-              class="px-3 py-2 hover:bg-[var(--color-surface)] transition-colors"
-              title="Día siguiente"
-            >
-              <span
-                class="material-symbols-outlined"
-                style="font-size: 20px; color: var(--color-on-surface-variant)"
-                >chevron_right</span
-              >
-            </button>
-          </div>
-
-          <BaseButton v-if="!isToday" variant="secondary" size="sm" @click="goToToday">
-            Hoy
-          </BaseButton>
+          <DateRangeBar v-model="selectedDate" v-model:mode="viewMode" />
 
           <!-- Filtro por profesional -->
           <select
             v-model="selectedProfessionalId"
             class="px-4 py-2 rounded-2xl text-sm font-medium outline-none"
             style="
-              background: white;
-              border: 1px solid var(--color-surface-container-highest);
+              background-color: var(--color-surface-container-lowest);
+              border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
               min-width: 220px;
             "
@@ -468,39 +496,38 @@ async function confirmGestionar(aprobar: boolean) {
         </div>
 
         <!-- ── STATS CARDS ─────────────────────────────────────────────── -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Total</p>
-            <p class="text-3xl font-bold" style="color: var(--color-on-surface)">{{ stats.total }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Pendientes</p>
-            <p class="text-3xl font-bold" style="color: #d97706">{{ stats.pendientes }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Confirmados</p>
-            <p class="text-3xl font-bold" style="color: #2563eb">{{ stats.confirmados }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">En sala</p>
-            <p class="text-3xl font-bold" style="color: #7c3aed">{{ stats.presentes }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Completados</p>
-            <p class="text-3xl font-bold" style="color: #16a34a">{{ stats.completados }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Cancelados</p>
-            <p class="text-3xl font-bold" style="color: var(--color-outline)">{{ stats.cancelados }}</p>
-          </div>
-          <div class="rounded-2xl p-4" style="background: white; border: 1px solid var(--color-surface-container-highest)">
-            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Solicitudes</p>
-            <p class="text-3xl font-bold" style="color: var(--color-error)">{{ stats.solicitudes }}</p>
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+          <div
+            v-for="card in [
+              { key: 'total', label: 'Total', value: stats.total, color: 'var(--color-on-surface)' },
+              { key: 'pendientes', label: 'Pendientes', value: stats.pendientes, color: 'var(--color-tertiary)' },
+              { key: 'confirmados', label: 'Confirmados', value: stats.confirmados, color: 'var(--color-primary)' },
+              { key: 'presentes', label: 'En sala', value: stats.presentes, color: 'var(--color-secondary)' },
+              { key: 'completados', label: 'Completados', value: stats.completados, color: 'var(--color-on-primary-container)' },
+              { key: 'cancelados', label: 'Cancelados', value: stats.cancelados, color: 'var(--color-outline)' },
+            ]"
+            :key="card.key"
+            class="rounded-2xl p-4"
+            style="
+              background-color: var(--color-surface-container-lowest);
+              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
+            "
+          >
+            <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">
+              {{ card.label }}
+            </p>
+            <p class="text-3xl font-bold" :style="{ color: card.color }">{{ card.value }}</p>
           </div>
         </div>
 
         <!-- ── FILTRO ESTADO ───────────────────────────────────────────── -->
-        <FilterTabs v-model="estadoFilter" :tabs="estadoTabs" class="mb-4" />
+        <div class="mb-4">
+          <FilterChips
+            v-model="estadoFilterChips"
+            :options="estadoOptions"
+            placeholder="Estado"
+          />
+        </div>
 
         <!-- ── TABLA ───────────────────────────────────────────────────── -->
         <div
@@ -514,7 +541,7 @@ async function confirmGestionar(aprobar: boolean) {
         <BaseTable
           v-else
           :columns="turnoColumns"
-          :items="filteredTurnos"
+          :items="turnos"
           :loading="isLoading"
           :empty-text="tableEmptyText"
         >
@@ -549,77 +576,40 @@ async function confirmGestionar(aprobar: boolean) {
             <div class="flex items-center gap-2">
               <span
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                :style="`background-color: ${estadoStyle(item.estado).bg}; color: ${estadoStyle(item.estado).text};`"
+                :class="ESTADO_BADGE[item.estado] ?? 'bg-surface-container-high text-on-surface-variant'"
               >
                 <span
                   class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  :style="`background-color: ${estadoStyle(item.estado).dot};`"
+                  :class="ESTADO_DOT[item.estado] ?? 'bg-outline-variant'"
                 ></span>
                 {{ item.estado }}
               </span>
               <span
                 v-if="item.solicitudCancelacion"
-                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                style="background-color: #fef3c7; color: #92400e"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800"
               >
-                <span class="material-symbols-outlined" style="font-size: 10px"
-                  >hourglass_empty</span
-                >
+                <span class="material-symbols-outlined" style="font-size: 10px">hourglass_empty</span>
                 Solicita cancelar
               </span>
             </div>
           </template>
 
           <template #acciones="{ item }">
-            <div class="flex items-center justify-end gap-1.5">
-              <button
-                v-if="item.solicitudCancelacion && auth.hasPermission('gestionar_agenda')"
-                @click.stop="openGestionarModal(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: #fef3c7"
-                title="Gestionar solicitud de cancelación"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #92400e"
-                  >assignment</span
-                >
-              </button>
-              <button
-                v-if="(item.estado === 'Pendiente' || item.estado === 'Confirmado') && auth.hasPermission('gestionar_agenda')"
-                @click.stop="confirmarLlegada(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: #ede9fe"
-                title="Confirmar llegada al local"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #7c3aed"
-                  >person_check</span
-                >
-              </button>
-              <button
-                v-if="item.estado !== 'Cancelado' && auth.hasPermission('gestionar_agenda')"
-                @click.stop="openCancelModal(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: var(--color-error-container)"
-                title="Cancelar turno"
-              >
-                <span
-                  class="material-symbols-outlined"
-                  style="font-size: 16px; color: var(--color-error)"
-                  >close</span
-                >
-              </button>
+            <div class="flex items-center justify-end">
+              <RowContextMenu v-if="item.estado !== 'Cancelado'" :items="menuItems(item)" />
             </div>
           </template>
         </BaseTable>
 
         <!-- Footer -->
         <div
-          v-if="!isLoading && filteredTurnos.length > 0"
+          v-if="!isLoading && turnos.length > 0"
           class="px-6 py-3 text-xs font-medium"
-          style="color: var(--color-outline); border-top: 1px solid #f0f1f5"
+          style="color: var(--color-outline); border-top: 1px solid rgba(196, 197, 213, 0.12)"
         >
-          Mostrando {{ filteredTurnos.length }} turno{{ filteredTurnos.length !== 1 ? "s" : "" }}
-          <template v-if="estadoFilter">
-            · filtrado por <strong>{{ estadoFilter }}</strong></template
+          Mostrando {{ turnos.length }} turno{{ turnos.length !== 1 ? "s" : "" }}
+          <template v-if="viewMode === 'semana'">
+            · {{ weekRangeLabel }}</template
           >
         </div>
       </div>
@@ -629,7 +619,7 @@ async function confirmGestionar(aprobar: boolean) {
     <BaseModal
       :show="showCreateModal"
       title="Nuevo Turno"
-      size="md"
+      size="lg"
       @close="showCreateModal = false"
     >
       <Transition name="fade">
@@ -649,16 +639,16 @@ async function confirmGestionar(aprobar: boolean) {
       <form @submit.prevent="submitCreate" class="space-y-4">
         <!-- Profesional -->
         <div>
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)"
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
             >Profesional</label
           >
           <select
             v-model="createForm.professionalId"
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           >
             <option :value="null" disabled>Seleccioná un profesional</option>
@@ -670,25 +660,25 @@ async function confirmGestionar(aprobar: boolean) {
 
         <!-- Fecha -->
         <div>
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)"
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
             >Fecha</label
           >
           <input
             v-model="createForm.fecha"
             type="date"
             :min="toDateStr(new Date())"
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           />
         </div>
 
         <!-- Horario disponible -->
         <div>
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)"
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
             >Horario</label
           >
           <div v-if="isLoadingSlots" class="text-xs py-1" style="color: var(--color-outline)">
@@ -703,29 +693,25 @@ async function confirmGestionar(aprobar: boolean) {
           </div>
           <div
             v-else-if="isPastDate"
-            class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium"
-            style="background-color: #fef3c7; color: #92400e"
+            class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium bg-amber-50 text-amber-800"
           >
-            <span class="material-symbols-outlined flex-shrink-0" style="font-size: 14px"
-              >event_busy</span
-            >
+            <span class="material-symbols-outlined flex-shrink-0" style="font-size: 14px">event_busy</span>
             No se pueden reservar turnos en fechas pasadas
           </div>
           <div
             v-else-if="slots.length === 0"
-            class="text-xs py-1 font-medium"
-            style="color: #d97706"
+            class="text-xs py-1 font-medium text-amber-600"
           >
             El profesional no tiene horario disponible ese día
           </div>
           <select
             v-else
             v-model="createForm.slot"
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           >
             <option value="" disabled>Seleccioná un horario</option>
@@ -737,7 +723,7 @@ async function confirmGestionar(aprobar: boolean) {
 
         <!-- Paciente con autocomplete -->
         <div class="relative">
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)"
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
             >Paciente</label
           >
           <input
@@ -746,19 +732,19 @@ async function confirmGestionar(aprobar: boolean) {
             placeholder="Buscar por nombre o CI..."
             @focus="showPatientDropdown = true"
             @blur="onPatientBlur"
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           />
           <div
             v-if="showPatientDropdown && filteredPatients.length > 0"
             class="absolute left-0 right-0 z-20 mt-1 rounded-xl shadow-lg overflow-hidden"
             style="
-              background: white;
-              border: 1px solid var(--color-surface-container-highest);
+              background-color: var(--color-surface-container-lowest);
+              border: 1px solid var(--color-outline-variant);
               max-height: 180px;
               overflow-y: auto;
             "
@@ -768,7 +754,7 @@ async function confirmGestionar(aprobar: boolean) {
               :key="p.id"
               type="button"
               @mousedown.prevent="selectPatient(p)"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-surface)] transition-colors"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container-low transition-colors"
             >
               <span class="font-medium" style="color: var(--color-on-surface)"
                 >{{ p.firstName }} {{ p.lastName }}</span
@@ -780,38 +766,38 @@ async function confirmGestionar(aprobar: boolean) {
 
         <!-- Motivo -->
         <div>
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
             Motivo
-            <span class="font-normal" style="color: var(--color-outline-variant)">(opcional)</span>
+            <span class="normal-case font-normal tracking-normal" style="color: var(--color-outline-variant)">(opcional)</span>
           </label>
           <input
             v-model="createForm.motivo"
             type="text"
             placeholder="Ej: Control anual, adaptación de lentes..."
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           />
         </div>
 
         <!-- Notas -->
         <div>
-          <label class="block text-xs font-semibold mb-1.5" style="color: var(--color-outline)">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
             Notas internas
-            <span class="font-normal" style="color: var(--color-outline-variant)">(opcional)</span>
+            <span class="normal-case font-normal tracking-normal" style="color: var(--color-outline-variant)">(opcional)</span>
           </label>
           <textarea
             v-model="createForm.notas"
             rows="2"
             placeholder="Notas para el staff..."
-            class="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
             style="
               border: 1px solid var(--color-outline-variant);
               color: var(--color-on-surface);
-              background: var(--color-surface);
+              background-color: var(--color-surface-container-low);
             "
           />
         </div>
@@ -919,13 +905,8 @@ async function confirmGestionar(aprobar: boolean) {
     <!-- ── MODAL GESTIONAR SOLICITUD DE CANCELACIÓN ──────────────────────── -->
     <BaseModal :show="showGestionarModal" size="sm" @close="showGestionarModal = false">
       <div class="text-center">
-        <div
-          class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-          style="background-color: #fef3c7"
-        >
-          <span class="material-symbols-outlined" style="color: #92400e; font-size: 24px"
-            >assignment</span
-          >
+        <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-amber-50">
+          <span class="material-symbols-outlined text-amber-800" style="font-size: 24px">assignment</span>
         </div>
 
         <h3 class="text-lg font-bold mb-2" style="color: var(--color-on-surface)">
