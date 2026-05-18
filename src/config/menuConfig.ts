@@ -76,8 +76,8 @@ export const menuConfig: MenuItem[] = [
     ],
   },
   {
-    id: "inventario",
-    label: "Inventario",
+    id: "stock",
+    label: "Stock",
     icon: "inventory_2",
     permission: "ver_inventario",
     children: [
@@ -93,9 +93,17 @@ export const menuConfig: MenuItem[] = [
         route: "/inventario/movimientos",
         permission: "ver_inventario",
       },
+    ],
+  },
+  {
+    id: "compras",
+    label: "Compras",
+    icon: "local_shipping",
+    permission: "ver_inventario",
+    children: [
       {
         label: "Órdenes de Compra",
-        icon: "local_shipping",
+        icon: "shopping_cart",
         route: "/inventario/pedidos",
         permission: "ver_inventario",
       },
@@ -111,8 +119,21 @@ export const menuConfig: MenuItem[] = [
     id: "egresos",
     label: "Egresos",
     icon: "account_balance_wallet",
-    route: "/egresos",
     permission: "ver_egresos",
+    children: [
+      {
+        label: "Egresos",
+        icon: "receipt_long",
+        route: "/egresos",
+        permission: "ver_egresos",
+      },
+      {
+        label: "Categorías de Gasto",
+        icon: "label",
+        route: "/egresos/categorias",
+        permission: "ver_egresos",
+      },
+    ],
   },
   {
     id: "ventas",

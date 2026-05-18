@@ -174,19 +174,19 @@ const router = createRouter({
     {
       path: "/ventas",
       name: "ventas",
-      component: () => import("@/views/ComingSoonView.vue"),
-      meta: { requiresAuth: true, permission: "ver_ventas", label: "Ventas" },
+      component: () => import("@/views/VentasView.vue"),
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Ventas" },
     },
     {
       path: "/ventas/nueva",
       name: "ventas-nueva",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/VentasNuevaView.vue"),
       meta: { requiresAuth: true, permission: "registrar_venta", label: "Nueva Venta" },
     },
     {
       path: "/ventas/cierre",
       name: "ventas-cierre",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/VentasCierreView.vue"),
       meta: { requiresAuth: true, permission: "ver_ventas", label: "Cierre de Caja" },
     },
     {
@@ -224,6 +224,12 @@ const router = createRouter({
       name: "egresos",
       component: () => import("@/views/EgresosView.vue"),
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Egresos" },
+    },
+    {
+      path: "/egresos/categorias",
+      name: "egresos-categorias",
+      component: () => import("@/views/CategoriasGastoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_egresos", label: "Categorías de Gasto" },
     },
     {
       path: "/admin/auditoria",

@@ -5,6 +5,7 @@ const { get, post, put } = useHttp()
 export type TipoEgreso = "FacturaCompra" | "Honorario" | "GastoGeneral"
 export type EstadoEgreso = "Borrador" | "Pendiente" | "Pagado" | "Anulado"
 export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Cheque"
+export type CondicionVenta = "Contado" | "Credito"
 
 export interface Egreso {
   id: number
@@ -20,11 +21,20 @@ export interface Egreso {
   estaVencido: boolean
   createdAt: string
 
-  // FacturaCompra
+  // FacturaCompra — referencia
   nroFactura?: string
   proveedorId?: number
   proveedorNombre?: string
   pedidoProveedorId?: number
+
+  // FacturaCompra — desglose fiscal
+  montoExento?: number
+  montoGravado5?: number
+  montoGravado10?: number
+  iva5?: number
+  iva10?: number
+  montoTotal?: number
+  condicionVenta?: CondicionVenta
 
   // Honorario
   professionalId?: number
@@ -47,11 +57,14 @@ export interface CrearFacturaCompraRequest {
   proveedorId: number
   pedidoProveedorId?: number
   nroFactura?: string
-  monto: number
   concepto: string
   observaciones?: string
   fechaEmision: string
   fechaVencimiento?: string
+  montoExento: number
+  montoGravado5: number
+  montoGravado10: number
+  condicionVenta: CondicionVenta
 }
 
 export interface CrearHonorarioRequest {

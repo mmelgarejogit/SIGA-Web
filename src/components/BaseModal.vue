@@ -2,10 +2,13 @@
 import { onMounted, onUnmounted } from "vue"
 
 const props = defineProps<{
-  show: boolean
+  show?: boolean
+  open?: boolean
   title?: string
   size?: "sm" | "md" | "lg" | "xl"
 }>()
+
+const isOpen = () => props.show || props.open
 
 const emit = defineEmits<{
   (e: "close"): void
@@ -19,7 +22,7 @@ const sizeClasses: Record<string, string> = {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape" && props.show) {
+  if (event.key === "Escape" && isOpen()) {
     emit("close")
   }
 }
@@ -36,7 +39,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="props.show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div v-if="isOpen()" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <!-- overlay -->
         <div
           class="absolute inset-0"
@@ -76,7 +79,7 @@ onUnmounted(() => {
 
           <!-- body -->
           <div class="px-8 py-6 max-h-[70vh] overflow-y-auto">
-            <slot />
+            <slot name="body"><slot /></slot>
           </div>
 
           <!-- footer -->

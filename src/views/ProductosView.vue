@@ -5,8 +5,9 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterTabs from "@/components/FilterTabs.vue"
+import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
@@ -30,16 +31,13 @@ const productos = ref<Producto[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
-const categoriaFilter = ref("")
+const categoriaFilter = ref<string[]>([])
 const bajoStockFilter = ref(false)
 const page = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
 
-const categoriaTabs = [
-  { value: "", label: "Todas" },
-  ...CATEGORIAS.map((c) => ({ value: c, label: c })),
-]
+const categoriaOptions = CATEGORIAS.map((c) => ({ value: c, label: c }))
 
 const columns = [
   { key: "nombre", label: "Producto" },
@@ -47,7 +45,7 @@ const columns = [
   { key: "sku", label: "SKU" },
   { key: "precios", label: "Precios" },
   { key: "stock", label: "Stock" },
-  { key: "acciones", label: "Acciones", align: "right" as const },
+  { key: "acciones", label: "" },
 ]
 
 async function loadProductos() {
@@ -58,7 +56,7 @@ async function loadProductos() {
       page: page.value,
       pageSize: 20,
       search: search.value || undefined,
-      categoria: categoriaFilter.value || undefined,
+      categoria: categoriaFilter.value[0] || undefined,
       bajoStock: bajoStockFilter.value || undefined,
     })
     productos.value = result.items
@@ -79,7 +77,7 @@ function onSearch(val: string) {
   loadProductos()
 }
 
-function onCategoriaChange(val: string) {
+function onCategoriaChange(val: string[]) {
   categoriaFilter.value = val
   page.value = 1
   loadProductos()
@@ -230,6 +228,25 @@ async function confirmDeactivate() {
     isDeactivating.value = false
   }
 }
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+
+function menuItems(p: Producto): ContextMenuItem[] {
+  return [
+    ...(canManage.value && p.isActive
+      ? [{ type: "item" as const, label: "Movimiento de stock", icon: "swap_horiz", action: () => openMovimiento(p) }]
+      : []),
+    ...(canManage.value
+      ? [{ type: "item" as const, label: "Editar", icon: "edit", action: () => openEdit(p) }]
+      : []),
+    ...(canManage.value && p.isActive
+      ? [
+          { type: "separator" as const },
+          { type: "item" as const, label: "Desactivar", icon: "delete", action: () => openDeactivate(p), danger: true },
+        ]
+      : []),
+  ]
+}
 </script>
 
 <template>
@@ -242,44 +259,46 @@ async function confirmDeactivate() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Productos</h1>
-            <p class="text-sm font-medium" style="color: var(--color-outline)">
+            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Productos</h1>
+            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} producto{{ totalCount !== 1 ? "s" : "" }} en inventario
             </p>
           </div>
-          <BaseButton v-if="canManage" variant="primary" size="default" @click="openCreate">
-            <span class="material-symbols-outlined" style="font-size: 18px">add</span>
+          <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreate">
+            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
             Nuevo Producto
           </BaseButton>
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-4 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <div class="flex items-center gap-3 flex-wrap">
+            <FilterChips
+              :model-value="categoriaFilter"
+              :options="categoriaOptions"
+              placeholder="Categoría"
+              @update:model-value="onCategoriaChange"
+            />
+            <button
+              @click="toggleBajoStock"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              :style="
+                bajoStockFilter
+                  ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+                  : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
+              "
+            >
+              <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
+              Bajo stock
+            </button>
+          </div>
           <SearchInput
             :model-value="search"
             placeholder="Buscar por nombre o SKU..."
+            class="w-72"
             @update:model-value="onSearch"
           />
-          <button
-            @click="toggleBajoStock"
-            class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
-            :style="
-              bajoStockFilter
-                ? 'background-color: #FEF3C7; color: #92400E;'
-                : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);'
-            "
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px">warning</span>
-            Bajo stock
-          </button>
         </div>
-
-        <FilterTabs
-          :model-value="categoriaFilter"
-          :tabs="categoriaTabs"
-          class="mb-6"
-          @update:model-value="onCategoriaChange"
-        />
 
         <!-- Error -->
         <div
@@ -349,49 +368,21 @@ async function confirmDeactivate() {
           </template>
 
           <template #acciones="{ item }">
-            <div class="flex items-center justify-end gap-1.5">
-              <button
-                v-if="canManage && item.isActive"
-                @click.stop="openMovimiento(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: #dcfce7"
-                title="Registrar movimiento de stock"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #16a34a">swap_horiz</span>
-              </button>
-              <button
-                v-if="canManage"
-                @click.stop="openEdit(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: var(--color-surface-container-low)"
-                title="Editar producto"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-on-surface-variant)">edit</span>
-              </button>
-              <button
-                v-if="canManage && item.isActive"
-                @click.stop="openDeactivate(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: var(--color-error-container)"
-                title="Desactivar producto"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-error)">delete</span>
-              </button>
+            <div class="flex justify-end">
+              <RowContextMenu :items="menuItems(item)" />
             </div>
           </template>
         </BaseTable>
 
         <!-- Paginación -->
-        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6">
-          <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; loadProductos()">
-            <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
-          </BaseButton>
-          <span class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
-            {{ page }} / {{ totalPages }}
-          </span>
-          <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; loadProductos()">
-            <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
-          </BaseButton>
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            Mostrando {{ productos.length }} de {{ totalCount }} productos
+          </p>
+          <div v-if="totalPages > 1" class="flex gap-2">
+            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; loadProductos()">Anterior</BaseButton>
+            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; loadProductos()">Siguiente</BaseButton>
+          </div>
         </div>
       </div>
     </main>
@@ -462,13 +453,9 @@ async function confirmDeactivate() {
       </form>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showCreateModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSaving" @click="submitCreate">
-          <svg v-if="isSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSaving ? "Guardando..." : "Crear Producto" }}
+        <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isSaving" @click="submitCreate">
+          {{ isSaving ? "Guardando…" : "Crear Producto" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -531,13 +518,9 @@ async function confirmDeactivate() {
       </form>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showEditModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isUpdating" @click="submitEdit">
-          <svg v-if="isUpdating" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isUpdating ? "Guardando..." : "Guardar Cambios" }}
+        <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isUpdating" @click="submitEdit">
+          {{ isUpdating ? "Guardando…" : "Guardar Cambios" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -591,13 +574,9 @@ async function confirmDeactivate() {
       </div>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showMovModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isMoving" @click="submitMovimiento">
-          <svg v-if="isMoving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isMoving ? "Registrando..." : "Confirmar" }}
+        <BaseButton variant="secondary" @click="showMovModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isMoving" @click="submitMovimiento">
+          {{ isMoving ? "Registrando…" : "Confirmar" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -617,13 +596,9 @@ async function confirmDeactivate() {
         <p v-if="deactivateError" class="mt-3 text-sm font-medium" style="color: var(--color-error)">{{ deactivateError }}</p>
       </div>
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showDeactivateModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="danger" size="default" :disabled="isDeactivating" @click="confirmDeactivate">
-          <svg v-if="isDeactivating" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isDeactivating ? "Desactivando..." : "Desactivar" }}
+        <BaseButton variant="secondary" @click="showDeactivateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" :disabled="isDeactivating" @click="confirmDeactivate">
+          {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
         </BaseButton>
       </template>
     </BaseModal>

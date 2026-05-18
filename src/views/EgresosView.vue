@@ -5,6 +5,8 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import FilterChips from "@/components/FilterChips.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Egreso,
@@ -17,6 +19,7 @@ import {
   registrarPago,
   anularEgreso,
   getCategorias,
+  crearCategoria,
 } from "@/services/egresosService"
 import { getProveedores, type Proveedor } from "@/services/inventarioService"
 import { getProfessionals, type Professional } from "@/services/professionalService"
@@ -41,23 +44,33 @@ const loadError = ref("")
 const currentPage = ref(1)
 const pageSize = 20
 
-const tipoFiltro = ref<string>("Todos")
-const estadoFiltro = ref<string>("Todos")
+const tipoFiltros = ref<string[]>([])
+const estadoFiltros = ref<string[]>([])
 const soloVencidos = ref(false)
 
-const tipoTabs = [
-  { key: "Todos", label: "Todos" },
-  { key: "FacturaCompra", label: "Facturas" },
-  { key: "Honorario", label: "Honorarios" },
-  { key: "GastoGeneral", label: "Gastos" },
+const tipoOptions = [
+  { value: "FacturaCompra", label: "Factura" },
+  { value: "Honorario", label: "Honorario" },
+  { value: "GastoGeneral", label: "Gasto General" },
 ]
 
-const estadoTabs = [
-  { key: "Todos", label: "Todos" },
-  { key: "Pendiente", label: "Pendiente" },
-  { key: "Pagado", label: "Pagado" },
-  { key: "Anulado", label: "Anulado" },
+const estadoOptions = [
+  { value: "Pendiente", label: "Pendiente", dot: "#92400E" },
+  { value: "Pagado", label: "Pagado", dot: "#166534" },
+  { value: "Anulado", label: "Anulado", dot: "var(--color-outline)" },
 ]
+
+function setTipoFiltro(val: string[]) {
+  const added = val.find(v => !tipoFiltros.value.includes(v))
+  tipoFiltros.value = added ? [added] : val
+  applyFilter()
+}
+
+function setEstadoFiltro(val: string[]) {
+  const added = val.find(v => !estadoFiltros.value.includes(v))
+  estadoFiltros.value = added ? [added] : val
+  applyFilter()
+}
 
 const columns = [
   { key: "tipo", label: "Tipo" },
@@ -74,8 +87,8 @@ async function load() {
   loadError.value = ""
   try {
     const params: Record<string, unknown> = { page: currentPage.value, pageSize }
-    if (tipoFiltro.value !== "Todos") params.tipo = tipoFiltro.value
-    if (estadoFiltro.value !== "Todos") params.estado = estadoFiltro.value
+    if (tipoFiltros.value.length === 1) params.tipo = tipoFiltros.value[0]
+    if (estadoFiltros.value.length === 1) params.estado = estadoFiltros.value[0]
     if (soloVencidos.value) params.soloVencidos = true
     const res = await getEgresos(params as Parameters<typeof getEgresos>[0])
     egresos.value = res.items
@@ -174,165 +187,117 @@ function openDetalle(e: Egreso) {
   showDetalle.value = true
 }
 
-// ── Modal nueva factura ───────────────────────────────────────────────────────
+// ── Modal nuevo egreso (unificado) ────────────────────────────────────────────
 
-const showFactura = ref(false)
-const isSavingFactura = ref(false)
-const facturaError = ref("")
-const facturaForm = reactive({
+type TipoNuevo = "FacturaCompra" | "Honorario" | "GastoGeneral"
+
+const tiposNuevo: { key: TipoNuevo; label: string; icon: string }[] = [
+  { key: "FacturaCompra", label: "Factura de Compra", icon: "receipt" },
+  { key: "Honorario", label: "Honorario", icon: "person_check" },
+  { key: "GastoGeneral", label: "Gasto General", icon: "payments" },
+]
+
+const showNuevoEgreso = ref(false)
+const isSavingNuevo = ref(false)
+const nuevoError = ref("")
+const nuevoForm = reactive({
+  tipo: "FacturaCompra" as TipoNuevo,
+  // Honorario / GastoGeneral
+  monto: 0,
+  concepto: "",
+  observaciones: "",
+  fechaEmision: new Date().toISOString().slice(0, 10),
+  fechaVencimiento: "",
+  // FacturaCompra
   proveedorId: 0,
-  pedidoProveedorId: undefined as number | undefined,
   nroFactura: "",
-  monto: 0,
-  concepto: "",
-  observaciones: "",
-  fechaEmision: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: "",
-})
-
-function openFactura() {
-  Object.assign(facturaForm, {
-    proveedorId: 0,
-    pedidoProveedorId: undefined,
-    nroFactura: "",
-    monto: 0,
-    concepto: "",
-    observaciones: "",
-    fechaEmision: new Date().toISOString().slice(0, 10),
-    fechaVencimiento: "",
-  })
-  facturaError.value = ""
-  showFactura.value = true
-}
-
-async function submitFactura() {
-  if (!facturaForm.proveedorId) { facturaError.value = "Seleccioná un proveedor."; return }
-  if (!facturaForm.concepto.trim()) { facturaError.value = "El concepto es obligatorio."; return }
-  if (!facturaForm.monto || facturaForm.monto <= 0) { facturaError.value = "El monto debe ser mayor a 0."; return }
-  isSavingFactura.value = true
-  facturaError.value = ""
-  try {
-    await crearFacturaCompra({
-      proveedorId: facturaForm.proveedorId,
-      pedidoProveedorId: facturaForm.pedidoProveedorId || undefined,
-      nroFactura: facturaForm.nroFactura.trim() || undefined,
-      monto: facturaForm.monto,
-      concepto: facturaForm.concepto.trim(),
-      observaciones: facturaForm.observaciones.trim() || undefined,
-      fechaEmision: facturaForm.fechaEmision,
-      fechaVencimiento: facturaForm.fechaVencimiento || undefined,
-    })
-    showFactura.value = false
-    await load()
-  } catch (err: unknown) {
-    facturaError.value = err instanceof Error ? err.message : "Error al crear factura."
-  } finally {
-    isSavingFactura.value = false
-  }
-}
-
-// ── Modal nuevo honorario ─────────────────────────────────────────────────────
-
-const showHonorario = ref(false)
-const isSavingHonorario = ref(false)
-const honorarioError = ref("")
-const honorarioForm = reactive({
+  montoExento: 0,
+  montoGravado5: 0,
+  montoGravado10: 0,
+  condicionVenta: "Contado" as "Contado" | "Credito",
+  // Honorario
   professionalId: 0,
-  monto: 0,
-  concepto: "",
   periodo: "",
-  observaciones: "",
-  fechaEmision: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: "",
-})
-
-function openHonorario() {
-  Object.assign(honorarioForm, {
-    professionalId: 0,
-    monto: 0,
-    concepto: "",
-    periodo: "",
-    observaciones: "",
-    fechaEmision: new Date().toISOString().slice(0, 10),
-    fechaVencimiento: "",
-  })
-  honorarioError.value = ""
-  showHonorario.value = true
-}
-
-async function submitHonorario() {
-  if (!honorarioForm.professionalId) { honorarioError.value = "Seleccioná un profesional."; return }
-  if (!honorarioForm.concepto.trim()) { honorarioError.value = "El concepto es obligatorio."; return }
-  if (!honorarioForm.monto || honorarioForm.monto <= 0) { honorarioError.value = "El monto debe ser mayor a 0."; return }
-  isSavingHonorario.value = true
-  honorarioError.value = ""
-  try {
-    await crearHonorario({
-      professionalId: honorarioForm.professionalId,
-      monto: honorarioForm.monto,
-      concepto: honorarioForm.concepto.trim(),
-      periodo: honorarioForm.periodo.trim() || undefined,
-      observaciones: honorarioForm.observaciones.trim() || undefined,
-      fechaEmision: honorarioForm.fechaEmision,
-      fechaVencimiento: honorarioForm.fechaVencimiento || undefined,
-    })
-    showHonorario.value = false
-    await load()
-  } catch (err: unknown) {
-    honorarioError.value = err instanceof Error ? err.message : "Error al crear honorario."
-  } finally {
-    isSavingHonorario.value = false
-  }
-}
-
-// ── Modal nuevo gasto general ─────────────────────────────────────────────────
-
-const showGasto = ref(false)
-const isSavingGasto = ref(false)
-const gastoError = ref("")
-const gastoForm = reactive({
+  // GastoGeneral
   categoriaGastoId: 0,
-  monto: 0,
-  concepto: "",
-  observaciones: "",
-  fechaEmision: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: "",
 })
 
-function openGasto() {
-  Object.assign(gastoForm, {
-    categoriaGastoId: 0,
+const iva5Preview = computed(() => Math.round(nuevoForm.montoGravado5 / 21))
+const iva10Preview = computed(() => Math.round(nuevoForm.montoGravado10 / 11))
+const totalPreview = computed(() => nuevoForm.montoExento + nuevoForm.montoGravado5 + nuevoForm.montoGravado10)
+
+function openNuevoEgreso() {
+  Object.assign(nuevoForm, {
+    tipo: "FacturaCompra" as TipoNuevo,
     monto: 0,
     concepto: "",
     observaciones: "",
     fechaEmision: new Date().toISOString().slice(0, 10),
     fechaVencimiento: "",
+    proveedorId: 0,
+    nroFactura: "",
+    montoExento: 0,
+    montoGravado5: 0,
+    montoGravado10: 0,
+    condicionVenta: "Contado" as "Contado" | "Credito",
+    professionalId: 0,
+    periodo: "",
+    categoriaGastoId: 0,
   })
-  gastoError.value = ""
-  showGasto.value = true
+  nuevoError.value = ""
+  showNuevoEgreso.value = true
 }
 
-async function submitGasto() {
-  if (!gastoForm.categoriaGastoId) { gastoError.value = "Seleccioná una categoría."; return }
-  if (!gastoForm.concepto.trim()) { gastoError.value = "El concepto es obligatorio."; return }
-  if (!gastoForm.monto || gastoForm.monto <= 0) { gastoError.value = "El monto debe ser mayor a 0."; return }
-  isSavingGasto.value = true
-  gastoError.value = ""
+async function submitNuevoEgreso() {
+  nuevoError.value = ""
+  if (!nuevoForm.concepto.trim()) { nuevoError.value = "El concepto es obligatorio."; return }
+  if (nuevoForm.tipo === "FacturaCompra") {
+    if (!nuevoForm.proveedorId) { nuevoError.value = "Seleccioná un proveedor."; return }
+    if (totalPreview.value <= 0) { nuevoError.value = "Al menos un monto (Exento, Gravado 5% o Gravado 10%) debe ser mayor a 0."; return }
+  } else {
+    if (!nuevoForm.monto || nuevoForm.monto <= 0) { nuevoError.value = "El monto debe ser mayor a 0."; return }
+  }
+  if (nuevoForm.tipo === "Honorario" && !nuevoForm.professionalId) { nuevoError.value = "Seleccioná un profesional."; return }
+  if (nuevoForm.tipo === "GastoGeneral" && !nuevoForm.categoriaGastoId) { nuevoError.value = "Seleccioná una categoría."; return }
+
+  isSavingNuevo.value = true
   try {
-    await crearGastoGeneral({
-      categoriaGastoId: gastoForm.categoriaGastoId,
-      monto: gastoForm.monto,
-      concepto: gastoForm.concepto.trim(),
-      observaciones: gastoForm.observaciones.trim() || undefined,
-      fechaEmision: gastoForm.fechaEmision,
-      fechaVencimiento: gastoForm.fechaVencimiento || undefined,
-    })
-    showGasto.value = false
+    const commonBase = {
+      concepto: nuevoForm.concepto.trim(),
+      observaciones: nuevoForm.observaciones.trim() || undefined,
+      fechaEmision: nuevoForm.fechaEmision,
+      fechaVencimiento: nuevoForm.fechaVencimiento || undefined,
+    }
+    if (nuevoForm.tipo === "FacturaCompra") {
+      await crearFacturaCompra({
+        ...commonBase,
+        proveedorId: nuevoForm.proveedorId,
+        nroFactura: nuevoForm.nroFactura.trim() || undefined,
+        montoExento: nuevoForm.montoExento,
+        montoGravado5: nuevoForm.montoGravado5,
+        montoGravado10: nuevoForm.montoGravado10,
+        condicionVenta: nuevoForm.condicionVenta,
+      })
+    } else if (nuevoForm.tipo === "Honorario") {
+      await crearHonorario({
+        ...commonBase,
+        monto: nuevoForm.monto,
+        professionalId: nuevoForm.professionalId,
+        periodo: nuevoForm.periodo.trim() || undefined,
+      })
+    } else {
+      await crearGastoGeneral({
+        ...commonBase,
+        monto: nuevoForm.monto,
+        categoriaGastoId: nuevoForm.categoriaGastoId,
+      })
+    }
+    showNuevoEgreso.value = false
     await load()
   } catch (err: unknown) {
-    gastoError.value = err instanceof Error ? err.message : "Error al crear gasto."
+    nuevoError.value = err instanceof Error ? err.message : "Error al crear egreso."
   } finally {
-    isSavingGasto.value = false
+    isSavingNuevo.value = false
   }
 }
 
@@ -403,7 +368,7 @@ async function submitAnular() {
   }
 }
 
-// ── Acciones rápidas ──────────────────────────────────────────────────────────
+// ── Menú contextual de fila ───────────────────────────────────────────────────
 
 function canPay(e: Egreso) {
   return canManage && e.estado !== "Pagado" && e.estado !== "Anulado"
@@ -411,6 +376,48 @@ function canPay(e: Egreso) {
 
 function canCancel(e: Egreso) {
   return canManage && e.estado !== "Pagado" && e.estado !== "Anulado"
+}
+
+function menuItems(e: Egreso): ContextMenuItem[] {
+  const hasActions = canPay(e) || canCancel(e)
+  return [
+    { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(e) },
+    ...(hasActions ? [{ type: "separator" } as ContextMenuItem] : []),
+    { type: "item", label: "Registrar pago", icon: "payments", action: () => openPago(e), hidden: !canPay(e) },
+    { type: "item", label: "Anular egreso", icon: "cancel", action: () => openAnular(e), hidden: !canCancel(e), danger: true },
+  ]
+}
+
+// ── Modal nueva categoría (acceso rápido desde nuevo egreso) ─────────────────
+
+const showCategoriaModal = ref(false)
+const isCatSaving = ref(false)
+const catError = ref("")
+const catForm = reactive({ nombre: "", descripcion: "" })
+
+function openCreateCategoria() {
+  Object.assign(catForm, { nombre: "", descripcion: "" })
+  catError.value = ""
+  showCategoriaModal.value = true
+}
+
+async function submitCategoria() {
+  if (!catForm.nombre.trim()) { catError.value = "El nombre es obligatorio."; return }
+  isCatSaving.value = true
+  catError.value = ""
+  try {
+    const nueva = await crearCategoria({
+      nombre: catForm.nombre.trim(),
+      descripcion: catForm.descripcion.trim() || undefined,
+    })
+    categorias.value = [...categorias.value, nueva]
+    nuevoForm.categoriaGastoId = nueva.id
+    showCategoriaModal.value = false
+  } catch (err: unknown) {
+    catError.value = err instanceof Error ? err.message : "Error al crear categoría."
+  } finally {
+    isCatSaving.value = false
+  }
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
@@ -433,25 +440,15 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Egresos</h1>
-            <p class="text-sm font-medium" style="color: var(--color-outline)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Egresos</h1>
+            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} egreso{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
-          <div v-if="canManage" class="flex gap-2">
-            <BaseButton variant="secondary" size="default" @click="openGasto">
-              <span class="material-symbols-outlined" style="font-size: 18px">payments</span>
-              Gasto General
-            </BaseButton>
-            <BaseButton variant="secondary" size="default" @click="openHonorario">
-              <span class="material-symbols-outlined" style="font-size: 18px">person_check</span>
-              Honorario
-            </BaseButton>
-            <BaseButton variant="primary" size="default" @click="openFactura">
-              <span class="material-symbols-outlined" style="font-size: 18px">receipt</span>
-              Nueva Factura
-            </BaseButton>
-          </div>
+          <BaseButton v-if="canManage" variant="primary" size="lg" @click="openNuevoEgreso">
+            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+            Nuevo Egreso
+          </BaseButton>
         </div>
 
         <!-- KPIs -->
@@ -470,39 +467,29 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
           </div>
         </div>
 
-        <!-- Filtros tipo -->
-        <div class="flex items-center gap-3 mb-4 flex-wrap">
-          <div class="flex gap-2">
-            <button
-              v-for="tab in tipoTabs"
-              :key="tab.key"
-              @click="tipoFiltro = tab.key; applyFilter()"
-              class="px-5 py-2 rounded-full text-sm font-semibold transition-all"
-              :style="tipoFiltro === tab.key
-                ? 'background-color: var(--color-primary); color: var(--color-on-primary)'
-                : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-            >{{ tab.label }}</button>
-          </div>
-          <div class="flex gap-2 ml-4">
-            <button
-              v-for="tab in estadoTabs"
-              :key="tab.key"
-              @click="estadoFiltro = tab.key; applyFilter()"
-              class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
-              :style="estadoFiltro === tab.key
-                ? 'background-color: var(--color-secondary); color: #fff'
-                : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-            >{{ tab.label }}</button>
-          </div>
+        <!-- Filtros -->
+        <div class="flex items-center gap-3 mb-6 flex-wrap">
+          <FilterChips
+            :options="tipoOptions"
+            :modelValue="tipoFiltros"
+            placeholder="Tipo"
+            @update:modelValue="setTipoFiltro"
+          />
+          <FilterChips
+            :options="estadoOptions"
+            :modelValue="estadoFiltros"
+            placeholder="Estado"
+            @update:modelValue="setEstadoFiltro"
+          />
           <button
             @click="soloVencidos = !soloVencidos; applyFilter()"
-            class="ml-auto px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1"
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
             :style="soloVencidos
-              ? 'background-color: #FEE2E2; color: #991B1B'
-              : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
+              ? 'background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5'
+              : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface)'"
           >
-            <span class="material-symbols-outlined" style="font-size: 14px">schedule</span>
-            Solo vencidos
+            <span class="material-symbols-outlined" style="font-size: 16px">schedule</span>
+            Vencidos
           </button>
         </div>
 
@@ -519,10 +506,10 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
           <template #tipo="{ item }">
             <div class="flex items-center gap-2">
               <span
-                class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                :style="`background-color: ${tipoColor(item.tipo).bg}`"
+                class="w-9 h-9 rounded-full flex-shrink-0"
+                :style="`background-color: ${tipoColor(item.tipo).bg}; display: flex; align-items: center; justify-content: center`"
               >
-                <span class="material-symbols-outlined" :style="`font-size: 16px; color: ${tipoColor(item.tipo).color}`">{{ tipoIcon(item.tipo) }}</span>
+                <span class="material-symbols-outlined" :style="`font-size: 18px; color: ${tipoColor(item.tipo).color}`">{{ tipoIcon(item.tipo) }}</span>
               </span>
               <span class="text-xs font-bold" :style="`color: ${tipoColor(item.tipo).color}`">{{ tipoLabel(item.tipo) }}</span>
             </div>
@@ -565,24 +552,8 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
           </template>
 
           <template #acciones="{ item }">
-            <div class="flex items-center justify-end gap-1">
-              <button
-                @click.stop="openDetalle(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80"
-                style="background-color: var(--color-surface-container-low)"
-                title="Ver detalle"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-on-surface-variant)">visibility</span>
-              </button>
-              <button
-                v-if="canPay(item)"
-                @click.stop="openPago(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80"
-                style="background-color: #DCFCE7"
-                title="Registrar pago"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #166534">payments</span>
-              </button>
+            <div class="flex items-center justify-end">
+              <RowContextMenu :items="menuItems(item)" />
             </div>
           </template>
         </BaseTable>
@@ -606,7 +577,7 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
     </main>
 
     <!-- ── MODAL DETALLE ─────────────────────────────────────────────────────── -->
-    <BaseModal :show="showDetalle" title="Detalle de Egreso" size="md" @close="showDetalle = false">
+    <BaseModal :show="showDetalle" title="Detalle de Egreso" size="lg" @close="showDetalle = false">
       <div v-if="detalleEgreso" class="space-y-4">
         <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
           <span
@@ -647,7 +618,6 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             <p style="color: var(--color-on-surface)">{{ detalleEgreso.metodoPago }}</p>
           </div>
 
-          <!-- FacturaCompra -->
           <template v-if="detalleEgreso.tipo === 'FacturaCompra'">
             <div>
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Proveedor</p>
@@ -655,11 +625,14 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             </div>
             <div v-if="detalleEgreso.nroFactura">
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura</p>
-              <p style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
+              <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
+            </div>
+            <div v-if="detalleEgreso.condicionVenta">
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Condición</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.condicionVenta }}</p>
             </div>
           </template>
 
-          <!-- Honorario -->
           <template v-if="detalleEgreso.tipo === 'Honorario'">
             <div>
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Profesional</p>
@@ -671,13 +644,44 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             </div>
           </template>
 
-          <!-- GastoGeneral -->
           <template v-if="detalleEgreso.tipo === 'GastoGeneral'">
             <div>
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Categoría</p>
               <p style="color: var(--color-on-surface)">{{ detalleEgreso.categoriaGastoNombre ?? '—' }}</p>
             </div>
           </template>
+        </div>
+
+        <!-- Desglose fiscal FacturaCompra -->
+        <div v-if="detalleEgreso.tipo === 'FacturaCompra' && detalleEgreso.montoTotal != null"
+          class="rounded-xl p-4" style="background-color: var(--color-surface-container-low)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-primary)">Desglose fiscal</p>
+          <div class="space-y-1.5 text-sm">
+            <div class="flex justify-between">
+              <span style="color: var(--color-on-surface-variant)">Monto exento</span>
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoExento ?? 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color: var(--color-on-surface-variant)">Gravado 5%</span>
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoGravado5 ?? 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color: var(--color-on-surface-variant)">IVA 5%</span>
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.iva5 ?? 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color: var(--color-on-surface-variant)">Gravado 10%</span>
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoGravado10 ?? 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color: var(--color-on-surface-variant)">IVA 10%</span>
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.iva10 ?? 0) }}</span>
+            </div>
+            <div class="flex justify-between pt-1.5" style="border-top: 1px solid rgba(196,197,213,0.3)">
+              <span class="font-bold" style="color: var(--color-primary)">Total</span>
+              <span class="font-bold" style="color: var(--color-primary)">{{ formatPrice(detalleEgreso.montoTotal ?? 0) }}</span>
+            </div>
+          </div>
         </div>
 
         <div v-if="detalleEgreso.observaciones" class="rounded-xl p-3" style="background-color: var(--color-surface-container-low)">
@@ -693,190 +697,185 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
         <BaseButton v-if="detalleEgreso && canPay(detalleEgreso)" variant="primary" size="default" @click="openPago(detalleEgreso!)">
           Registrar Pago
         </BaseButton>
-        <BaseButton v-if="!detalleEgreso || (!canPay(detalleEgreso) && !canCancel(detalleEgreso))" class="flex-1" variant="secondary" size="default" @click="showDetalle = false">
+        <BaseButton v-if="!detalleEgreso || (!canPay(detalleEgreso) && !canCancel(detalleEgreso))" variant="secondary" size="default" @click="showDetalle = false">
           Cerrar
         </BaseButton>
       </template>
     </BaseModal>
 
-    <!-- ── MODAL NUEVA FACTURA ───────────────────────────────────────────────── -->
-    <BaseModal :show="showFactura" title="Nueva Factura de Compra" size="lg" @close="showFactura = false">
-      <div v-if="facturaError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+    <!-- ── MODAL NUEVO EGRESO ────────────────────────────────────────────────── -->
+    <BaseModal :show="showNuevoEgreso" title="Nuevo Egreso" size="lg" @close="showNuevoEgreso = false">
+      <div v-if="nuevoError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ facturaError }}
+        {{ nuevoError }}
       </div>
+
+      <!-- Selector de tipo -->
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <button
+          v-for="t in tiposNuevo"
+          :key="t.key"
+          @click="nuevoForm.tipo = t.key"
+          class="flex flex-col items-center gap-2 px-4 py-4 rounded-2xl transition-all"
+          :style="nuevoForm.tipo === t.key
+            ? `background-color: ${tipoColor(t.key).bg}; border: 2px solid ${tipoColor(t.key).color}`
+            : 'background-color: var(--color-surface-container-low); border: 2px solid transparent'"
+        >
+          <span
+            class="w-10 h-10 rounded-full flex items-center justify-center"
+            :style="`background-color: ${nuevoForm.tipo === t.key ? tipoColor(t.key).color : 'var(--color-surface-container-high)'}`"
+          >
+            <span class="material-symbols-outlined" :style="`font-size: 20px; color: ${nuevoForm.tipo === t.key ? '#fff' : 'var(--color-on-surface-variant)'}`">{{ t.icon }}</span>
+          </span>
+          <span class="text-xs font-bold text-center leading-tight" :style="`color: ${nuevoForm.tipo === t.key ? tipoColor(t.key).color : 'var(--color-on-surface-variant)'}`">
+            {{ t.label }}
+          </span>
+        </button>
+      </div>
+
       <div class="space-y-4">
-        <div>
+        <!-- Campo específico por tipo -->
+        <div v-if="nuevoForm.tipo === 'FacturaCompra'">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor *</label>
-          <select v-model="facturaForm.proveedorId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
+          <select v-model="nuevoForm.proveedorId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
             <option :value="0" disabled>Seleccionar proveedor</option>
             <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
           </select>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Factura</label>
-            <input v-model="facturaForm.nroFactura" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-            <input v-model.number="facturaForm.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Concepto *</label>
-          <input v-model="facturaForm.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de emisión *</label>
-            <input v-model="facturaForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
-            <input v-model="facturaForm.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <textarea v-model="facturaForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showFactura = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSavingFactura" @click="submitFactura">
-          <svg v-if="isSavingFactura" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingFactura ? "Guardando..." : "Crear Factura" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
 
-    <!-- ── MODAL NUEVO HONORARIO ─────────────────────────────────────────────── -->
-    <BaseModal :show="showHonorario" title="Nuevo Honorario" size="lg" @close="showHonorario = false">
-      <div v-if="honorarioError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ honorarioError }}
-      </div>
-      <div class="space-y-4">
-        <div>
+        <div v-if="nuevoForm.tipo === 'Honorario'">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Profesional *</label>
-          <select v-model="honorarioForm.professionalId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
+          <select v-model="nuevoForm.professionalId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
             <option :value="0" disabled>Seleccionar profesional</option>
             <option v-for="p in profesionales" :key="p.id" :value="p.id">{{ p.firstName }} {{ p.lastName }}</option>
           </select>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-            <input v-model.number="honorarioForm.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Período</label>
-            <input v-model="honorarioForm.periodo" type="text" placeholder="Ej: Mayo 2025" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Concepto *</label>
-          <input v-model="honorarioForm.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de emisión *</label>
-            <input v-model="honorarioForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
-            <input v-model="honorarioForm.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <textarea v-model="honorarioForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showHonorario = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSavingHonorario" @click="submitHonorario">
-          <svg v-if="isSavingHonorario" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingHonorario ? "Guardando..." : "Crear Honorario" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
 
-    <!-- ── MODAL NUEVO GASTO GENERAL ─────────────────────────────────────────── -->
-    <BaseModal :show="showGasto" title="Nuevo Gasto General" size="lg" @close="showGasto = false">
-      <div v-if="gastoError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ gastoError }}
-      </div>
-      <div class="space-y-4">
-        <div>
+        <div v-if="nuevoForm.tipo === 'GastoGeneral'">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
-          <select v-model="gastoForm.categoriaGastoId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-            <option :value="0" disabled>Seleccionar categoría</option>
-            <option v-for="c in categorias.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-            <input v-model.number="gastoForm.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <div class="flex gap-2">
+            <select v-model="nuevoForm.categoriaGastoId" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none appearance-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
+              <option :value="0" disabled>Seleccionar categoría</option>
+              <option v-for="c in categorias.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+            </select>
+            <button
+              type="button"
+              @click="openCreateCategoria"
+              class="flex-shrink-0 w-12 rounded-xl flex items-center justify-center transition-colors hover:opacity-80"
+              style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)"
+              title="Agregar nueva categoría"
+            >
+              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-primary)">add</span>
+            </button>
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de emisión *</label>
-            <input v-model="gastoForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          </div>
         </div>
+
+        <!-- Campos extra por tipo -->
+        <template v-if="nuevoForm.tipo === 'FacturaCompra'">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Factura</label>
+              <input v-model="nuevoForm.nroFactura" type="text" placeholder="001-001-0000001" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
+                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Condición *</label>
+              <select v-model="nuevoForm.condicionVenta" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
+                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
+                <option value="Contado">Contado</option>
+                <option value="Credito">Crédito</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="text-xs font-bold uppercase tracking-wider pt-1" style="color: var(--color-primary)">Desglose fiscal (Gs.)</p>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Exento</label>
+              <input v-model.number="nuevoForm.montoExento" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Gravado 5%</label>
+              <input v-model.number="nuevoForm.montoGravado5" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Gravado 10%</label>
+              <input v-model.number="nuevoForm.montoGravado10" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            </div>
+          </div>
+
+          <!-- Preview IVA -->
+          <div v-if="totalPreview > 0" class="rounded-xl p-4 grid grid-cols-3 gap-2 text-center" style="background-color: var(--color-surface-container-low)">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">IVA 5%</p>
+              <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(iva5Preview) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">IVA 10%</p>
+              <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(iva10Preview) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-primary)">Total</p>
+              <p class="text-sm font-bold" style="color: var(--color-primary)">{{ formatPrice(totalPreview) }}</p>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="nuevoForm.tipo === 'Honorario'">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Período</label>
+          <input v-model="nuevoForm.periodo" type="text" placeholder="Ej: Mayo 2025" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+
+        <!-- Campos comunes -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Concepto *</label>
-          <input v-model="gastoForm.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <input v-model="nuevoForm.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div v-if="nuevoForm.tipo !== 'FacturaCompra'">
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
+            <input v-model.number="nuevoForm.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+          <div :class="nuevoForm.tipo !== 'FacturaCompra' ? '' : 'col-span-2'">
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de emisión *</label>
+            <input v-model="nuevoForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+        </div>
+
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
-          <input v-model="gastoForm.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <input v-model="nuevoForm.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
+
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <textarea v-model="gastoForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <textarea v-model="nuevoForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
       </div>
+
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showGasto = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSavingGasto" @click="submitGasto">
-          <svg v-if="isSavingGasto" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <BaseButton variant="secondary" size="default" @click="showNuevoEgreso = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isSavingNuevo" @click="submitNuevoEgreso">
+          <svg v-if="isSavingNuevo" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          {{ isSavingGasto ? "Guardando..." : "Crear Gasto" }}
+          {{ isSavingNuevo ? "Guardando..." : "Crear Egreso" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -892,7 +891,7 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
           <select v-model="pagoForm.metodoPago" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
             <option value="Efectivo">Efectivo</option>
             <option value="Tarjeta">Tarjeta</option>
             <option value="Transferencia">Transferencia</option>
@@ -902,17 +901,48 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de pago *</label>
           <input v-model="pagoForm.fechaPago" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
       </div>
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showPago = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSavingPago" @click="submitPago">
+        <BaseButton variant="secondary" size="default" @click="showPago = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isSavingPago" @click="submitPago">
           <svg v-if="isSavingPago" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isSavingPago ? "Registrando..." : "Confirmar Pago" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── MODAL NUEVA CATEGORÍA (acceso rápido) ────────────────────────────── -->
+    <BaseModal :show="showCategoriaModal" title="Nueva Categoría" size="sm" @close="showCategoriaModal = false">
+      <div v-if="catError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        {{ catError }}
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
+          <input v-model="catForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
+          <input v-model="catForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" size="default" @click="showCategoriaModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isCatSaving" @click="submitCategoria">
+          <svg v-if="isCatSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ isCatSaving ? "Creando..." : "Crear Categoría" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -930,11 +960,11 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo (opcional)</label>
         <textarea v-model="anularMotivo" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
       </div>
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showAnular = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="danger" size="default" :disabled="isSavingAnular" @click="submitAnular">
+        <BaseButton variant="secondary" size="default" @click="showAnular = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" size="default" :disabled="isSavingAnular" @click="submitAnular">
           <svg v-if="isSavingAnular" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

@@ -4,23 +4,22 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterTabs from "@/components/FilterTabs.vue"
+import FilterChips from "@/components/FilterChips.vue"
 import { type MovimientoStock, getMovimientos } from "@/services/inventarioService"
 
 const movimientos = ref<MovimientoStock[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
-const tipoFilter = ref("")
+const tipoFilter = ref<string[]>([])
 const page = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
 const PAGE_SIZE = 20
 
-const tipoTabs = [
-  { value: "", label: "Todos" },
-  { value: "Entrada", label: "Entradas" },
-  { value: "Salida", label: "Salidas" },
-  { value: "Ajuste", label: "Ajustes" },
+const tipoOptions = [
+  { value: "Entrada", label: "Entradas", dot: "#166534" },
+  { value: "Salida",  label: "Salidas",  dot: "#991b1b" },
+  { value: "Ajuste",  label: "Ajustes",  dot: "#92400e" },
 ]
 
 const columns = [
@@ -53,7 +52,7 @@ async function load() {
     const result = await getMovimientos({
       page: page.value,
       pageSize: PAGE_SIZE,
-      tipo: tipoFilter.value || undefined,
+      tipo: tipoFilter.value[0] || undefined,
     })
     movimientos.value = result.items
     totalPages.value = result.totalPages
@@ -67,7 +66,7 @@ async function load() {
 
 onMounted(load)
 
-function onTipoChange(val: string) {
+function onTipoChange(val: string[]) {
   tipoFilter.value = val
   page.value = 1
   load()
@@ -81,19 +80,23 @@ function onTipoChange(val: string) {
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="p-8">
-        <div class="mb-8">
-          <h1 class="text-4xl font-extrabold tracking-tight mb-2">Movimientos de Stock</h1>
-          <p class="text-sm font-medium" style="color: var(--color-outline)">
-            {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
-          </p>
+        <div class="flex items-start justify-between mb-8">
+          <div>
+            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Movimientos de Stock</h1>
+            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+              {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
+            </p>
+          </div>
         </div>
 
-        <FilterTabs
-          :model-value="tipoFilter"
-          :tabs="tipoTabs"
-          class="mb-6"
-          @update:model-value="onTipoChange"
-        />
+        <div class="flex items-center gap-3 mb-6 flex-wrap">
+          <FilterChips
+            :model-value="tipoFilter"
+            :options="tipoOptions"
+            placeholder="Tipo"
+            @update:model-value="onTipoChange"
+          />
+        </div>
 
         <div
           v-if="loadError"
@@ -143,16 +146,14 @@ function onTipoChange(val: string) {
         </BaseTable>
 
         <!-- Paginación -->
-        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6">
-          <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; load()">
-            <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
-          </BaseButton>
-          <span class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
-            {{ page }} / {{ totalPages }}
-          </span>
-          <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; load()">
-            <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
-          </BaseButton>
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            Mostrando {{ movimientos.length }} de {{ totalCount }} movimientos
+          </p>
+          <div v-if="totalPages > 1" class="flex gap-2">
+            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; load()">Anterior</BaseButton>
+            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; load()">Siguiente</BaseButton>
+          </div>
         </div>
       </div>
     </main>

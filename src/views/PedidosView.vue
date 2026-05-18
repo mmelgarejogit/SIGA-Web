@@ -5,13 +5,14 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterTabs from "@/components/FilterTabs.vue"
+import FilterChips from "@/components/FilterChips.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Pedido,
   type PedidoItem,
   type Proveedor,
   type Producto,
+  type CreateProveedorRequest,
   getProveedores,
   getProductos,
   createProveedor,
@@ -43,15 +44,14 @@ const proveedores = ref<Proveedor[]>([])
 const productos = ref<Producto[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
-const estadoFilter = ref("")
+const estadoFilter = ref<string[]>([])
 
-const estadoTabs = [
-  { value: "", label: "Todos" },
-  { value: "Borrador", label: "Borradores" },
-  { value: "Emitida", label: "Emitidas" },
-  { value: "ParcialmenteRecibida", label: "Parciales" },
-  { value: "Recibida", label: "Recibidas" },
-  { value: "Cancelada", label: "Canceladas" },
+const estadoOptions = [
+  { value: "Borrador",             label: "Borradores", dot: "#374151" },
+  { value: "Emitida",              label: "Emitidas",   dot: "#1e40af" },
+  { value: "ParcialmenteRecibida", label: "Parciales",  dot: "#92400e" },
+  { value: "Recibida",             label: "Recibidas",  dot: "#166534" },
+  { value: "Cancelada",            label: "Canceladas", dot: "#991b1b" },
 ]
 
 const pedidoColumns = [
@@ -96,7 +96,7 @@ async function load() {
   try {
     const [result, prov, prod] = await Promise.all([
       getComprasPedidos({
-        estado: estadoFilter.value || undefined,
+        estado: estadoFilter.value[0] || undefined,
         page: currentPage.value,
         pageSize: PAGE_SIZE,
       }),
@@ -115,7 +115,7 @@ async function load() {
   }
 }
 
-function onFilterChange(v: string) {
+function onFilterChange(v: string[]) {
   estadoFilter.value = v
   currentPage.value = 1
   load()
@@ -193,7 +193,7 @@ async function submitCreatePedido() {
     })
     showCreateModal.value = false
     currentPage.value = 1
-    estadoFilter.value = ""
+    estadoFilter.value = []
     await load()
   } catch (err: unknown) {
     createError.value = err instanceof Error ? err.message : "Error al crear pedido."
@@ -343,28 +343,51 @@ async function submitDevolucion() {
 const showProveedorModal = ref(false)
 const isProvSaving = ref(false)
 const provError = ref("")
-const provForm = reactive({ nombre: "", contacto: "", email: "", telefono: "" })
+
+const emptyProvForm = (): CreateProveedorRequest => ({
+  nombre: "",
+  contacto: undefined,
+  email: undefined,
+  telefono: undefined,
+  ruc: "",
+  timbrado: "",
+  vigenciaTimbrado: undefined,
+  establecimiento: undefined,
+})
+
+const provForm = reactive<CreateProveedorRequest>(emptyProvForm())
 
 function openCreateProveedor() {
-  Object.assign(provForm, { nombre: "", contacto: "", email: "", telefono: "" })
+  Object.assign(provForm, emptyProvForm())
   provError.value = ""
   showProveedorModal.value = true
 }
 
 async function submitProveedor() {
-  if (!provForm.nombre.trim()) { provError.value = "El nombre es obligatorio."; return }
-  isProvSaving.value = true
   provError.value = ""
+  if (!provForm.nombre?.trim()) { provError.value = "El nombre es obligatorio."; return }
+  if (!provForm.ruc?.trim()) { provError.value = "El RUC es obligatorio."; return }
+  if (!/^\d{1,8}-\d$/.test(provForm.ruc.trim())) { provError.value = "RUC inválido. Formato: 80012345-6"; return }
+  if (!provForm.timbrado?.trim()) { provError.value = "El timbrado es obligatorio."; return }
+  if (!/^\d{8}$/.test(provForm.timbrado.trim())) { provError.value = "El timbrado debe tener exactamente 8 dígitos."; return }
+  if ((provForm.establecimiento as string)?.trim() && !/^\d{3}-\d{3}$/.test((provForm.establecimiento as string).trim())) {
+    provError.value = "Establecimiento inválido. Formato: 001-001"; return
+  }
+
+  isProvSaving.value = true
   try {
     const nuevo = await createProveedor({
       nombre: provForm.nombre.trim(),
-      contacto: provForm.contacto.trim() || undefined,
-      email: provForm.email.trim() || undefined,
-      telefono: provForm.telefono.trim() || undefined,
+      contacto: (provForm.contacto as string)?.trim() || undefined,
+      email: (provForm.email as string)?.trim() || undefined,
+      telefono: (provForm.telefono as string)?.trim() || undefined,
+      ruc: provForm.ruc.trim(),
+      timbrado: provForm.timbrado.trim(),
+      vigenciaTimbrado: (provForm.vigenciaTimbrado as string)?.trim() || undefined,
+      establecimiento: (provForm.establecimiento as string)?.trim() || undefined,
     })
     showProveedorModal.value = false
     await load()
-    // Autoseleccionar el proveedor recién creado en el formulario de nueva orden
     pedidoForm.proveedorId = nuevo.id
   } catch (err: unknown) {
     provError.value = err instanceof Error ? err.message : "Error al crear proveedor."
@@ -385,26 +408,32 @@ async function submitProveedor() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Órdenes de Compra</h1>
-            <p class="text-sm font-medium" style="color: var(--color-outline)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Órdenes de Compra</h1>
+            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} orden{{ totalCount !== 1 ? "es" : "" }} registrada{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
           <div class="flex gap-2">
-            <BaseButton v-if="canManage" variant="secondary" size="default" @click="openCreateProveedor">
-              <span class="material-symbols-outlined" style="font-size: 18px">add_business</span>
+            <BaseButton v-if="canManage" variant="secondary" size="lg" @click="openCreateProveedor">
+              <span class="material-symbols-outlined" style="font-size: 20px">add_business</span>
               Nuevo Proveedor
             </BaseButton>
-            <BaseButton v-if="canManage" variant="primary" size="default" @click="openCreatePedido">
-              <span class="material-symbols-outlined" style="font-size: 18px">add</span>
+            <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreatePedido">
+              <span class="material-symbols-outlined" style="font-size: 20px">add</span>
               Nueva Orden
             </BaseButton>
           </div>
         </div>
 
         <!-- Filtros de estado -->
-        <FilterTabs :model-value="estadoFilter" :tabs="estadoTabs" class="mb-4"
-          @update:model-value="onFilterChange" />
+        <div class="flex items-center gap-3 mb-6 flex-wrap">
+          <FilterChips
+            :model-value="estadoFilter"
+            :options="estadoOptions"
+            placeholder="Estado"
+            @update:model-value="onFilterChange"
+          />
+        </div>
 
         <!-- Error -->
         <div v-if="loadError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
@@ -447,28 +476,24 @@ async function submitProveedor() {
             <div class="flex items-center justify-end">
               <button
                 @click.stop="openDetail(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80"
-                style="background-color: var(--color-surface-container-low)"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                style="background-color: var(--color-surface-container-high)"
                 title="Ver detalle"
               >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-on-surface-variant)">open_in_new</span>
+                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">open_in_new</span>
               </button>
             </div>
           </template>
         </BaseTable>
 
         <!-- Paginación -->
-        <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
-          <span class="text-sm" style="color: var(--color-outline)">
-            Página {{ currentPage }} de {{ totalPages }}
-          </span>
-          <div class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">
-              <span class="material-symbols-outlined" style="font-size: 16px">chevron_left</span>
-            </BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">
-              <span class="material-symbols-outlined" style="font-size: 16px">chevron_right</span>
-            </BaseButton>
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            Mostrando {{ pedidos.length }} de {{ totalCount }} órdenes
+          </p>
+          <div v-if="totalPages > 1" class="flex gap-2">
+            <BaseButton variant="secondary" size="sm" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">Anterior</BaseButton>
+            <BaseButton variant="secondary" size="sm" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">Siguiente</BaseButton>
           </div>
         </div>
 
@@ -485,23 +510,18 @@ async function submitProveedor() {
 
       <div class="space-y-5">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor *</label>
-          <div class="flex gap-2">
-            <select v-model="pedidoForm.proveedorId" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-              <option :value="null" disabled>Seleccioná un proveedor</option>
-              <option v-for="p in proveedores.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-            </select>
-            <button
-              type="button"
-              @click="openCreateProveedor"
-              class="flex-shrink-0 w-12 rounded-xl flex items-center justify-center transition-colors hover:opacity-80"
-              style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)"
-              title="Agregar nuevo proveedor"
-            >
-              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-primary)">add_business</span>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Proveedor *</label>
+            <button type="button" @click="openCreateProveedor" class="flex items-center gap-1 text-xs font-semibold" style="color: var(--color-primary)">
+              <span class="material-symbols-outlined" style="font-size: 16px">add</span>
+              Agregar proveedor
             </button>
           </div>
+          <select v-model="pedidoForm.proveedorId" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
+            <option :value="null" disabled>Seleccioná un proveedor</option>
+            <option v-for="p in proveedores.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+          </select>
         </div>
 
         <div>
@@ -562,13 +582,9 @@ async function submitProveedor() {
       </div>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showCreateModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isSaving" @click="submitCreatePedido">
-          <svg v-if="isSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSaving ? "Creando..." : "Crear Borrador" }}
+        <BaseButton variant="secondary" size="default" @click="showCreateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isSaving" @click="submitCreatePedido">
+          {{ isSaving ? "Creando…" : "Crear Borrador" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -695,7 +711,7 @@ async function submitProveedor() {
       </template>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showDetailModal = false">Cerrar</BaseButton>
+        <BaseButton variant="secondary" size="default" @click="showDetailModal = false">Cerrar</BaseButton>
       </template>
     </BaseModal>
 
@@ -726,13 +742,9 @@ async function submitProveedor() {
       </div>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showRecepcionModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isRecepcionSaving" @click="submitRecepcion">
-          <svg v-if="isRecepcionSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isRecepcionSaving ? "Guardando..." : "Confirmar Recepción" }}
+        <BaseButton variant="secondary" size="default" @click="showRecepcionModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isRecepcionSaving" @click="submitRecepcion">
+          {{ isRecepcionSaving ? "Guardando…" : "Confirmar Recepción" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -772,19 +784,15 @@ async function submitProveedor() {
       </div>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showDevolucionModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="danger" size="default" :disabled="isDevolucionSaving" @click="submitDevolucion">
-          <svg v-if="isDevolucionSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isDevolucionSaving ? "Registrando..." : "Confirmar Devolución" }}
+        <BaseButton variant="secondary" size="default" @click="showDevolucionModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" size="default" :disabled="isDevolucionSaving" @click="submitDevolucion">
+          {{ isDevolucionSaving ? "Registrando…" : "Confirmar Devolución" }}
         </BaseButton>
       </template>
     </BaseModal>
 
     <!-- ── MODAL NUEVO PROVEEDOR (acceso rápido) ──────────────────────────────── -->
-    <BaseModal :show="showProveedorModal" title="Nuevo Proveedor" size="md" @close="showProveedorModal = false">
+    <BaseModal :show="showProveedorModal" title="Nuevo Proveedor" size="lg" @close="showProveedorModal = false">
       <div v-if="provError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
@@ -795,35 +803,66 @@ async function submitProveedor() {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="provForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
+
+        <p class="text-xs font-bold uppercase tracking-wider pt-2" style="color: var(--color-primary)">Datos fiscales</p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">RUC *</label>
+            <input v-model="provForm.ruc" type="text" placeholder="80012345-6"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Timbrado SET *</label>
+            <input v-model="provForm.timbrado" type="text" placeholder="12345678" maxlength="8"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vigencia timbrado</label>
+            <input v-model="provForm.vigenciaTimbrado" type="date"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Establecimiento</label>
+            <input v-model="provForm.establecimiento" type="text" placeholder="001-001"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          </div>
+        </div>
+
+        <p class="text-xs font-bold uppercase tracking-wider pt-2" style="color: var(--color-primary)">Contacto</p>
+
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Persona de contacto</label>
           <input v-model="provForm.contacto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Email</label>
             <input v-model="provForm.email" type="email" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Teléfono</label>
             <input v-model="provForm.telefono" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
           </div>
         </div>
       </div>
 
       <template #footer>
-        <BaseButton class="flex-1" variant="secondary" size="default" @click="showProveedorModal = false">Cancelar</BaseButton>
-        <BaseButton class="flex-1" variant="primary" size="default" :disabled="isProvSaving" @click="submitProveedor">
-          <svg v-if="isProvSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isProvSaving ? "Creando..." : "Crear Proveedor" }}
+        <BaseButton variant="secondary" size="default" @click="showProveedorModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isProvSaving" @click="submitProveedor">
+          {{ isProvSaving ? "Creando…" : "Crear Proveedor" }}
         </BaseButton>
       </template>
     </BaseModal>

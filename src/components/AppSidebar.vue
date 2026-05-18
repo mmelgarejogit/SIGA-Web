@@ -64,16 +64,19 @@ const activeGroupId = computed<string | null>(() => {
 
 // ── Active child route ─────────────────────────────────────
 const activeChildRoute = computed<string | null>(() => {
+  let bestMatch: string | null = null
   for (const item of menuConfig) {
     if (item.children) {
       for (const child of item.children) {
         if (route.path === child.route || route.path.startsWith(child.route + "/")) {
-          return child.route
+          if (!bestMatch || child.route.length > bestMatch.length) {
+            bestMatch = child.route
+          }
         }
       }
     }
   }
-  return null
+  return bestMatch
 })
 
 // ── Simple item active (no group) ──────────────────────────
@@ -142,19 +145,19 @@ watch(
     </div>
 
     <!-- Nav Items -->
-    <div class="flex-1 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2">
-      <SidebarItem
-        v-for="item in visibleItems"
-        :key="item.id"
-        :item="item"
-        :expanded="expandedGroupId === item.id"
-        :active="item.id === activeItemId || item.id === activeGroupId"
-        :active-child-route="item.id === activeGroupId ? activeChildRoute : null"
-        :collapsed="sidebar.collapsed"
-        @navigate="navigate"
-        @toggle="toggleGroup(item.id)"
-        @collapsed-group-click="onCollapsedGroupClick(item.id)"
-      />
+    <div class="flex-1 overflow-y-auto overflow-x-hidden px-2 flex flex-col gap-0.5">
+      <div v-for="item in visibleItems" :key="item.id" class="flex-shrink-0">
+        <SidebarItem
+          :item="item"
+          :expanded="expandedGroupId === item.id"
+          :active="item.id === activeItemId || item.id === activeGroupId"
+          :active-child-route="item.id === activeGroupId ? activeChildRoute : null"
+          :collapsed="sidebar.collapsed"
+          @navigate="navigate"
+          @toggle="toggleGroup(item.id)"
+          @collapsed-group-click="onCollapsedGroupClick(item.id)"
+        />
+      </div>
     </div>
 
     <!-- Toggle button -->

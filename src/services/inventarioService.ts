@@ -33,6 +33,10 @@ export interface Proveedor {
   contacto: string | null
   email: string | null
   telefono: string | null
+  ruc: string
+  timbrado: string
+  vigenciaTimbrado: string | null
+  establecimiento: string | null
   isActive: boolean
   createdAt: string
 }
@@ -97,6 +101,10 @@ export interface CreateProveedorRequest {
   contacto?: string
   email?: string
   telefono?: string
+  ruc: string
+  timbrado: string
+  vigenciaTimbrado?: string
+  establecimiento?: string
 }
 
 export interface CreatePedidoItemRequest {

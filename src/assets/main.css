@@ -100,8 +100,6 @@
       "opsz" 24;
     display: inline-block;
     line-height: 1;
-    width: 24px;
-    height: 24px;
     vertical-align: middle;
     user-select: none;
   }

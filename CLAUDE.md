@@ -28,7 +28,8 @@ src/
 │   ├── BaseButton.vue        # Botón con variantes y tamaños
 │   ├── BaseModal.vue         # Shell de modal con overlay, header, body scrollable, footer
 │   ├── BaseTable.vue         # Tabla con header, filas hover, estado vacío, skeleton
-│   ├── FilterTabs.vue        # Grupo de pills para filtros
+│   ├── FilterTabs.vue        # [DEPRECADO] No usar en vistas nuevas — ver patrón de FilterChips
+│   ├── FilterChips.vue       # Dropdown multi-select con chips — patrón estándar de filtros
 │   ├── KpiCard.vue           # Card reutilizable para métricas
 │   └── SearchInput.vue       # Input de búsqueda con icono y botón limpiar
 ├── composables/
@@ -168,12 +169,60 @@ Todas las vistas autenticadas usan este layout fijo:
 
 > **Regla:** todos los botones llevan `font-bold`, `transition-all`, `active:scale-95`. Los botones de acción principal en listados usan tamaño `lg`.
 
-### Pills de filtro (`FilterTabs`)
+### Barra de filtros — patrón estándar
 
-- **Activo:** `bg-primary text-on-primary rounded-full px-6 py-2 text-sm font-semibold transition-all`
-- **Inactivo:** `bg-surface-container-high text-on-surface-variant rounded-full px-6 py-2 text-sm font-semibold transition-all`
+Toda vista de listado usa **una única fila** de filtros con este layout:
 
-> **Regla:** usar `bg-primary` + `text-on-primary` para activo en **todos** los filtros. No usar `#1E40AF` ni `#A8B8FF`.
+```html
+<div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+  <!-- Izquierda: FilterChips + filtros adicionales -->
+  <div class="flex items-center gap-3 flex-wrap">
+    <FilterChips
+      :model-value="filtroActivo"
+      :options="opciones"
+      placeholder="Etiqueta del filtro"
+      @update:model-value="onFiltroChange"
+    />
+    <!-- Filtro booleano adicional (ej: Bajo stock, Solo activos) -->
+    <button
+      @click="toggleFiltro"
+      class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+      :style="filtroActivo
+        ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+        : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'"
+    >
+      <span class="material-symbols-outlined" style="font-size: 18px">icono</span>
+      Label
+    </button>
+  </div>
+
+  <!-- Derecha: SearchInput -->
+  <SearchInput
+    :model-value="search"
+    placeholder="Buscar por…"
+    class="w-72"
+    @update:model-value="onSearch"
+  />
+</div>
+```
+
+**Reglas:**
+- Usar siempre `FilterChips` (no `FilterTabs`) — muestra un dropdown con checkbox y chips para los seleccionados.
+- `FilterChips` acepta `string[]` (multi-select). Si el backend solo soporta un valor, usar `filtro.value[0]`.
+- `SearchInput` siempre a la **derecha** con `class="w-72"`.
+- Filtros adicionales booleanos (como "Bajo stock") van a la **izquierda** junto al `FilterChips`, usando el estilo de botón con borde `outline-variant`.
+- Una sola fila con `justify-between`. Si hay muchos filtros se wrappean con `flex-wrap`.
+- `mb-6` entre la barra de filtros y la tabla.
+- **Nunca** usar `FilterTabs` en nuevas vistas — está deprecado.
+
+**Opciones para `FilterChips`:**
+```ts
+const opciones = [
+  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
+]
+```
+El campo `dot` es opcional — usarlo cuando el valor tiene un color semántico (estados, prioridades).
 
 ### Input de búsqueda (`SearchInput`)
 
@@ -438,7 +487,7 @@ Toda vista de listado + CRUD sigue este patrón:
 ```
 <main layout>
   ├── Encabezado (<h1> text-4xl + botón "Añadir X" primary lg)
-  ├── Filtros (FilterTabs + SearchInput)
+  ├── Filtros (FilterChips + SearchInput — ver "Barra de filtros — patrón estándar")
   ├── Tabla responsive (BaseTable)
   │   └── Filas con: avatar/icono · datos · estado badge · acciones (edit/delete)
   ├── Footer "Mostrando X de Y registros"
