@@ -154,6 +154,24 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Productos" },
     },
     {
+      path: "/inventario/categorias",
+      name: "inventario-categorias",
+      component: () => import("@/views/CategoriasProductoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Categorías" },
+    },
+    {
+      path: "/inventario/marcas",
+      name: "inventario-marcas",
+      component: () => import("@/views/MarcasView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Marcas" },
+    },
+    {
+      path: "/inventario/modelos",
+      name: "inventario-modelos",
+      component: () => import("@/views/ModelosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Modelos" },
+    },
+    {
       path: "/inventario/movimientos",
       name: "inventario-movimientos",
       component: () => import("@/views/MovimientosView.vue"),

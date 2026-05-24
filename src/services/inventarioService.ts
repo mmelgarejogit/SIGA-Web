@@ -13,8 +13,31 @@ export interface Producto {
   stockMinimo: number
   bajoStock: boolean
   isActive: boolean
+  descuentoCategoria: number
   createdAt: string
   updatedAt: string
+  marcaId: number | null
+  marcaNombre: string | null
+  modeloId: number | null
+  modeloNombre: string | null
+  color: string | null
+  talle: string | null
+  descripcion: string | null
+}
+
+export interface Marca {
+  id: number
+  nombre: string
+  isActive: boolean
+  totalModelos: number
+}
+
+export interface Modelo {
+  id: number
+  nombre: string
+  marcaId: number
+  marcaNombre: string
+  isActive: boolean
 }
 
 export interface MovimientoStock {
@@ -79,6 +102,11 @@ export interface CreateProductoRequest {
   precioVenta: number
   stockActual: number
   stockMinimo: number
+  marcaId?: number | null
+  modeloId?: number | null
+  color?: string
+  talle?: string
+  descripcion?: string
 }
 
 export interface UpdateProductoRequest {
@@ -88,6 +116,32 @@ export interface UpdateProductoRequest {
   precioCosto: number
   precioVenta: number
   stockMinimo: number
+  isActive: boolean
+  marcaId?: number | null
+  modeloId?: number | null
+  color?: string
+  talle?: string
+  descripcion?: string
+}
+
+export interface CreateMarcaRequest {
+  nombre: string
+}
+
+export interface UpdateMarcaRequest {
+  nombre: string
+  isActive: boolean
+}
+
+export interface CreateModeloRequest {
+  nombre: string
+  marcaId: number
+}
+
+export interface UpdateModeloRequest {
+  nombre: string
+  marcaId: number
+  isActive: boolean
 }
 
 export interface CreateMovimientoRequest {
@@ -228,4 +282,90 @@ export async function updatePedidoEstado(id: number, estado: string): Promise<Pe
 
 export async function cancelPedido(id: number): Promise<void> {
   await http.delete(`/api/proveedores/pedidos/${id}`)
+}
+
+// ── Categorías de producto ─────────────────────────────────────────────────────
+
+export interface CategoriaProducto {
+  id: number
+  nombre: string
+  descripcion: string | null
+  descuento: number
+  isActive: boolean
+  totalProductos: number
+}
+
+export interface CreateCategoriaProductoRequest {
+  nombre: string
+  descripcion?: string
+  descuento: number
+}
+
+export interface UpdateCategoriaProductoRequest {
+  nombre: string
+  descripcion?: string
+  descuento: number
+  isActive: boolean
+}
+
+export async function getCategorias(): Promise<CategoriaProducto[]> {
+  const { data } = await http.get<CategoriaProducto[]>("/api/productos/categorias")
+  return data
+}
+
+export async function createCategoria(request: CreateCategoriaProductoRequest): Promise<CategoriaProducto> {
+  const { data } = await http.post<CategoriaProducto>("/api/productos/categorias", request)
+  return data
+}
+
+export async function updateCategoria(id: number, request: UpdateCategoriaProductoRequest): Promise<CategoriaProducto> {
+  const { data } = await http.put<CategoriaProducto>(`/api/productos/categorias/${id}`, request)
+  return data
+}
+
+export async function deactivateCategoria(id: number): Promise<void> {
+  await http.delete(`/api/productos/categorias/${id}`)
+}
+
+// ── Marcas ─────────────────────────────────────────────────────────────────────
+
+export async function getMarcas(): Promise<Marca[]> {
+  const { data } = await http.get<Marca[]>("/api/marcas")
+  return data
+}
+
+export async function createMarca(request: CreateMarcaRequest): Promise<Marca> {
+  const { data } = await http.post<Marca>("/api/marcas", request)
+  return data
+}
+
+export async function updateMarca(id: number, request: UpdateMarcaRequest): Promise<Marca> {
+  const { data } = await http.put<Marca>(`/api/marcas/${id}`, request)
+  return data
+}
+
+export async function deactivateMarca(id: number): Promise<void> {
+  await http.delete(`/api/marcas/${id}`)
+}
+
+// ── Modelos ────────────────────────────────────────────────────────────────────
+
+export async function getModelos(marcaId?: number): Promise<Modelo[]> {
+  const q = marcaId != null ? `?marcaId=${marcaId}` : ""
+  const { data } = await http.get<Modelo[]>(`/api/marcas/modelos${q}`)
+  return data
+}
+
+export async function createModelo(request: CreateModeloRequest): Promise<Modelo> {
+  const { data } = await http.post<Modelo>("/api/marcas/modelos", request)
+  return data
+}
+
+export async function updateModelo(id: number, request: UpdateModeloRequest): Promise<Modelo> {
+  const { data } = await http.put<Modelo>(`/api/marcas/modelos/${id}`, request)
+  return data
+}
+
+export async function deactivateModelo(id: number): Promise<void> {
+  await http.delete(`/api/marcas/modelos/${id}`)
 }

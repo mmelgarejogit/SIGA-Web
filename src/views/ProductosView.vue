@@ -7,10 +7,14 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
+  type CategoriaProducto,
+  type Marca,
+  type Modelo,
   type CreateProductoRequest,
   type CreateMovimientoRequest,
   getProductos,
@@ -18,16 +22,20 @@ import {
   updateProducto,
   deactivateProducto,
   registrarMovimiento,
+  getCategorias,
+  getMarcas,
+  getModelos,
 } from "@/services/inventarioService"
 
 const auth = useAuthStore()
 const canManage = computed(() => auth.hasPermission("gestionar_inventario"))
 
-const CATEGORIAS = ["Marcos", "Lentes Oftálmicos", "Lentes de Contacto", "Soluciones", "Accesorios", "Otros"]
-
 // ── Estado ────────────────────────────────────────────────────────────────────
 
 const productos = ref<Producto[]>([])
+const categoriasDisponibles = ref<CategoriaProducto[]>([])
+const marcasDisponibles = ref<Marca[]>([])
+const modelosDisponibles = ref<Modelo[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
@@ -37,14 +45,28 @@ const page = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
 
-const categoriaOptions = CATEGORIAS.map((c) => ({ value: c, label: c }))
+const categoriaOptions = computed(() =>
+  categoriasDisponibles.value
+    .filter((c) => c.isActive)
+    .map((c) => ({ value: c.nombre, label: c.nombre })),
+)
+
+const marcaSelectOptions = computed(() =>
+  marcasDisponibles.value.filter((m) => m.isActive).map((m) => ({ value: m.id, label: m.nombre })),
+)
+
+function modeloSelectOptions(marcaId: number | null) {
+  if (!marcaId) return []
+  return modelosDisponibles.value
+    .filter((m) => m.marcaId === marcaId && m.isActive)
+    .map((m) => ({ value: m.id, label: m.nombre }))
+}
 
 const columns = [
   { key: "nombre", label: "Producto" },
   { key: "categoria", label: "Categoría" },
   { key: "sku", label: "SKU" },
-  { key: "precios", label: "Precios" },
-  { key: "stock", label: "Stock" },
+  { key: "estado", label: "Estado" },
   { key: "acciones", label: "" },
 ]
 
@@ -69,7 +91,14 @@ async function loadProductos() {
   }
 }
 
-onMounted(loadProductos)
+onMounted(async () => {
+  await Promise.all([
+    loadProductos(),
+    getCategorias().then((c) => (categoriasDisponibles.value = c)),
+    getMarcas().then((m) => (marcasDisponibles.value = m)),
+    getModelos().then((m) => (modelosDisponibles.value = m)),
+  ])
+})
 
 function onSearch(val: string) {
   search.value = val
@@ -89,26 +118,32 @@ function toggleBajoStock() {
   loadProductos()
 }
 
-// ── Formato ───────────────────────────────────────────────────────────────────
-
-function formatPrice(n: number) {
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(n)
-}
-
 // ── Modal Crear ───────────────────────────────────────────────────────────────
 
 const showCreateModal = ref(false)
 const isSaving = ref(false)
 const createError = ref("")
-const createForm = reactive<CreateProductoRequest>({
-  nombre: "", categoria: "", sku: "", precioCosto: 0, precioVenta: 0,
-  stockActual: 0, stockMinimo: 0,
+const createForm = reactive({
+  nombre: "", categoria: "", sku: "",
+  marcaId: null as number | null, modeloId: null as number | null,
+  color: "", talle: "", descripcion: "",
 })
 
+function onCreateMarcaChange() {
+  createForm.modeloId = null
+}
+
+const createModelosOpts = computed(() =>
+  createForm.marcaId
+    ? modelosDisponibles.value.filter(m => m.marcaId === createForm.marcaId && m.isActive)
+    : []
+)
+
 function openCreate() {
+  const primeraActiva = categoriasDisponibles.value.find((c) => c.isActive)?.nombre ?? ""
   Object.assign(createForm, {
-    nombre: "", categoria: CATEGORIAS[0], sku: "", precioCosto: 0,
-    precioVenta: 0, stockActual: 0, stockMinimo: 0,
+    nombre: "", categoria: primeraActiva, sku: "",
+    marcaId: null, modeloId: null, color: "", talle: "", descripcion: "",
   })
   createError.value = ""
   showCreateModal.value = true
@@ -118,7 +153,16 @@ async function submitCreate() {
   isSaving.value = true
   createError.value = ""
   try {
-    await createProducto({ ...createForm, sku: createForm.sku?.trim() || undefined })
+    await createProducto({
+      nombre: createForm.nombre, categoria: createForm.categoria,
+      sku: createForm.sku?.trim() || undefined,
+      precioCosto: 0, precioVenta: 0, stockActual: 0, stockMinimo: 0,
+      marcaId: createForm.marcaId,
+      modeloId: createForm.modeloId,
+      color: createForm.color?.trim() || undefined,
+      talle: createForm.talle?.trim() || undefined,
+      descripcion: createForm.descripcion?.trim() || undefined,
+    })
     showCreateModal.value = false
     await loadProductos()
   } catch (err: unknown) {
@@ -135,14 +179,27 @@ const selectedProducto = ref<Producto | null>(null)
 const isUpdating = ref(false)
 const editError = ref("")
 const editForm = reactive({
-  nombre: "", categoria: "", sku: "", precioCosto: 0, precioVenta: 0, stockMinimo: 0,
+  nombre: "", categoria: "", sku: "", isActive: true,
+  marcaId: null as number | null, modeloId: null as number | null,
+  color: "", talle: "", descripcion: "",
 })
+
+function onEditMarcaChange() {
+  editForm.modeloId = null
+}
+
+const editModelosOpts = computed(() =>
+  editForm.marcaId
+    ? modelosDisponibles.value.filter(m => m.marcaId === editForm.marcaId && m.isActive)
+    : []
+)
 
 function openEdit(p: Producto) {
   selectedProducto.value = p
   Object.assign(editForm, {
-    nombre: p.nombre, categoria: p.categoria, sku: p.sku ?? "",
-    precioCosto: p.precioCosto, precioVenta: p.precioVenta, stockMinimo: p.stockMinimo,
+    nombre: p.nombre, categoria: p.categoria, sku: p.sku ?? "", isActive: p.isActive,
+    marcaId: p.marcaId, modeloId: p.modeloId,
+    color: p.color ?? "", talle: p.talle ?? "", descripcion: p.descripcion ?? "",
   })
   editError.value = ""
   showEditModal.value = true
@@ -153,9 +210,17 @@ async function submitEdit() {
   isUpdating.value = true
   editError.value = ""
   try {
-    await updateProducto(selectedProducto.value.id, {
-      ...editForm,
+    const p = selectedProducto.value
+    await updateProducto(p.id, {
+      nombre: editForm.nombre, categoria: editForm.categoria,
       sku: editForm.sku?.trim() || undefined,
+      precioCosto: p.precioCosto, precioVenta: p.precioVenta, stockMinimo: p.stockMinimo,
+      isActive: editForm.isActive,
+      marcaId: editForm.marcaId,
+      modeloId: editForm.modeloId,
+      color: editForm.color?.trim() || undefined,
+      talle: editForm.talle?.trim() || undefined,
+      descripcion: editForm.descripcion?.trim() || undefined,
     })
     showEditModal.value = false
     await loadProductos()
@@ -233,9 +298,6 @@ async function confirmDeactivate() {
 
 function menuItems(p: Producto): ContextMenuItem[] {
   return [
-    ...(canManage.value && p.isActive
-      ? [{ type: "item" as const, label: "Movimiento de stock", icon: "swap_horiz", action: () => openMovimiento(p) }]
-      : []),
     ...(canManage.value
       ? [{ type: "item" as const, label: "Editar", icon: "edit", action: () => openEdit(p) }]
       : []),
@@ -325,14 +387,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
               >
                 <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">inventory_2</span>
               </div>
-              <div>
-                <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
-                <span
-                  v-if="!item.isActive"
-                  class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                  style="background-color: var(--color-surface-container-highest); color: var(--color-outline)"
-                >Inactivo</span>
-              </div>
+              <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
             </div>
           </template>
 
@@ -344,27 +399,13 @@ function menuItems(p: Producto): ContextMenuItem[] {
             <span class="text-sm font-mono" style="color: var(--color-outline)">{{ item.sku ?? "—" }}</span>
           </template>
 
-          <template #precios="{ item }">
-            <div class="flex flex-col gap-0.5">
-              <span class="text-xs" style="color: var(--color-outline)">Costo: {{ formatPrice(item.precioCosto) }}</span>
-              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">Venta: {{ formatPrice(item.precioVenta) }}</span>
-            </div>
-          </template>
-
-          <template #stock="{ item }">
-            <div class="flex items-center gap-2">
-              <span
-                class="text-sm font-bold"
-                :style="item.bajoStock ? 'color: #D97706' : 'color: var(--color-on-surface)'"
-              >{{ item.stockActual }}</span>
-              <span class="text-xs" style="color: var(--color-outline)">/ mín {{ item.stockMinimo }}</span>
-              <span
-                v-if="item.bajoStock"
-                class="material-symbols-outlined"
-                style="font-size: 16px; color: #D97706"
-                title="Bajo stock"
-              >warning</span>
-            </div>
+          <template #estado="{ item }">
+            <span
+              class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="item.isActive
+                ? 'background-color: #dcfce7; color: #166534'
+                : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
+            >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
           </template>
 
           <template #acciones="{ item }">
@@ -407,10 +448,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
-            <select v-model="createForm.categoria" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-              <option v-for="c in CATEGORIAS" :key="c" :value="c">{{ c }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="createForm.categoria || null"
+              :options="categoriaOptions"
+              placeholder="Seleccioná una categoría"
+              @update:model-value="createForm.categoria = String($event ?? '')"
+            />
           </div>
         </div>
 
@@ -423,33 +466,48 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio de costo *</label>
-            <input v-model.number="createForm.precioCosto" type="number" min="0" step="0.01" required
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca</label>
+            <SearchableSelect
+              :model-value="createForm.marcaId"
+              :options="marcaSelectOptions"
+              null-label="Sin marca"
+              @update:model-value="createForm.marcaId = $event as number | null; onCreateMarcaChange()"
+            />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio de venta *</label>
-            <input v-model.number="createForm.precioVenta" type="number" min="0" step="0.01" required
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Modelo</label>
+            <SearchableSelect
+              :model-value="createForm.modeloId"
+              :options="modeloSelectOptions(createForm.marcaId)"
+              null-label="Sin modelo"
+              :disabled="!createForm.marcaId"
+              @update:model-value="createForm.modeloId = $event as number | null"
+            />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock inicial</label>
-            <input v-model.number="createForm.stockActual" type="number" min="0" required
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Color</label>
+            <input v-model="createForm.color" type="text" placeholder="Opcional"
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock mínimo</label>
-            <input v-model.number="createForm.stockMinimo" type="number" min="0" required
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Talle</label>
+            <input v-model="createForm.talle" type="text" placeholder="Ej: 58-14-135"
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
           </div>
         </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
+          <textarea v-model="createForm.descripcion" rows="2" placeholder="Opcional"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+        </div>
+
       </form>
 
       <template #footer>
@@ -480,10 +538,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
-            <select v-model="editForm.categoria" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-              <option v-for="c in CATEGORIAS" :key="c" :value="c">{{ c }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="editForm.categoria || null"
+              :options="categoriaOptions"
+              placeholder="Seleccioná una categoría"
+              @update:model-value="editForm.categoria = String($event ?? '')"
+            />
           </div>
         </div>
 
@@ -496,24 +556,53 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio de costo *</label>
-            <input v-model.number="editForm.precioCosto" type="number" min="0" step="0.01" required
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca</label>
+            <SearchableSelect
+              :model-value="editForm.marcaId"
+              :options="marcaSelectOptions"
+              null-label="Sin marca"
+              @update:model-value="editForm.marcaId = $event as number | null; onEditMarcaChange()"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Modelo</label>
+            <SearchableSelect
+              :model-value="editForm.modeloId"
+              :options="modeloSelectOptions(editForm.marcaId)"
+              null-label="Sin modelo"
+              :disabled="!editForm.marcaId"
+              @update:model-value="editForm.modeloId = $event as number | null"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Color</label>
+            <input v-model="editForm.color" type="text" placeholder="Opcional"
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio de venta *</label>
-            <input v-model.number="editForm.precioVenta" type="number" min="0" step="0.01" required
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Talle</label>
+            <input v-model="editForm.talle" type="text" placeholder="Ej: 58-14-135"
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock mínimo</label>
-          <input v-model.number="editForm.stockMinimo" type="number" min="0" required
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
+          <textarea v-model="editForm.descripcion" rows="2" placeholder="Opcional"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+        </div>
+
+        <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
+          <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />
+          <label for="editIsActive" class="text-sm font-medium cursor-pointer" style="color: var(--color-on-surface)">
+            Producto activo
+          </label>
         </div>
       </form>
 

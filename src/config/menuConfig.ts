@@ -88,6 +88,24 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Categorías",
+        icon: "label",
+        route: "/inventario/categorias",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Marcas",
+        icon: "verified",
+        route: "/inventario/marcas",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Modelos",
+        icon: "style",
+        route: "/inventario/modelos",
+        permission: "ver_inventario",
+      },
+      {
         label: "Movimientos de Stock",
         icon: "swap_horiz",
         route: "/inventario/movimientos",
