@@ -111,7 +111,7 @@ const router = createRouter({
       path: "/recepcion",
       name: "recepcion",
       component: () => import("@/views/RecepcionView.vue"),
-      meta: { requiresAuth: true, permission: "ver_agenda", label: "Recepción" },
+      meta: { requiresAuth: true, permission: "ver_recepcion", label: "Recepción" },
     },
     {
       path: "/mis-turnos",

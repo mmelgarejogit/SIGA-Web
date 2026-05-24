@@ -59,7 +59,7 @@ export const menuConfig: MenuItem[] = [
         label: "Recepción",
         icon: "person_check",
         route: "/recepcion",
-        permission: "ver_agenda",
+        permission: "ver_recepcion",
       },
       {
         label: "Consultas",

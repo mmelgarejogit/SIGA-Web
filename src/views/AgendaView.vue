@@ -465,10 +465,10 @@ function menuItems(t: Turno): ContextMenuItem[] {
           <BaseButton
             v-if="auth.hasPermission('gestionar_agenda')"
             variant="primary"
-            size="default"
+            size="lg"
             @click="openCreateModal"
           >
-            <span class="material-symbols-outlined" style="font-size: 18px">add</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
             Nuevo Turno
           </BaseButton>
         </div>

@@ -8,6 +8,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import { useAuthStore } from "@/stores/auth"
 import { getTurnos, updateTurnoEstado, cancelTurno, type Turno } from "@/services/turnoService"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -86,6 +87,29 @@ async function confirmCancel() {
   }
 }
 
+// Menú contextual de fila
+
+function menuItems(t: Turno): ContextMenuItem[] {
+  return [
+    {
+      type: "item",
+      label: "Iniciar consulta",
+      icon: "stethoscope",
+      action: () => iniciarConsulta(t),
+      hidden: !auth.hasPermission("registrar_consulta"),
+    },
+    { type: "separator" },
+    {
+      type: "item",
+      label: "Cancelar turno",
+      icon: "close",
+      action: () => openCancelModal(t),
+      danger: true,
+      hidden: !auth.hasPermission("gestionar_agenda"),
+    },
+  ]
+}
+
 // Iniciar consulta
 
 const isStartingConsulta = ref<number | null>(null)
@@ -153,12 +177,32 @@ async function iniciarConsulta(t: Turno) {
           {{ loadError }}
         </div>
 
+        <div
+          v-else-if="!isLoading && turnos.length === 0"
+          class="rounded-2xl py-16 text-center"
+          style="
+            background-color: var(--color-surface-container-lowest);
+            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+          "
+        >
+          <span
+            class="material-symbols-outlined block mx-auto mb-3"
+            style="color: var(--color-outline-variant); font-size: 48px"
+            >event_busy</span
+          >
+          <p class="text-sm font-semibold mb-1" style="color: var(--color-outline)">
+            Sin pacientes en sala
+          </p>
+          <p class="text-xs" style="color: var(--color-outline-variant)">
+            No hay turnos con estado "Presente" para hoy.
+          </p>
+        </div>
+
         <BaseTable
           v-else
           :columns="columns"
           :items="turnos"
           :loading="isLoading"
-          empty-text="No hay pacientes en sala por ahora"
         >
           <template #hora="{ item }">
             <span class="text-sm font-bold" style="color: var(--color-primary); font-variant-numeric: tabular-nums">
@@ -185,27 +229,8 @@ async function iniciarConsulta(t: Turno) {
           </template>
 
           <template #acciones="{ item }">
-            <div class="flex items-center justify-end gap-2">
-              <button
-                v-if="auth.hasPermission('registrar_consulta')"
-                @click.stop="iniciarConsulta(item)"
-                :disabled="isStartingConsulta === item.id"
-                class="inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold transition-colors hover:opacity-80 disabled:opacity-50"
-                style="background-color: #ede9fe; color: #4c1d95"
-                title="Iniciar consulta clinica"
-              >
-                <span class="material-symbols-outlined" style="font-size: 14px">stethoscope</span>
-                Iniciar consulta
-              </button>
-              <button
-                v-if="auth.hasPermission('gestionar_agenda')"
-                @click.stop="openCancelModal(item)"
-                class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
-                style="background-color: var(--color-error-container)"
-                title="Cancelar turno"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-error)">close</span>
-              </button>
+            <div class="flex items-center justify-end">
+              <RowContextMenu :items="menuItems(item)" />
             </div>
           </template>
         </BaseTable>

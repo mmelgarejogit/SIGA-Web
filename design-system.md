@@ -167,7 +167,7 @@ Toda la app usa variables CSS con naming de Material Design 3. **Nunca usar colo
 - `emptyText`: string
 - `@row-click`: evento con el item
 
-**Columnas de acción:** usar `key: "acciones"`, `label: ""`. Renderizar botones ghost alineados a la derecha con `class="flex justify-end gap-1"`.
+**Columnas de acción:** usar `key: "acciones"`, `label: "Acciones"`. Usar siempre `RowContextMenu` para las acciones de fila — ver sección 17.
 
 **Slots de celda:** `#nombre="{ item: p }"`, `#ci="{ item: p }"`, etc.
 
@@ -445,8 +445,9 @@ const visiblePages = computed(() => {
 
 ## 11. Page Header (estructura estándar)
 
+### Botón único
 ```vue
-<div class="flex justify-between items-end mb-8">
+<div class="flex items-start justify-between mb-8">
   <div>
     <h1 class="text-4xl font-extrabold tracking-tight mb-2">Título de la Página</h1>
     <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -454,13 +455,43 @@ const visiblePages = computed(() => {
     </p>
   </div>
   <BaseButton variant="primary" size="lg" @click="abrirModal">
-    <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">
-      icono
-    </span>
+    <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
     Acción Principal
   </BaseButton>
 </div>
 ```
+
+### Múltiples botones
+```vue
+<div class="flex items-start justify-between mb-8">
+  <div>
+    <h1 class="text-4xl font-extrabold tracking-tight mb-2">Título de la Página</h1>
+    <p class="font-medium" style="color: var(--color-on-surface-variant)">
+      Descripción breve de la sección.
+    </p>
+  </div>
+  <div class="flex items-center gap-3">
+    <BaseButton variant="secondary" size="lg" @click="accionSecundaria">
+      <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">icono</span>
+      Acción Secundaria
+    </BaseButton>
+    <BaseButton variant="primary" size="lg" @click="accionPrincipal">
+      <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
+      Acción Principal
+    </BaseButton>
+  </div>
+</div>
+```
+
+### Reglas
+- `h1`: clases `text-4xl font-extrabold tracking-tight mb-2` — **sin** `style="color: var(--color-on-surface)"`, el color hereda.
+- Subtítulo: solo `font-medium` + `style="color: var(--color-on-surface-variant)"` — **sin** `text-sm` ni `mt-*`.
+- Botón principal (crear/agregar): `variant="primary" size="lg"`.
+- Botón secundario (acción complementaria en el mismo header): `variant="secondary" size="lg"`.
+- Botón utilitario (no CRUD, ej: "Actualizar", "Exportar"): `variant="secondary" size="sm"`, ícono `style="font-size:18px"`.
+- Ícono en botones `lg`: siempre `style="width:20px;height:20px;font-size:20px"`.
+- Wrapper de múltiples botones: `<div class="flex items-center gap-3">`.
+- Wrapper del header: `flex items-start justify-between mb-8` (no `items-end`).
 
 ---
 
@@ -552,13 +583,9 @@ function validate(): boolean {
 
 Usar cuando una fila de tabla tiene 3 o más acciones. Reemplaza los botones ghost individuales por un botón ⋮ que despliega un dropdown.
 
-### Cuándo usar cada patrón
+### Cuándo usar
 
-| Situación | Patrón recomendado |
-|---|---|
-| 1–2 acciones por fila | Botones ghost icon-only (patrón actual) |
-| 3+ acciones por fila | Menú contextual ⋮ |
-| Acción principal clara + secundarias | Split button |
+Usar `RowContextMenu` en **todas** las columnas de acciones de tabla, independientemente del número de acciones por fila.
 
 ### Componente RowContextMenu.vue
 
@@ -720,7 +747,7 @@ function menuItems(p: Patient): ContextMenuItem[] {
 - Los permisos se manejan con `hidden: !auth.hasPermission(...)` por ítem, no ocultando el botón ⋮ entero.
 - Siempre poner las acciones destructivas al final, separadas con `{ type: 'separator' }`.
 - El menú se cierra al hacer click fuera o al ejecutar una acción.
-- No usar en tablas donde cada fila solo tiene 1–2 acciones; en ese caso mantener los botones ghost icon-only.
+- Usar en todas las tablas con acciones, sin importar cuántas acciones tenga cada fila.
 
 ---
 

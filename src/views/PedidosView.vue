@@ -408,18 +408,18 @@ async function submitProveedor() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Órdenes de Compra</h1>
-            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Órdenes de Compra</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} orden{{ totalCount !== 1 ? "es" : "" }} registrada{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex items-center gap-3">
             <BaseButton v-if="canManage" variant="secondary" size="lg" @click="openCreateProveedor">
-              <span class="material-symbols-outlined" style="font-size: 20px">add_business</span>
+              <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add_business</span>
               Nuevo Proveedor
             </BaseButton>
             <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreatePedido">
-              <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+              <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
               Nueva Orden
             </BaseButton>
           </div>

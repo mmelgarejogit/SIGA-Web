@@ -149,13 +149,13 @@ async function submit() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Proveedores</h1>
-            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Proveedores</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ proveedores.filter(p => p.isActive).length }} proveedor{{ proveedores.filter(p => p.isActive).length !== 1 ? "es" : "" }} activo{{ proveedores.filter(p => p.isActive).length !== 1 ? "s" : "" }}
             </p>
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreate">
-            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
             Nuevo Proveedor
           </BaseButton>
         </div>

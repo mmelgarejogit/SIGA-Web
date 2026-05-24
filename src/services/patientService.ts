@@ -16,6 +16,14 @@ export interface GetPatientsParams {
   status?: "active" | "inactive"
 }
 
+export interface DatosFacturacion {
+  rucCiFiscal?: string
+  razonSocial?: string
+  direccion?: string
+  email?: string
+  telefono?: string
+}
+
 export interface Patient {
   id: number
   userId?: number
@@ -23,11 +31,13 @@ export interface Patient {
   firstName: string
   lastName: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
+  datosFacturacion?: DatosFacturacion
 }
 
 export interface CreatePatientRequest {
@@ -35,6 +45,7 @@ export interface CreatePatientRequest {
   firstName: string
   lastName: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
 }
@@ -42,11 +53,19 @@ export interface CreatePatientRequest {
 export interface UpdatePatientRequest {
   firstName: string
   lastName: string
-  ci: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
   isActive: boolean
+}
+
+export interface UpsertDatosFacturacionRequest {
+  rucCiFiscal?: string
+  razonSocial?: string
+  direccion?: string
+  email?: string
+  telefono?: string
 }
 
 export async function getPatients(params: GetPatientsParams = {}): Promise<PagedResult<Patient>> {
@@ -71,6 +90,14 @@ export async function createPatient(request: CreatePatientRequest): Promise<Pati
 
 export async function updatePatient(id: number, request: UpdatePatientRequest): Promise<Patient> {
   const { data } = await http.put<Patient>(`/api/patients/${id}`, request)
+  return data
+}
+
+export async function upsertDatosFacturacion(
+  id: number,
+  request: UpsertDatosFacturacionRequest,
+): Promise<Patient> {
+  const { data } = await http.put<Patient>(`/api/patients/${id}/facturacion`, request)
   return data
 }
 

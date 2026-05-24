@@ -222,8 +222,30 @@ const recetaColumns = [
           </div>
         </div>
 
+        <!-- No patient selected -->
+        <div
+          v-if="!selectedPatient && !isLoading"
+          class="rounded-2xl py-16 text-center"
+          style="
+            background-color: var(--color-surface-container-lowest);
+            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+          "
+        >
+          <span
+            class="material-symbols-outlined block mx-auto mb-3"
+            style="color: var(--color-outline-variant); font-size: 48px"
+            >person_search</span
+          >
+          <p class="text-sm font-semibold mb-1" style="color: var(--color-outline)">
+            Ningún paciente seleccionado
+          </p>
+          <p class="text-xs" style="color: var(--color-outline-variant)">
+            Buscá un paciente para ver su historial clínico.
+          </p>
+        </div>
+
         <!-- Loading -->
-        <div v-if="isLoading" class="flex justify-center py-20">
+        <div v-else-if="isLoading" class="flex justify-center py-20">
           <svg
             class="animate-spin w-7 h-7"
             style="color: var(--color-primary)"

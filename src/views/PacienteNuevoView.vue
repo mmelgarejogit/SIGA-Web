@@ -20,11 +20,14 @@ type FormErrors = {
 const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const SEXO_OPTIONS = ["Masculino", "Femenino", "Otro"]
+
 const form = ref<CreatePatientRequest>({
   ci: "",
   firstName: "",
   lastName: "",
   birthDate: "",
+  sexo: "",
   phoneNumber: "",
   email: "",
 })
@@ -77,6 +80,7 @@ async function submit() {
   try {
     const created = await createPatient({
       ...form.value,
+      sexo: form.value.sexo || undefined,
       email: form.value.email || undefined,
       phoneNumber: form.value.phoneNumber || undefined,
     })
@@ -247,6 +251,24 @@ function cancel() {
               >
                 {{ errors.birthDate }}
               </p>
+            </div>
+
+            <!-- Sexo -->
+            <div class="flex flex-col gap-1.5">
+              <label
+                class="text-xs font-bold uppercase tracking-wider"
+                style="color: var(--color-outline)"
+              >
+                Sexo
+              </label>
+              <select
+                v-model="form.sexo"
+                class="px-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
+                :style="inputStyle(false)"
+              >
+                <option value="">Sin especificar</option>
+                <option v-for="op in SEXO_OPTIONS" :key="op" :value="op">{{ op }}</option>
+              </select>
             </div>
 
             <!-- Teléfono -->

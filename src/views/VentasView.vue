@@ -291,15 +291,13 @@ function menuItems(v: Venta): ContextMenuItem[] {
         <!-- Encabezado -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">
-              Historial de Ventas
-            </h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Ventas</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} venta{{ totalCount !== 1 ? "s" : "" }} registrada{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
           <BaseButton variant="primary" size="lg" @click="router.push('/ventas/nueva')">
-            <span class="material-symbols-outlined" style="font-size: 20px">point_of_sale</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">point_of_sale</span>
             Nueva Venta
           </BaseButton>
         </div>

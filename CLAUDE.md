@@ -143,8 +143,8 @@ Todas las vistas autenticadas usan este layout fijo:
 
 | Rol | Tag | Clases Tailwind | Style binding (si es necesario) |
 |-----|-----|-----------------|--------------------------------|
-| Título de página | `<h1>` | `text-4xl font-extrabold tracking-tight` | `color: var(--color-on-surface)` |
-| Subtítulo | `<p>` | `font-medium` | `color: var(--color-on-surface-variant)` |
+| Título de página | `<h1>` | `text-4xl font-extrabold tracking-tight mb-2` | — (hereda de `main.css`, no usar inline style) |
+| Subtítulo | `<p>` | `font-medium` | `color: var(--color-on-surface-variant)` (sin `text-sm` ni `mt-*`) |
 | Título de sección | `<h3>` | `text-xl font-extrabold` | `color: var(--color-primary)` |
 | Label de formulario | `<label>` | `text-xs font-bold uppercase tracking-wider` | `color: var(--color-outline)` |
 | Body / tabla | — | — | Hereda de `main.css` |
@@ -486,7 +486,7 @@ Toda vista de listado + CRUD sigue este patrón:
 ### Estructura del template
 ```
 <main layout>
-  ├── Encabezado (<h1> text-4xl + botón "Añadir X" primary lg)
+  ├── Encabezado (`flex items-start justify-between mb-8` — h1 text-4xl mb-2 + botón primary lg con ícono 20px — ver design-system.md §11)
   ├── Filtros (FilterChips + SearchInput — ver "Barra de filtros — patrón estándar")
   ├── Tabla responsive (BaseTable)
   │   └── Filas con: avatar/icono · datos · estado badge · acciones (edit/delete)

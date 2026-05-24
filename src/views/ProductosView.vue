@@ -259,13 +259,13 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Productos</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Productos</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} producto{{ totalCount !== 1 ? "s" : "" }} en inventario
             </p>
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreate">
-            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
             Nuevo Producto
           </BaseButton>
         </div>

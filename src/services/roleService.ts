@@ -29,6 +29,7 @@ export const SYSTEM_PERMISSIONS = [
 
   { id: "ver_agenda", label: "Ver agenda" },
   { id: "gestionar_agenda", label: "Gestionar agenda" },
+  { id: "ver_recepcion", label: "Ver recepción" },
   { id: "ver_mis_turnos", label: "Ver mis turnos" },
 
   { id: "ver_calendario", label: "Ver calendario" },
@@ -57,6 +58,8 @@ export const SYSTEM_PERMISSIONS = [
   { id: "ver_dashboard", label: "Ver dashboard" },
   { id: "ver_notificaciones", label: "Ver notificaciones" },
 
+  { id: "gestionar_configuracion", label: "Gestionar configuración" },
+
   { id: "ver_usuarios", label: "Ver usuarios" },
   { id: "editar_usuario", label: "Editar usuario" },
 
@@ -68,9 +71,10 @@ export const SYSTEM_PERMISSIONS = [
 
 // Columnas de la matriz de permisos
 export const MATRIX_COLUMNS = [
-  { id: "ver", label: "Ver" },
-  { id: "crear", label: "Crear" },
-  { id: "editar", label: "Editar" },
+  { id: "ver",       label: "Ver" },
+  { id: "crear",     label: "Crear" },
+  { id: "editar",    label: "Editar" },
+  { id: "gestionar", label: "Gestionar" },
   { id: "desactivar", label: "Desactivar" },
 ] as const
 
@@ -110,13 +114,19 @@ export const PERMISSION_MATRIX: MatrixRow[] = [
     module: "Especialidades",
     icon: "medical_services",
     description: "Especialidades del staff",
-    permissions: { ver: "ver_especialidades", editar: "gestionar_especialidades" },
+    permissions: { ver: "ver_especialidades", gestionar: "gestionar_especialidades" },
   },
   {
     module: "Agenda",
     icon: "calendar_month",
     description: "Gestión de citas y turnos",
-    permissions: { ver: "ver_agenda", editar: "gestionar_agenda" },
+    permissions: { ver: "ver_agenda", gestionar: "gestionar_agenda" },
+  },
+  {
+    module: "Recepción",
+    icon: "meeting_room",
+    description: "Sala de espera y recepción de pacientes",
+    permissions: { ver: "ver_recepcion" },
   },
   {
     module: "Mis Turnos",
@@ -159,15 +169,15 @@ export const PERMISSION_MATRIX: MatrixRow[] = [
     description: "Control de stock, productos y órdenes de compra",
     permissions: {
       ver: "ver_inventario",
-      editar: "gestionar_inventario",
       crear: "gestionar_pedidos",
+      gestionar: "gestionar_inventario",
     },
   },
   {
     module: "Egresos",
     icon: "account_balance_wallet",
     description: "Facturas, honorarios y gastos generales",
-    permissions: { ver: "ver_egresos", editar: "gestionar_egresos" },
+    permissions: { ver: "ver_egresos", gestionar: "gestionar_egresos" },
   },
   {
     module: "Ventas",
@@ -209,6 +219,12 @@ export const PERMISSION_MATRIX: MatrixRow[] = [
       editar: "editar_rol",
       desactivar: "eliminar_rol",
     },
+  },
+  {
+    module: "Configuración",
+    icon: "settings",
+    description: "Estados, especialidades y datos del negocio",
+    permissions: { gestionar: "gestionar_configuracion" },
   },
 ]
 

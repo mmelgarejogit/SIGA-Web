@@ -153,13 +153,13 @@ async function submitEdit() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Categorías de Gasto</h1>
-            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Categorías de Gasto</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ categorias.filter(c => c.activo).length }} categoría{{ categorias.filter(c => c.activo).length !== 1 ? "s" : "" }} activa{{ categorias.filter(c => c.activo).length !== 1 ? "s" : "" }}
             </p>
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreate">
-            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
             Nueva Categoría
           </BaseButton>
         </div>

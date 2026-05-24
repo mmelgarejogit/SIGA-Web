@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, defineComponent, h } from "vue"
+import { ref, computed, onMounted, watch, defineComponent, h, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -10,8 +10,10 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type Patient,
   type UpdatePatientRequest,
+  type UpsertDatosFacturacionRequest,
   getPatientById,
   updatePatient,
+  upsertDatosFacturacion,
   deletePatient,
 } from "@/services/patientService"
 
@@ -108,12 +110,16 @@ const patientId = computed(() => Number(route.params.id))
 
 type TabId = "info" | "citas" | "clinico" | "ventas"
 
-const tabs: { id: TabId; label: string; icon: string; available: boolean }[] = [
-  { id: "info", label: "Información", icon: "badge", available: true },
-  { id: "citas", label: "Citas y Turnos", icon: "calendar_month", available: true },
-  { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true },
-  { id: "ventas", label: "Ventas", icon: "receipt_long", available: false },
+const ALL_TABS: { id: TabId; label: string; icon: string; available: boolean; permission: string | null }[] = [
+  { id: "info",    label: "Información",     icon: "badge",               available: true,  permission: null },
+  { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_calendario" },
+  { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true, permission: "ver_historia_clinica" },
+  { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: false, permission: "ver_ventas" },
 ]
+
+const tabs = computed(() =>
+  ALL_TABS.filter((t) => t.permission === null || auth.hasPermission(t.permission)),
+)
 
 const activeTab = ref<TabId>("info")
 
@@ -253,11 +259,13 @@ watch(activeTab, (tab) => {
 // ── Modal Editar ──────────────────────────────────────────────────────────────
 
 const showEditModal = ref(false)
+const SEXO_OPTIONS = ["Masculino", "Femenino", "Otro"]
+
 const editForm = ref<UpdatePatientRequest>({
   firstName: "",
   lastName: "",
-  ci: "",
   birthDate: "",
+  sexo: "",
   phoneNumber: "",
   email: "",
   isActive: true,
@@ -268,7 +276,6 @@ const isSavingEdit = ref(false)
 type EditErrors = {
   firstName?: string
   lastName?: string
-  ci?: string
   birthDate?: string
   email?: string
 }
@@ -284,8 +291,6 @@ function validateEdit(): boolean {
   else if (!ONLY_LETTERS.test(f.firstName.trim())) e.firstName = "Solo letras y espacios."
   if (!f.lastName.trim()) e.lastName = "El apellido es obligatorio."
   else if (!ONLY_LETTERS.test(f.lastName.trim())) e.lastName = "Solo letras y espacios."
-  if (!f.ci.trim()) e.ci = "El nro. de cédula es obligatorio."
-  else if (f.ci.trim().length > 30) e.ci = "Máximo 30 caracteres."
   if (!f.birthDate) e.birthDate = "La fecha de nacimiento es obligatoria."
   if (f.email?.trim() && !EMAIL_RE.test(f.email.trim()))
     e.email = "El formato del email no es válido."
@@ -296,13 +301,13 @@ function validateEdit(): boolean {
 function openEditModal() {
   if (!patient.value) return
   editForm.value = {
-    firstName: patient.value.firstName,
-    lastName: patient.value.lastName,
-    ci: patient.value.ci,
-    birthDate: patient.value.birthDate,
+    firstName:   patient.value.firstName,
+    lastName:    patient.value.lastName,
+    birthDate:   patient.value.birthDate,
+    sexo:        patient.value.sexo ?? "",
     phoneNumber: patient.value.phoneNumber ?? "",
-    email: patient.value.email ?? "",
-    isActive: patient.value.isActive,
+    email:       patient.value.email ?? "",
+    isActive:    patient.value.isActive,
   }
   editErrors.value = {}
   editError.value = ""
@@ -317,8 +322,9 @@ async function submitEdit() {
   try {
     const updated = await updatePatient(patientId.value, {
       ...editForm.value,
+      sexo:        editForm.value.sexo || undefined,
       phoneNumber: editForm.value.phoneNumber || undefined,
-      email: editForm.value.email || undefined,
+      email:       editForm.value.email || undefined,
     })
     patient.value = updated
     showEditModal.value = false
@@ -333,6 +339,54 @@ function inputStyle(hasError: boolean) {
   return hasError
     ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
     : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+}
+
+// ── Modal Facturación ─────────────────────────────────────────────────────────
+
+const showFacturacionModal = ref(false)
+const facturacionForm = ref<UpsertDatosFacturacionRequest>({
+  rucCiFiscal: "",
+  razonSocial: "",
+  direccion:   "",
+  email:       "",
+  telefono:    "",
+})
+const facturacionError = ref("")
+const isSavingFacturacion = ref(false)
+
+function openFacturacionModal() {
+  if (!patient.value) return
+  const df = patient.value.datosFacturacion
+  facturacionForm.value = {
+    rucCiFiscal: df?.rucCiFiscal ?? "",
+    razonSocial: df?.razonSocial ?? "",
+    direccion:   df?.direccion   ?? "",
+    email:       df?.email       ?? "",
+    telefono:    df?.telefono    ?? "",
+  }
+  facturacionError.value = ""
+  showFacturacionModal.value = true
+}
+
+async function submitFacturacion() {
+  if (isSavingFacturacion.value) return
+  facturacionError.value = ""
+  isSavingFacturacion.value = true
+  try {
+    const updated = await upsertDatosFacturacion(patientId.value, {
+      rucCiFiscal: facturacionForm.value.rucCiFiscal || undefined,
+      razonSocial: facturacionForm.value.razonSocial || undefined,
+      direccion:   facturacionForm.value.direccion   || undefined,
+      email:       facturacionForm.value.email       || undefined,
+      telefono:    facturacionForm.value.telefono    || undefined,
+    })
+    patient.value = updated
+    showFacturacionModal.value = false
+  } catch (err: unknown) {
+    facturacionError.value = err instanceof Error ? err.message : "Error al guardar datos de facturación."
+  } finally {
+    isSavingFacturacion.value = false
+  }
 }
 
 // ── Modal Desactivar ──────────────────────────────────────────────────────────
@@ -591,6 +645,18 @@ async function confirmDelete() {
                     {{ calcAge(patient.birthDate) }} años
                   </dd>
                 </div>
+                <div>
+                  <dt
+                    class="text-xs font-semibold uppercase tracking-wider mb-0.5"
+                    style="color: var(--color-outline)"
+                  >
+                    Sexo
+                  </dt>
+                  <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
+                    <span v-if="patient.sexo">{{ patient.sexo }}</span>
+                    <span v-else style="color: var(--color-outline-variant)">Sin especificar</span>
+                  </dd>
+                </div>
               </dl>
             </div>
 
@@ -719,7 +785,92 @@ async function confirmDelete() {
                 </div>
               </dl>
             </div>
+
+          <!-- ── Card: Facturación ─────────────────────────────────────────── -->
+          <div
+            v-if="auth.hasPermission('editar_paciente')"
+            class="rounded-2xl p-6 md:col-span-3"
+            style="
+              background-color: var(--color-surface-container-lowest);
+              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+              outline: 1px solid rgba(196, 197, 213, 0.15);
+            "
+          >
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-2">
+                <span
+                  class="material-symbols-outlined"
+                  style="color: var(--color-primary); font-size: 20px"
+                  >receipt_long</span
+                >
+                <h2
+                  class="text-xs font-bold uppercase tracking-widest"
+                  style="color: var(--color-outline)"
+                >
+                  Datos de Facturación
+                </h2>
+              </div>
+              <button
+                class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
+                style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);"
+                @click="openFacturacionModal"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
+                Editar
+              </button>
+            </div>
+
+            <div v-if="patient.datosFacturacion" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
+                  RUC / CI Fiscal
+                </dt>
+                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
+                  <span v-if="patient.datosFacturacion.rucCiFiscal">{{ patient.datosFacturacion.rucCiFiscal }}</span>
+                  <span v-else style="color: var(--color-outline-variant)">—</span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
+                  Razón Social
+                </dt>
+                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
+                  <span v-if="patient.datosFacturacion.razonSocial">{{ patient.datosFacturacion.razonSocial }}</span>
+                  <span v-else style="color: var(--color-outline-variant)">—</span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
+                  Dirección
+                </dt>
+                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
+                  <span v-if="patient.datosFacturacion.direccion">{{ patient.datosFacturacion.direccion }}</span>
+                  <span v-else style="color: var(--color-outline-variant)">—</span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
+                  Contacto fiscal
+                </dt>
+                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
+                  <span v-if="patient.datosFacturacion.email || patient.datosFacturacion.telefono">
+                    <span v-if="patient.datosFacturacion.email" class="block">{{ patient.datosFacturacion.email }}</span>
+                    <span v-if="patient.datosFacturacion.telefono" class="block">{{ patient.datosFacturacion.telefono }}</span>
+                  </span>
+                  <span v-else style="color: var(--color-outline-variant)">—</span>
+                </dd>
+              </div>
+            </div>
+
+            <div v-else class="flex items-center gap-3 py-2">
+              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-outline-variant)">info</span>
+              <p class="text-sm" style="color: var(--color-outline)">
+                No se han cargado datos de facturación para este paciente.
+                <button class="font-bold underline ml-1" style="color: var(--color-primary)" @click="openFacturacionModal">Agregar</button>
+              </p>
+            </div>
           </div>
+          </div><!-- fin grid tab Información -->
 
           <!-- ── Tab: Citas y Turnos ─────────────────────────────────────────── -->
           <div v-else-if="activeTab === 'citas'">
@@ -1018,6 +1169,19 @@ async function confirmDelete() {
           {{ editError }}
         </div>
 
+        <!-- CI — solo lectura -->
+        <div
+          class="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-outline)">lock</span>
+          <div class="flex flex-col gap-0.5 flex-1">
+            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nro. de Cédula</span>
+            <span class="text-sm font-bold tracking-wider" style="color: var(--color-on-surface-variant)">{{ patient?.ci }}</span>
+          </div>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color: rgba(117,118,132,0.1); color: var(--color-outline)">No editable</span>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label
@@ -1065,23 +1229,6 @@ async function confirmDelete() {
           <label
             class="text-xs font-bold uppercase tracking-wider"
             style="color: var(--color-outline)"
-            >Nro. de Cédula *</label
-          >
-          <input
-            v-model="editForm.ci"
-            type="text"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-            :style="inputStyle(!!editErrors.ci)"
-          />
-          <p v-if="editErrors.ci" class="text-xs font-medium" style="color: var(--color-error)">
-            {{ editErrors.ci }}
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
             >Fecha de Nacimiento *</label
           >
           <input
@@ -1097,6 +1244,22 @@ async function confirmDelete() {
           >
             {{ editErrors.birthDate }}
           </p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label
+            class="text-xs font-bold uppercase tracking-wider"
+            style="color: var(--color-outline)"
+            >Sexo</label
+          >
+          <select
+            v-model="editForm.sexo"
+            class="px-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
+            :style="inputStyle(false)"
+          >
+            <option value="">Sin especificar</option>
+            <option v-for="op in SEXO_OPTIONS" :key="op" :value="op">{{ op }}</option>
+          </select>
         </div>
 
         <div class="flex flex-col gap-1.5">
@@ -1184,6 +1347,93 @@ async function confirmDelete() {
             />
           </svg>
           {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- MODAL: DATOS DE FACTURACIÓN -->
+    <BaseModal
+      :show="showFacturacionModal"
+      title="Datos de Facturación"
+      size="lg"
+      @close="showFacturacionModal = false"
+    >
+      <form @submit.prevent="submitFacturacion" class="space-y-5">
+        <div
+          v-if="facturacionError"
+          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+          style="background-color: var(--color-error-container); color: var(--color-on-error-container);"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
+          {{ facturacionError }}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">RUC / CI Fiscal</label>
+            <input
+              v-model="facturacionForm.rucCiFiscal"
+              type="text"
+              placeholder="80012345-6"
+              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Razón Social</label>
+            <input
+              v-model="facturacionForm.razonSocial"
+              type="text"
+              placeholder="Juan Pérez o Empresa S.A."
+              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Dirección de Facturación</label>
+          <input
+            v-model="facturacionForm.direccion"
+            type="text"
+            placeholder="Av. Mariscal López 1234, Asunción"
+            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+            :style="inputStyle(false)"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email de Facturación</label>
+            <input
+              v-model="facturacionForm.email"
+              type="email"
+              placeholder="facturacion@empresa.com"
+              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono de Facturación</label>
+            <input
+              v-model="facturacionForm.telefono"
+              type="tel"
+              placeholder="0981234567"
+              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+        </div>
+      </form>
+
+      <template #footer>
+        <BaseButton variant="secondary" size="default" @click="showFacturacionModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" :disabled="isSavingFacturacion" @click="submitFacturacion">
+          <svg v-if="isSavingFacturacion" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ isSavingFacturacion ? "Guardando..." : "Guardar Datos" }}
         </BaseButton>
       </template>
     </BaseModal>

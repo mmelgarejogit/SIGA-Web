@@ -71,9 +71,11 @@ const isEmpty = () => {
         <!-- Empty state -->
         <tr v-else-if="isEmpty()">
           <td :colspan="(props.columns ?? []).length || 99" class="px-6 py-16 text-center">
-            <p class="font-medium" style="color: var(--color-outline)">
-              {{ props.emptyMessage ?? props.emptyText ?? "No se encontraron registros." }}
-            </p>
+            <slot name="empty">
+              <p class="font-medium" style="color: var(--color-outline)">
+                {{ props.emptyMessage ?? props.emptyText ?? "No se encontraron registros." }}
+              </p>
+            </slot>
           </td>
         </tr>
 
