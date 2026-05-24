@@ -554,8 +554,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
       </div>
     </template>
     <template #footer>
-      <BaseButton variant="secondary" @click="showCobro = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" :disabled="isCobrandо" @click="submitCobro">
+      <BaseButton variant="secondary" class="flex-1" @click="showCobro = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" class="flex-1" :disabled="isCobrandо" @click="submitCobro">
         {{ isCobrandо ? "Guardando…" : "Registrar cobro" }}
       </BaseButton>
     </template>
@@ -591,8 +591,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
       </div>
     </template>
     <template #footer>
-      <BaseButton variant="secondary" @click="showFactura = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" :disabled="isEmitiendo" @click="submitFactura">
+      <BaseButton variant="secondary" class="flex-1" @click="showFactura = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" class="flex-1" :disabled="isEmitiendo" @click="submitFactura">
         {{ isEmitiendo ? "Emitiendo…" : "Emitir factura" }}
       </BaseButton>
     </template>
@@ -607,8 +607,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
       </p>
     </template>
     <template #footer>
-      <BaseButton variant="secondary" @click="showConfirmar = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" :disabled="isConfirmando" @click="submitConfirmar">
+      <BaseButton variant="secondary" class="flex-1" @click="showConfirmar = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" class="flex-1" :disabled="isConfirmando" @click="submitConfirmar">
         {{ isConfirmando ? "Confirmando…" : "Confirmar" }}
       </BaseButton>
     </template>
@@ -629,8 +629,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
       </div>
     </template>
     <template #footer>
-      <BaseButton variant="secondary" @click="showAnular = false">Cancelar</BaseButton>
-      <BaseButton variant="danger" :disabled="isAnulando" @click="submitAnular">
+      <BaseButton variant="secondary" class="flex-1" @click="showAnular = false">Cancelar</BaseButton>
+      <BaseButton variant="danger" class="flex-1" :disabled="isAnulando" @click="submitAnular">
         {{ isAnulando ? "Anulando…" : "Anular venta" }}
       </BaseButton>
     </template>

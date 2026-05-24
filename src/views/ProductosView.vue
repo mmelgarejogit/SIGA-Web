@@ -596,8 +596,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <p v-if="deactivateError" class="mt-3 text-sm font-medium" style="color: var(--color-error)">{{ deactivateError }}</p>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeactivateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" :disabled="isDeactivating" @click="confirmDeactivate">
+        <BaseButton variant="secondary" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
         </BaseButton>
       </template>

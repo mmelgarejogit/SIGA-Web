@@ -751,46 +751,14 @@ function handleRowClick(item: ConsultaClinica) {
       </form>
 
       <template #footer>
-        <button
-          type="button"
-          @click="showEditModal = false"
-          class="px-6 py-3 rounded-full text-sm font-bold transition-all"
-          style="
-            background-color: var(--color-surface-container-high);
-            color: var(--color-on-surface-variant);
-          "
-        >
-          Cancelar
-        </button>
-        <button
-          @click="submitEdit"
-          :disabled="isEditing"
-          class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-          style="background-color: var(--color-primary); color: white"
-        >
-          <svg
-            v-if="isEditing"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
+        <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isEditing" @click="submitEdit">
+          <svg v-if="isEditing" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isEditing ? "Guardando..." : "Guardar Cambios" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -1155,46 +1123,14 @@ function handleRowClick(item: ConsultaClinica) {
       </div>
 
       <template #footer>
-        <button
-          type="button"
-          @click="showDeleteModal = false"
-          class="flex-1 py-3 rounded-full text-sm font-bold"
-          style="
-            background-color: var(--color-surface-container-high);
-            color: var(--color-on-surface-variant);
-          "
-        >
-          Cancelar
-        </button>
-        <button
-          @click="confirmDelete"
-          :disabled="isDeleting"
-          class="flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-error); color: white"
-        >
-          <svg
-            v-if="isDeleting"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isDeleting" @click="confirmDelete">
+          <svg v-if="isDeleting" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isDeleting ? "Eliminando..." : "Eliminar" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
   </div>

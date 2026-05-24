@@ -1820,40 +1820,36 @@ const roleColumns = [
       </div>
 
       <template #footer>
-        <div class="w-full flex flex-col gap-2">
-          <BaseButton
-            variant="danger"
-            size="default"
-            :disabled="isDeletingRole"
-            @click="confirmDeleteRole"
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteRoleModal = false">Cancelar</BaseButton>
+        <BaseButton
+          variant="danger"
+          class="flex-1"
+          :disabled="isDeletingRole"
+          @click="confirmDeleteRole"
+        >
+          <svg
+            v-if="isDeletingRole"
+            class="animate-spin w-4 h-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            <svg
-              v-if="isDeletingRole"
-              class="animate-spin w-4 h-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            {{ isDeletingRole ? "Eliminando..." : "Eliminar" }}
-          </BaseButton>
-          <BaseButton variant="secondary" size="default" @click="showDeleteRoleModal = false">
-            Cancelar
-          </BaseButton>
-        </div>
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          {{ isDeletingRole ? "Eliminando..." : "Eliminar" }}
+        </BaseButton>
       </template>
     </BaseModal>
   </div>
