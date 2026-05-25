@@ -87,10 +87,10 @@ function menuItems(cat: CategoriaProducto): ContextMenuItem[] {
 const showCreateModal = ref(false)
 const isSaving = ref(false)
 const createError = ref("")
-const createForm = reactive<CreateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, descuento: 0 })
+const createForm = reactive<CreateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, margen: 0, descuento: 0 })
 
 function openCreate() {
-  Object.assign(createForm, { nombre: "", descripcion: "", descuento: 0 })
+  Object.assign(createForm, { nombre: "", descripcion: "", margen: 0, descuento: 0 })
   createError.value = ""
   showCreateModal.value = true
 }
@@ -103,6 +103,7 @@ async function submitCreate() {
     await createCategoria({
       nombre: createForm.nombre.trim(),
       descripcion: (createForm.descripcion as string)?.trim() || undefined,
+      margen: createForm.margen,
       descuento: createForm.descuento,
     })
     showCreateModal.value = false
@@ -120,11 +121,11 @@ const showEditModal = ref(false)
 const isEditSaving = ref(false)
 const editError = ref("")
 const editingCategoria = ref<CategoriaProducto | null>(null)
-const editForm = reactive<UpdateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, descuento: 0, isActive: true })
+const editForm = reactive<UpdateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, margen: 0, descuento: 0, isActive: true })
 
 function openEdit(cat: CategoriaProducto) {
   editingCategoria.value = cat
-  Object.assign(editForm, { nombre: cat.nombre, descripcion: cat.descripcion ?? "", descuento: cat.descuento, isActive: cat.isActive })
+  Object.assign(editForm, { nombre: cat.nombre, descripcion: cat.descripcion ?? "", margen: cat.margen, descuento: cat.descuento, isActive: cat.isActive })
   editError.value = ""
   showEditModal.value = true
 }
@@ -138,6 +139,7 @@ async function submitEdit() {
     await updateCategoria(editingCategoria.value.id, {
       nombre: editForm.nombre.trim(),
       descripcion: (editForm.descripcion as string)?.trim() || undefined,
+      margen: editForm.margen,
       descuento: editForm.descuento,
       isActive: editForm.isActive,
     })
@@ -299,11 +301,21 @@ async function confirmDeactivate() {
             class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descuento (%)</label>
-          <input v-model.number="createForm.descuento" type="number" min="0" max="100" step="0.01" placeholder="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Margen (%)</label>
+            <input v-model.number="createForm.margen" type="number" min="0" max="1000" step="0.01" placeholder="0"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <p class="text-xs mt-1" style="color: var(--color-outline)">Ganancia sobre el precio de costo</p>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descuento (%)</label>
+            <input v-model.number="createForm.descuento" type="number" min="0" max="100" step="0.01" placeholder="0"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <p class="text-xs mt-1" style="color: var(--color-outline)">Descuento aplicado en ventas</p>
+          </div>
         </div>
       </div>
 
@@ -335,11 +347,21 @@ async function confirmDeactivate() {
             class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descuento (%)</label>
-          <input v-model.number="editForm.descuento" type="number" min="0" max="100" step="0.01" placeholder="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Margen (%)</label>
+            <input v-model.number="editForm.margen" type="number" min="0" max="1000" step="0.01" placeholder="0"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <p class="text-xs mt-1" style="color: var(--color-outline)">Ganancia sobre el precio de costo</p>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descuento (%)</label>
+            <input v-model.number="editForm.descuento" type="number" min="0" max="100" step="0.01" placeholder="0"
+              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <p class="text-xs mt-1" style="color: var(--color-outline)">Descuento aplicado en ventas</p>
+          </div>
         </div>
         <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
           <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />

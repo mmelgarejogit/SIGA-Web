@@ -76,8 +76,8 @@ export const menuConfig: MenuItem[] = [
     ],
   },
   {
-    id: "stock",
-    label: "Stock",
+    id: "inventario",
+    label: "Inventario",
     icon: "inventory_2",
     permission: "ver_inventario",
     children: [
@@ -105,10 +105,24 @@ export const menuConfig: MenuItem[] = [
         route: "/inventario/modelos",
         permission: "ver_inventario",
       },
+    ],
+  },
+  {
+    id: "stock",
+    label: "Stock",
+    icon: "warehouse",
+    permission: "ver_inventario",
+    children: [
       {
-        label: "Movimientos de Stock",
+        label: "Niveles de Stock",
+        icon: "bar_chart",
+        route: "/stock",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Movimientos",
         icon: "swap_horiz",
-        route: "/inventario/movimientos",
+        route: "/stock/movimientos",
         permission: "ver_inventario",
       },
     ],
