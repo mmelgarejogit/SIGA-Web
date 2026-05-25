@@ -190,6 +190,36 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Facturas de Compra" },
     },
     {
+      path: "/compras/facturas/nueva",
+      name: "compras-facturas-nueva",
+      component: () => import("@/views/FacturaFormView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Nueva Factura" },
+    },
+    {
+      path: "/compras/oc/nueva",
+      name: "compras-oc-nueva",
+      component: () => import("@/views/OcFormView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Nueva Orden de Compra" },
+    },
+    {
+      path: "/compras/oc/:id/editar",
+      name: "compras-oc-editar",
+      component: () => import("@/views/OcFormView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Editar OC" },
+    },
+    {
+      path: "/compras/recepciones",
+      name: "compras-recepciones",
+      component: () => import("@/views/RecepcionesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Recepciones" },
+    },
+    {
+      path: "/compras/recepciones/nueva",
+      name: "compras-recepciones-nueva",
+      component: () => import("@/views/RecepcionFormView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Nueva Recepción" },
+    },
+    {
       path: "/compras/oc/:id",
       name: "compras-oc-detail",
       component: () => import("@/views/OcDetailView.vue"),

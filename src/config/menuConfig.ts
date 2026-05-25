@@ -132,6 +132,12 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Recepciones",
+        icon: "inventory",
+        route: "/compras/recepciones",
+        permission: "ver_inventario",
+      },
+      {
         label: "Proveedores",
         icon: "storefront",
         route: "/inventario/proveedores",

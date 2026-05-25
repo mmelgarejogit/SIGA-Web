@@ -9,19 +9,17 @@ import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
-  type Proveedor,
-  type Producto,
   type CreateProveedorRequest,
-  getProveedores,
-  getProductos,
   createProveedor,
 } from "@/services/inventarioService"
 import {
   type PedidoCompras,
   type EstadoPedido,
   getComprasPedidos,
-  crearPedido,
+  confirmarPedido,
+  cancelarPedido,
 } from "@/services/comprasService"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -52,8 +50,6 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const proveedores = ref<Proveedor[]>([])
-const productos = ref<Producto[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const estadoFilter = ref<string[]>([])
@@ -108,20 +104,14 @@ async function load() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const [result, prov, prod] = await Promise.all([
-      getComprasPedidos({
-        estado: estadoFilter.value[0] || undefined,
-        page: currentPage.value,
-        pageSize: PAGE_SIZE,
-      }),
-      getProveedores({ pageSize: 200 }).then((r) => r.items),
-      getProductos({ pageSize: 500 }).then((r) => r.items),
-    ])
+    const result = await getComprasPedidos({
+      estado: estadoFilter.value[0] || undefined,
+      page: currentPage.value,
+      pageSize: PAGE_SIZE,
+    })
     pedidos.value = result.items
     totalCount.value = result.totalCount
     totalPages.value = result.totalPages
-    proveedores.value = prov
-    productos.value = prod
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar datos."
   } finally {
@@ -146,75 +136,103 @@ function openDetail(pedido: PedidoCompras) {
 
 onMounted(load)
 
-// ── Modal Nuevo Pedido ─────────────────────────────────────────────────────────
-
-const showCreateModal = ref(false)
-const isSaving = ref(false)
-const createError = ref("")
-
-interface FormItem {
-  productoId: number
-  cantidad: number
-  precioUnitario: number
-  _nombre: string
-}
-
-const pedidoForm = reactive({ proveedorId: null as number | null, observaciones: "" })
-const pedidoItems = ref<FormItem[]>([])
-
 function openCreatePedido() {
-  pedidoForm.proveedorId = proveedores.value.find((p) => p.isActive)?.id ?? null
-  pedidoForm.observaciones = ""
-  pedidoItems.value = []
-  createError.value = ""
-  showCreateModal.value = true
+  router.push("/compras/oc/nueva")
 }
 
-function addItem() {
-  const primer = productos.value.find((p) => p.isActive)
-  if (!primer) return
-  pedidoItems.value.push({
-    productoId: primer.id,
-    cantidad: 1,
-    precioUnitario: primer.precioCosto,
-    _nombre: primer.nombre,
-  })
+function openEditPedido(pedido: PedidoCompras) {
+  router.push(`/compras/oc/${pedido.id}/editar`)
 }
 
-function removeItem(i: number) {
-  pedidoItems.value.splice(i, 1)
+// ── Menú contextual de fila ────────────────────────────────────────────────────
+
+function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
+  return [
+    {
+      type: "item",
+      label: "Ver detalle",
+      icon: "open_in_new",
+      action: () => openDetail(pedido),
+    },
+    {
+      type: "item",
+      label: "Editar OC",
+      icon: "edit",
+      action: () => openEditPedido(pedido),
+      hidden: pedido.estado !== "Borrador" || !canManage.value,
+    },
+    {
+      type: "item",
+      label: "Confirmar OC",
+      icon: "check_circle",
+      action: () => openConfirmarModal(pedido),
+      hidden: pedido.estado !== "Borrador" || !canManage.value,
+    },
+    { type: "separator" },
+    {
+      type: "item",
+      label: "Cancelar OC",
+      icon: "cancel",
+      action: () => openCancelarModal(pedido),
+      danger: true,
+      hidden: pedido.estado !== "Borrador" || !canManage.value,
+    },
+  ]
 }
 
-function onItemProductoChange(i: number, e: Event) {
-  const id = Number((e.target as HTMLSelectElement).value)
-  const prod = productos.value.find((p) => p.id === id)
-  if (prod) {
-    pedidoItems.value[i]!.productoId = prod.id
-    pedidoItems.value[i]!.precioUnitario = prod.precioCosto
-    pedidoItems.value[i]!._nombre = prod.nombre
+// ── Modal Confirmar OC ─────────────────────────────────────────────────────────
+
+const showConfirmarModal = ref(false)
+const confirmarTarget = ref<PedidoCompras | null>(null)
+const isConfirmando = ref(false)
+const confirmarError = ref("")
+
+function openConfirmarModal(pedido: PedidoCompras) {
+  confirmarTarget.value = pedido
+  confirmarError.value = ""
+  showConfirmarModal.value = true
+}
+
+async function submitConfirmar() {
+  if (!confirmarTarget.value) return
+  isConfirmando.value = true
+  confirmarError.value = ""
+  try {
+    await confirmarPedido(confirmarTarget.value.id)
+    showConfirmarModal.value = false
+    await load()
+  } catch (err: unknown) {
+    confirmarError.value = err instanceof Error ? err.message : "Error al confirmar la orden."
+  } finally {
+    isConfirmando.value = false
   }
 }
 
-async function submitCreatePedido() {
-  if (!pedidoForm.proveedorId) { createError.value = "Seleccioná un proveedor."; return }
-  if (pedidoItems.value.length === 0) { createError.value = "Agregá al menos un ítem."; return }
+// ── Modal Cancelar OC ──────────────────────────────────────────────────────────
 
-  isSaving.value = true
-  createError.value = ""
+const showCancelarModal = ref(false)
+const cancelarTarget = ref<PedidoCompras | null>(null)
+const isCancelando = ref(false)
+const cancelarError = ref("")
+
+function openCancelarModal(pedido: PedidoCompras) {
+  cancelarTarget.value = pedido
+  cancelarError.value = ""
+  showCancelarModal.value = true
+}
+
+async function submitCancelar() {
+  if (!cancelarTarget.value) return
+  isCancelando.value = true
+  cancelarError.value = ""
   try {
-    const nuevo = await crearPedido({
-      proveedorId: pedidoForm.proveedorId,
-      observaciones: pedidoForm.observaciones.trim() || undefined,
-      items: pedidoItems.value.map(({ productoId, cantidad, precioUnitario }) => ({
-        productoId, cantidad, precioUnitario,
-      })),
-    })
-    showCreateModal.value = false
-    router.push(`/compras/oc/${nuevo.id}`)
+    await cancelarPedido(cancelarTarget.value.id)
+    showCancelarModal.value = false
+    await load()
   } catch (err: unknown) {
-    createError.value = err instanceof Error ? err.message : "Error al crear pedido."
+    cancelarError.value = err instanceof Error ? err.message : "Error al cancelar la orden."
   } finally {
-    isSaving.value = false
+    isCancelando.value = false
   }
 }
 
@@ -346,15 +364,8 @@ async function submitProveedor() {
             </template>
 
             <template #acciones="{ item }">
-              <div class="flex items-center justify-end">
-                <button
-                  @click.stop="openDetail(item)"
-                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                  style="background-color: var(--color-surface-container-high)"
-                  title="Ver detalle"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">open_in_new</span>
-                </button>
+              <div class="flex justify-end">
+                <RowContextMenu :items="rowMenuItems(item)" />
               </div>
             </template>
           </BaseTable>
@@ -401,91 +412,58 @@ async function submitProveedor() {
       </div>
     </main>
 
-    <!-- ── MODAL NUEVA ORDEN ──────────────────────────────────────────────────── -->
-    <BaseModal :show="showCreateModal" title="Nueva Orden de Compra" size="xl" @close="showCreateModal = false">
-      <div v-if="createError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ createError }}
-      </div>
-
-      <div class="space-y-5">
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Proveedor *</label>
-            <button type="button" @click="openCreateProveedor" class="flex items-center gap-1 text-xs font-semibold" style="color: var(--color-primary)">
-              <span class="material-symbols-outlined" style="font-size: 16px">add</span>
-              Agregar proveedor
-            </button>
-          </div>
-          <select v-model="pedidoForm.proveedorId" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-            <option :value="null" disabled>Seleccioná un proveedor</option>
-            <option v-for="p in proveedores.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-          </select>
+    <!-- ── MODAL CONFIRMAR OC ───────────────────────────────────────────────── -->
+    <BaseModal :show="showConfirmarModal" title="Confirmar Orden de Compra" size="sm" @close="showConfirmarModal = false">
+      <div class="flex flex-col items-center text-center gap-4 py-2">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background-color: #dbeafe">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: #1e40af">check_circle</span>
         </div>
-
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <input v-model="pedidoForm.observaciones" type="text" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <p class="text-sm font-semibold mb-1" style="color: var(--color-on-surface)">
+            ¿Confirmar la OC <strong>#{{ confirmarTarget?.id }}</strong>?
+          </p>
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            La orden pasará a estado <strong>Confirmada</strong> y estará lista para ser facturada.
+          </p>
         </div>
-
-        <!-- Ítems -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Productos *</label>
-            <button @click="addItem" class="flex items-center gap-1 text-xs font-semibold" style="color: var(--color-primary)">
-              <span class="material-symbols-outlined" style="font-size: 16px">add</span>
-              Agregar producto
-            </button>
-          </div>
-
-          <div v-if="pedidoItems.length === 0" class="text-sm py-3 text-center rounded-xl"
-            style="color: var(--color-outline); background-color: var(--color-surface-container-low)">
-            Agregá al menos un producto.
-          </div>
-
-          <div v-else class="space-y-2">
-            <div v-for="(item, i) in pedidoItems" :key="i"
-              class="grid grid-cols-12 gap-2 items-center p-3 rounded-xl"
-              style="background-color: var(--color-surface-container-low)">
-              <div class="col-span-5">
-                <select :value="item.productoId" @change="onItemProductoChange(i, $event)"
-                  class="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)">
-                  <option v-for="p in productos.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                </select>
-              </div>
-              <div class="col-span-3">
-                <input v-model.number="item.cantidad" type="number" min="1" placeholder="Cant."
-                  class="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)" />
-              </div>
-              <div class="col-span-3">
-                <input v-model.number="item.precioUnitario" type="number" min="0" step="1" placeholder="Precio c/u"
-                  class="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)" />
-              </div>
-              <div class="col-span-1 flex justify-center">
-                <button @click="removeItem(i)" class="w-7 h-7 rounded-full flex items-center justify-center"
-                  style="background-color: var(--color-error-container)">
-                  <span class="material-symbols-outlined" style="font-size: 14px; color: var(--color-error)">close</span>
-                </button>
-              </div>
-            </div>
-            <div class="text-right text-sm font-bold pt-1" style="color: var(--color-on-surface)">
-              Total estimado: {{ formatPrice(pedidoItems.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0)) }}
-            </div>
-          </div>
+        <div v-if="confirmarError" class="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
+          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+          <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+          {{ confirmarError }}
         </div>
       </div>
-
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showCreateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isSaving" @click="submitCreatePedido">
-          {{ isSaving ? "Creando…" : "Crear Borrador" }}
+        <BaseButton variant="secondary" @click="showConfirmarModal = false" :disabled="isConfirmando">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isConfirmando" @click="submitConfirmar">
+          {{ isConfirmando ? "Confirmando…" : "Confirmar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── MODAL CANCELAR OC ─────────────────────────────────────────────────── -->
+    <BaseModal :show="showCancelarModal" title="Cancelar Orden de Compra" size="sm" @close="showCancelarModal = false">
+      <div class="flex flex-col items-center text-center gap-4 py-2">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background-color: var(--color-error-container)">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: var(--color-error)">cancel</span>
+        </div>
+        <div>
+          <p class="text-sm font-semibold mb-1" style="color: var(--color-on-surface)">
+            ¿Cancelar la OC <strong>#{{ cancelarTarget?.id }}</strong>?
+          </p>
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            Esta acción no se puede deshacer. La orden quedará en estado <strong>Cancelada</strong>.
+          </p>
+        </div>
+        <div v-if="cancelarError" class="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
+          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+          <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+          {{ cancelarError }}
+        </div>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showCancelarModal = false" :disabled="isCancelando">Volver</BaseButton>
+        <BaseButton variant="danger" :disabled="isCancelando" @click="submitCancelar">
+          {{ isCancelando ? "Cancelando…" : "Sí, cancelar" }}
         </BaseButton>
       </template>
     </BaseModal>

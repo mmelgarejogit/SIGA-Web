@@ -12,8 +12,6 @@ import {
   type EstadoPedido,
   getComprasPedidoById,
   confirmarPedido,
-  registrarFactura,
-  registrarRecepcion,
   registrarDevolucion,
   cancelarPedido,
 } from "@/services/comprasService"
@@ -119,125 +117,6 @@ async function onCancelar() {
     cancelError.value = err instanceof Error ? err.message : "Error al cancelar."
   } finally {
     isCancelando.value = false
-  }
-}
-
-// ── Acción: Registrar Factura ─────────────────────────────────────────────────
-
-const showFacturaModal = ref(false)
-const isFacturaSaving = ref(false)
-const facturaError = ref("")
-
-const facturaForm = reactive({
-  nroFactura: "",
-  fechaEmision: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: "",
-  condicionVenta: "Contado",
-  montoExento: 0,
-  montoGravado5: 0,
-  montoGravado10: 0,
-  observaciones: "",
-})
-
-const montoTotalFactura = computed(() =>
-  facturaForm.montoExento + facturaForm.montoGravado5 + facturaForm.montoGravado10,
-)
-const iva5Calculado = computed(() => Math.round(facturaForm.montoGravado5 / 21))
-const iva10Calculado = computed(() => Math.round(facturaForm.montoGravado10 / 11))
-
-function openFacturaModal() {
-  facturaForm.nroFactura = ""
-  facturaForm.fechaEmision = new Date().toISOString().slice(0, 10)
-  facturaForm.fechaVencimiento = ""
-  facturaForm.condicionVenta = "Contado"
-  facturaForm.montoExento = 0
-  facturaForm.montoGravado5 = 0
-  facturaForm.montoGravado10 = 0
-  facturaForm.observaciones = ""
-  facturaError.value = ""
-  showFacturaModal.value = true
-}
-
-async function submitFactura() {
-  if (!pedido.value) return
-  const nroRegex = /^\d{3}-\d{3}-\d{7}$/
-  if (!nroRegex.test(facturaForm.nroFactura.trim())) {
-    facturaError.value = "Formato inválido. Esperado: 001-001-0000001"
-    return
-  }
-  if (!facturaForm.fechaEmision) { facturaError.value = "La fecha de emisión es obligatoria."; return }
-  if (facturaForm.montoExento <= 0 && facturaForm.montoGravado5 <= 0 && facturaForm.montoGravado10 <= 0) {
-    facturaError.value = "Al menos un monto debe ser mayor a 0."
-    return
-  }
-  if (facturaForm.condicionVenta === "Credito" && !facturaForm.fechaVencimiento) {
-    facturaError.value = "La fecha de vencimiento es obligatoria para crédito."
-    return
-  }
-
-  isFacturaSaving.value = true
-  facturaError.value = ""
-  try {
-    pedido.value = await registrarFactura(pedido.value.id, {
-      nroFactura: facturaForm.nroFactura.trim(),
-      fechaEmision: facturaForm.fechaEmision,
-      fechaVencimiento: facturaForm.fechaVencimiento || undefined,
-      condicionVenta: facturaForm.condicionVenta,
-      montoExento: facturaForm.montoExento,
-      montoGravado5: facturaForm.montoGravado5,
-      montoGravado10: facturaForm.montoGravado10,
-      observaciones: facturaForm.observaciones.trim() || undefined,
-    })
-    showFacturaModal.value = false
-    activeTab.value = "factura"
-  } catch (err: unknown) {
-    facturaError.value = err instanceof Error ? err.message : "Error al registrar factura."
-  } finally {
-    isFacturaSaving.value = false
-  }
-}
-
-// ── Acción: Registrar Recepción ───────────────────────────────────────────────
-
-const showRecepcionModal = ref(false)
-const isRecepcionSaving = ref(false)
-const recepcionError = ref("")
-const recepcionObservaciones = ref("")
-const recepcionItems = ref<{ itemId: number; productoNombre: string; maximo: number; cantidadRecibida: number }[]>([])
-
-function openRecepcionModal() {
-  if (!pedido.value) return
-  recepcionItems.value = pedido.value.items
-    .filter((i) => itemPendiente(i) > 0)
-    .map((i) => ({
-      itemId: i.id,
-      productoNombre: i.productoNombre,
-      maximo: itemPendiente(i),
-      cantidadRecibida: itemPendiente(i),
-    }))
-  recepcionObservaciones.value = ""
-  recepcionError.value = ""
-  showRecepcionModal.value = true
-}
-
-async function submitRecepcion() {
-  if (!pedido.value) return
-  const itemsValidos = recepcionItems.value.filter((i) => i.cantidadRecibida > 0)
-  if (itemsValidos.length === 0) { recepcionError.value = "Ingresá al menos una cantidad mayor a cero."; return }
-
-  isRecepcionSaving.value = true
-  recepcionError.value = ""
-  try {
-    pedido.value = await registrarRecepcion(pedido.value.id, {
-      observaciones: recepcionObservaciones.value.trim() || undefined,
-      items: itemsValidos.map(({ itemId, cantidadRecibida }) => ({ itemId, cantidadRecibida })),
-    })
-    showRecepcionModal.value = false
-    activeTab.value = "recepciones"
-  } catch (err: unknown) {
-    recepcionError.value = err instanceof Error ? err.message : "Error al registrar recepción."
-  } finally {
-    isRecepcionSaving.value = false
   }
 }
 
@@ -350,24 +229,6 @@ async function submitDevolucion() {
                 </BaseButton>
 
                 <BaseButton
-                  v-if="pedido.estado === 'Confirmada'"
-                  variant="primary" size="lg"
-                  @click="openFacturaModal"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">receipt</span>
-                  Registrar Factura
-                </BaseButton>
-
-                <BaseButton
-                  v-if="pedido.estado === 'Facturada' || pedido.estado === 'RecibidaParcial'"
-                  variant="secondary" size="lg"
-                  @click="openRecepcionModal"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">inventory</span>
-                  Registrar Recepción
-                </BaseButton>
-
-                <BaseButton
                   v-if="pedido.estado === 'RecibidaTotal' || pedido.estado === 'RecibidaParcial'"
                   variant="secondary" size="lg"
                   @click="openDevolucionModal"
@@ -474,20 +335,11 @@ async function submitDevolucion() {
               <span class="material-symbols-outlined text-5xl" style="color: var(--color-outline)">receipt_long</span>
               <div>
                 <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin factura registrada</p>
-                <p class="text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ pedido.estado === 'Confirmada'
-                    ? 'Confirmá la recepción de la factura del proveedor para avanzar a la siguiente etapa.'
-                    : 'La factura se registra una vez que la OC está en estado Confirmada.' }}
+                <p class="text-sm max-w-md" style="color: var(--color-on-surface-variant)">
+                  La carga de facturas se realiza desde el módulo <strong>Facturas de Compra</strong>,
+                  eligiendo origen "Con OC" y seleccionando esta orden.
                 </p>
               </div>
-              <BaseButton
-                v-if="canManage && pedido.estado === 'Confirmada'"
-                variant="primary" size="lg"
-                @click="openFacturaModal"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px">add</span>
-                Registrar Factura
-              </BaseButton>
             </div>
 
             <!-- Con factura -->
@@ -580,10 +432,9 @@ async function submitDevolucion() {
               <span class="material-symbols-outlined text-5xl" style="color: var(--color-outline)">inventory_2</span>
               <div>
                 <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin recepciones registradas</p>
-                <p class="text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ pedido.estado === 'Facturada' || pedido.estado === 'RecibidaParcial'
-                    ? 'Registrá la llegada de mercadería desde el encabezado de la página.'
-                    : 'La recepción de mercadería se habilitará luego de registrar la factura.' }}
+                <p class="text-sm max-w-md" style="color: var(--color-on-surface-variant)">
+                  La carga de recepciones se realiza desde el módulo <strong>Recepciones</strong>,
+                  eligiendo la factura asociada a esta OC.
                 </p>
               </div>
             </div>
@@ -593,25 +444,44 @@ async function submitDevolucion() {
                 class="rounded-2xl overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
 
-                <div class="px-6 py-4 flex items-center justify-between"
+                <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
                   style="border-bottom: 1px solid rgba(196,197,213,0.12)">
                   <div class="flex items-center gap-3">
                     <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                       style="background-color: var(--color-primary); color: #fff">
                       #{{ rec.id }}
                     </span>
-                    <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatDate(rec.createdAt) }}</span>
-                    <span v-if="rec.observaciones" class="text-sm italic" style="color: var(--color-on-surface-variant)">
-                      · {{ rec.observaciones }}
+                    <span class="text-sm font-semibold" style="color: var(--color-on-surface)">
+                      Recepcionado el {{ formatDate(rec.fechaRecepcion) }}
                     </span>
                   </div>
+                  <span v-if="rec.usuarioNombre" class="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style="background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant)">
+                    <span class="material-symbols-outlined align-middle mr-1" style="font-size: 14px">person</span>
+                    {{ rec.usuarioNombre }}
+                  </span>
                 </div>
+
+                <p v-if="rec.observaciones" class="px-6 py-2 text-xs italic"
+                  style="color: var(--color-on-surface-variant); background-color: var(--color-surface-container-low)">
+                  {{ rec.observaciones }}
+                </p>
 
                 <div class="divide-y" style="--tw-divide-opacity: 0.12; border-color: rgba(196,197,213,var(--tw-divide-opacity))">
                   <div v-for="item in rec.items" :key="item.pedidoItemId"
-                    class="px-6 py-3 flex items-center justify-between text-sm">
-                    <span style="color: var(--color-on-surface)">{{ item.productoNombre }}</span>
-                    <span class="font-bold" style="color: var(--color-primary)">+{{ item.cantidad }} und.</span>
+                    class="px-6 py-3 flex items-start justify-between text-sm gap-4">
+                    <div class="flex-1 min-w-0">
+                      <p style="color: var(--color-on-surface)">{{ item.productoNombre }}</p>
+                      <p v-if="item.lote || item.fechaVencimiento" class="text-xs mt-0.5" style="color: var(--color-on-surface-variant)">
+                        <span v-if="item.lote">Lote <strong>{{ item.lote }}</strong></span>
+                        <span v-if="item.lote && item.fechaVencimiento"> · </span>
+                        <span v-if="item.fechaVencimiento">Vto. {{ formatDate(item.fechaVencimiento) }}</span>
+                      </p>
+                      <p v-if="item.observaciones" class="text-xs italic mt-0.5" style="color: var(--color-on-surface-variant)">
+                        {{ item.observaciones }}
+                      </p>
+                    </div>
+                    <span class="font-bold whitespace-nowrap" style="color: var(--color-primary)">+{{ item.cantidad }} und.</span>
                   </div>
                 </div>
               </div>
@@ -675,151 +545,6 @@ async function submitDevolucion() {
         <BaseButton variant="secondary" size="default" @click="showCancelModal = false">Cerrar</BaseButton>
         <BaseButton variant="danger" size="default" :disabled="isCancelando" @click="onCancelar">
           {{ isCancelando ? "Cancelando…" : "Sí, cancelar" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL FACTURA ─────────────────────────────────────────────────────── -->
-    <BaseModal :show="showFacturaModal" title="Registrar Factura del Proveedor" size="lg" @close="showFacturaModal = false">
-      <div v-if="facturaError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ facturaError }}
-      </div>
-
-      <div class="space-y-5">
-        <!-- Nro Factura -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nro. de Factura Timbrada *</label>
-          <input
-            v-model="facturaForm.nroFactura"
-            type="text"
-            placeholder="001-001-0000001"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono tracking-wider"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
-          />
-          <p class="text-xs mt-1" style="color: var(--color-outline)">Formato: 001-001-0000001</p>
-        </div>
-
-        <!-- Fechas y condición -->
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha emisión *</label>
-            <input v-model="facturaForm.fechaEmision" type="date"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Condición</label>
-            <select v-model="facturaForm.condicionVenta"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-              <option value="Contado">Contado</option>
-              <option value="Credito">Crédito</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento <span v-if="facturaForm.condicionVenta === 'Credito'">*</span></label>
-            <input v-model="facturaForm.fechaVencimiento" type="date"
-              :disabled="facturaForm.condicionVenta !== 'Credito'"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none disabled:opacity-40"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-        </div>
-
-        <!-- Montos -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Montos *</label>
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs mb-1" style="color: var(--color-on-surface-variant)">Exento (₲)</label>
-              <input v-model.number="facturaForm.montoExento" type="number" min="0" step="1"
-                class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-            <div>
-              <label class="block text-xs mb-1" style="color: var(--color-on-surface-variant)">Gravado 5% (₲)</label>
-              <input v-model.number="facturaForm.montoGravado5" type="number" min="0" step="1"
-                class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-            <div>
-              <label class="block text-xs mb-1" style="color: var(--color-on-surface-variant)">Gravado 10% (₲)</label>
-              <input v-model.number="facturaForm.montoGravado10" type="number" min="0" step="1"
-                class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-          </div>
-
-          <!-- Totales calculados -->
-          <div class="mt-4 p-3 rounded-xl flex flex-wrap gap-4 text-sm"
-            style="background-color: var(--color-surface-container-low)">
-            <span style="color: var(--color-on-surface-variant)">
-              IVA 5%: <strong style="color: var(--color-on-surface)">{{ formatPrice(iva5Calculado) }}</strong>
-            </span>
-            <span style="color: var(--color-on-surface-variant)">
-              IVA 10%: <strong style="color: var(--color-on-surface)">{{ formatPrice(iva10Calculado) }}</strong>
-            </span>
-            <span class="font-bold" style="color: var(--color-primary)">
-              Total: {{ formatPrice(montoTotalFactura) }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Observaciones -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <input v-model="facturaForm.observaciones" type="text" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-      </div>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showFacturaModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isFacturaSaving" @click="submitFactura">
-          {{ isFacturaSaving ? "Registrando…" : "Registrar Factura" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL RECEPCIÓN ───────────────────────────────────────────────────── -->
-    <BaseModal :show="showRecepcionModal" title="Registrar Recepción de Mercadería" size="lg" @close="showRecepcionModal = false">
-      <div v-if="recepcionError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ recepcionError }}
-      </div>
-
-      <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
-        Ingresá la cantidad recibida por ítem. Podés recibir menos de lo pedido (recepción parcial).
-      </p>
-
-      <div class="space-y-3">
-        <div v-for="item in recepcionItems" :key="item.itemId"
-          class="flex items-center gap-3 p-3 rounded-xl"
-          style="background-color: var(--color-surface-container-low)">
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ item.productoNombre }}</p>
-            <p class="text-xs" style="color: var(--color-outline)">Pendiente: {{ item.maximo }}</p>
-          </div>
-          <input v-model.number="item.cantidadRecibida" type="number" :min="0" :max="item.maximo"
-            class="w-24 px-3 py-2 rounded-xl text-sm text-right outline-none"
-            style="border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)" />
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-        <input v-model="recepcionObservaciones" type="text" placeholder="Opcional"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-      </div>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showRecepcionModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isRecepcionSaving" @click="submitRecepcion">
-          {{ isRecepcionSaving ? "Guardando…" : "Confirmar Recepción" }}
         </BaseButton>
       </template>
     </BaseModal>
