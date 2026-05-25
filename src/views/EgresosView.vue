@@ -42,7 +42,7 @@ const totalCount = ref(0)
 const isLoading = ref(false)
 const loadError = ref("")
 const currentPage = ref(1)
-const pageSize = 20
+const pageSize = 10
 
 const tipoFiltros = ref<string[]>([])
 const estadoFiltros = ref<string[]>([])
@@ -122,7 +122,12 @@ async function loadCatalogos() {
     getProfessionals(),
   ])
   if (cats.status === "fulfilled") categorias.value = cats.value
-  if (provs.status === "fulfilled") proveedores.value = provs.value
+  if (provs.status === "fulfilled") {
+    const provData = provs.value as unknown
+    if (Array.isArray(provData)) proveedores.value = provData as typeof proveedores.value
+    else if (provData && typeof provData === "object" && "items" in provData)
+      proveedores.value = (provData as { items: typeof proveedores.value }).items
+  }
   if (profs.status === "fulfilled") {
     const data = profs.value as unknown
     if (Array.isArray(data)) profesionales.value = data as Professional[]

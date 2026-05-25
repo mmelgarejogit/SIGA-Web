@@ -184,6 +184,24 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Órdenes de Compra" },
     },
     {
+      path: "/compras/facturas",
+      name: "compras-facturas",
+      component: () => import("@/views/FacturasCompraView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Facturas de Compra" },
+    },
+    {
+      path: "/compras/oc/:id",
+      name: "compras-oc-detail",
+      component: () => import("@/views/OcDetailView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Detalle OC" },
+    },
+    {
+      path: "/compras/reportes",
+      name: "compras-reportes",
+      component: () => import("@/views/ComprasReportesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Reportes de Compras" },
+    },
+    {
       path: "/inventario/proveedores",
       name: "inventario-proveedores",
       component: () => import("@/views/ProveedoresView.vue"),

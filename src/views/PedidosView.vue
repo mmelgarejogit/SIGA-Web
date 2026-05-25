@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -8,8 +9,6 @@ import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
-  type Pedido,
-  type PedidoItem,
   type Proveedor,
   type Producto,
   type CreateProveedorRequest,
@@ -19,17 +18,13 @@ import {
 } from "@/services/inventarioService"
 import {
   type PedidoCompras,
-  type PedidoItemCompras,
   type EstadoPedido,
   getComprasPedidos,
   crearPedido,
-  emitirPedido,
-  registrarRecepcion,
-  registrarDevolucion,
-  cancelarPedido,
 } from "@/services/comprasService"
 
 const auth = useAuthStore()
+const router = useRouter()
 const canManage = computed(() => auth.hasPermission("gestionar_pedidos"))
 
 // ── Estado general ─────────────────────────────────────────────────────────────
@@ -38,7 +33,24 @@ const pedidos = ref<PedidoCompras[]>([])
 const totalCount = ref(0)
 const totalPages = ref(1)
 const currentPage = ref(1)
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
+})
 
 const proveedores = ref<Proveedor[]>([])
 const productos = ref<Producto[]>([])
@@ -47,11 +59,12 @@ const loadError = ref("")
 const estadoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "Borrador",             label: "Borradores", dot: "#374151" },
-  { value: "Emitida",              label: "Emitidas",   dot: "#1e40af" },
-  { value: "ParcialmenteRecibida", label: "Parciales",  dot: "#92400e" },
-  { value: "Recibida",             label: "Recibidas",  dot: "#166534" },
-  { value: "Cancelada",            label: "Canceladas", dot: "#991b1b" },
+  { value: "Borrador",        label: "Borradores",   dot: "#374151" },
+  { value: "Confirmada",      label: "Confirmadas",  dot: "#1e40af" },
+  { value: "Facturada",       label: "Facturadas",   dot: "#5b21b6" },
+  { value: "RecibidaParcial", label: "Parciales",    dot: "#92400e" },
+  { value: "RecibidaTotal",   label: "Recibidas",    dot: "#166534" },
+  { value: "Cancelada",       label: "Canceladas",   dot: "#991b1b" },
 ]
 
 const pedidoColumns = [
@@ -65,17 +78,22 @@ const pedidoColumns = [
 
 function estadoStyle(estado: EstadoPedido) {
   switch (estado) {
-    case "Borrador":             return { bg: "#f3f4f6", text: "#374151" }
-    case "Emitida":              return { bg: "#dbeafe", text: "#1e40af" }
-    case "ParcialmenteRecibida": return { bg: "#fef3c7", text: "#92400e" }
-    case "Recibida":             return { bg: "#dcfce7", text: "#166534" }
-    case "Cancelada":            return { bg: "#fee2e2", text: "#991b1b" }
-    default:                     return { bg: "#f3f4f6", text: "#374151" }
+    case "Borrador":        return { bg: "#f3f4f6", text: "#374151" }
+    case "Confirmada":      return { bg: "#dbeafe", text: "#1e40af" }
+    case "Facturada":       return { bg: "#ede9fe", text: "#5b21b6" }
+    case "RecibidaParcial": return { bg: "#fef3c7", text: "#92400e" }
+    case "RecibidaTotal":   return { bg: "#dcfce7", text: "#166534" }
+    case "Cancelada":       return { bg: "#fee2e2", text: "#991b1b" }
+    default:                return { bg: "#f3f4f6", text: "#374151" }
   }
 }
 
 function estadoLabel(estado: EstadoPedido) {
-  return estado === "ParcialmenteRecibida" ? "Parcial" : estado
+  switch (estado) {
+    case "RecibidaParcial": return "Parcial"
+    case "RecibidaTotal":   return "Recibida"
+    default:                return estado
+  }
 }
 
 function formatDate(iso: string) {
@@ -84,10 +102,6 @@ function formatDate(iso: string) {
 
 function formatPrice(n: number) {
   return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
-}
-
-function pedidoTotal(p: PedidoCompras) {
-  return p.items.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0)
 }
 
 async function load() {
@@ -100,7 +114,7 @@ async function load() {
         page: currentPage.value,
         pageSize: PAGE_SIZE,
       }),
-      getProveedores(),
+      getProveedores({ pageSize: 200 }).then((r) => r.items),
       getProductos({ pageSize: 500 }).then((r) => r.items),
     ])
     pedidos.value = result.items
@@ -124,6 +138,10 @@ function onFilterChange(v: string[]) {
 function goToPage(p: number) {
   currentPage.value = p
   load()
+}
+
+function openDetail(pedido: PedidoCompras) {
+  router.push(`/compras/oc/${pedido.id}`)
 }
 
 onMounted(load)
@@ -184,7 +202,7 @@ async function submitCreatePedido() {
   isSaving.value = true
   createError.value = ""
   try {
-    await crearPedido({
+    const nuevo = await crearPedido({
       proveedorId: pedidoForm.proveedorId,
       observaciones: pedidoForm.observaciones.trim() || undefined,
       items: pedidoItems.value.map(({ productoId, cantidad, precioUnitario }) => ({
@@ -192,9 +210,7 @@ async function submitCreatePedido() {
       })),
     })
     showCreateModal.value = false
-    currentPage.value = 1
-    estadoFilter.value = []
-    await load()
+    router.push(`/compras/oc/${nuevo.id}`)
   } catch (err: unknown) {
     createError.value = err instanceof Error ? err.message : "Error al crear pedido."
   } finally {
@@ -202,143 +218,7 @@ async function submitCreatePedido() {
   }
 }
 
-// ── Modal Detalle ──────────────────────────────────────────────────────────────
-
-const showDetailModal = ref(false)
-const detailPedido = ref<PedidoCompras | null>(null)
-const detailError = ref("")
-const isActionLoading = ref(false)
-
-function openDetail(pedido: PedidoCompras) {
-  detailPedido.value = pedido
-  detailError.value = ""
-  showDetailModal.value = true
-}
-
-function itemPendiente(item: PedidoItemCompras) {
-  return item.cantidad - item.cantidadRecibida
-}
-
-async function onEmitir() {
-  if (!detailPedido.value) return
-  isActionLoading.value = true
-  detailError.value = ""
-  try {
-    detailPedido.value = await emitirPedido(detailPedido.value.id)
-    await load()
-  } catch (err: unknown) {
-    detailError.value = err instanceof Error ? err.message : "Error al emitir."
-  } finally {
-    isActionLoading.value = false
-  }
-}
-
-async function onCancelar() {
-  if (!detailPedido.value) return
-  isActionLoading.value = true
-  detailError.value = ""
-  try {
-    detailPedido.value = await cancelarPedido(detailPedido.value.id)
-    await load()
-  } catch (err: unknown) {
-    detailError.value = err instanceof Error ? err.message : "Error al cancelar."
-  } finally {
-    isActionLoading.value = false
-  }
-}
-
-// ── Modal Recepción ────────────────────────────────────────────────────────────
-
-const showRecepcionModal = ref(false)
-const recepcionError = ref("")
-const isRecepcionSaving = ref(false)
-const recepcionItems = ref<{ itemId: number; productoNombre: string; maximo: number; cantidadRecibida: number }[]>([])
-
-function openRecepcion() {
-  if (!detailPedido.value) return
-  recepcionItems.value = detailPedido.value.items
-    .filter((i) => itemPendiente(i) > 0)
-    .map((i) => ({
-      itemId: i.id,
-      productoNombre: i.productoNombre,
-      maximo: itemPendiente(i),
-      cantidadRecibida: itemPendiente(i),
-    }))
-  recepcionError.value = ""
-  showRecepcionModal.value = true
-}
-
-async function submitRecepcion() {
-  if (!detailPedido.value) return
-  const itemsValidos = recepcionItems.value.filter((i) => i.cantidadRecibida > 0)
-  if (itemsValidos.length === 0) { recepcionError.value = "Ingresá al menos una cantidad mayor a cero."; return }
-
-  isRecepcionSaving.value = true
-  recepcionError.value = ""
-  try {
-    detailPedido.value = await registrarRecepcion(detailPedido.value.id, {
-      items: itemsValidos.map(({ itemId, cantidadRecibida }) => ({ itemId, cantidadRecibida })),
-    })
-    showRecepcionModal.value = false
-    await load()
-  } catch (err: unknown) {
-    recepcionError.value = err instanceof Error ? err.message : "Error al registrar recepción."
-  } finally {
-    isRecepcionSaving.value = false
-  }
-}
-
-// ── Modal Devolución ───────────────────────────────────────────────────────────
-
-const showDevolucionModal = ref(false)
-const devolucionError = ref("")
-const isDevolucionSaving = ref(false)
-const devolucionForm = reactive({ itemId: null as number | null, cantidad: 1, motivo: "" })
-
-function openDevolucion() {
-  if (!detailPedido.value) return
-  const primerItem = detailPedido.value.items.find((i) => i.cantidadRecibida > 0)
-  devolucionForm.itemId = primerItem?.id ?? null
-  devolucionForm.cantidad = 1
-  devolucionForm.motivo = ""
-  devolucionError.value = ""
-  showDevolucionModal.value = true
-}
-
-function itemsConRecepcion() {
-  return detailPedido.value?.items.filter((i) => i.cantidadRecibida > 0) ?? []
-}
-
-function maxDevolucion() {
-  return detailPedido.value?.items.find((i) => i.id === devolucionForm.itemId)?.cantidadRecibida ?? 1
-}
-
-async function submitDevolucion() {
-  if (!detailPedido.value) return
-  if (!devolucionForm.itemId) { devolucionError.value = "Seleccioná un ítem."; return }
-  if (devolucionForm.cantidad <= 0) { devolucionError.value = "La cantidad debe ser mayor a cero."; return }
-  if (!devolucionForm.motivo.trim()) { devolucionError.value = "El motivo es obligatorio."; return }
-
-  isDevolucionSaving.value = true
-  devolucionError.value = ""
-  try {
-    await registrarDevolucion(detailPedido.value.id, {
-      itemId: devolucionForm.itemId,
-      cantidad: devolucionForm.cantidad,
-      motivo: devolucionForm.motivo.trim(),
-    })
-    const { getComprasPedidoById } = await import("@/services/comprasService")
-    detailPedido.value = await getComprasPedidoById(detailPedido.value.id)
-    showDevolucionModal.value = false
-    await load()
-  } catch (err: unknown) {
-    devolucionError.value = err instanceof Error ? err.message : "Error al registrar devolución."
-  } finally {
-    isDevolucionSaving.value = false
-  }
-}
-
-// ── Modal Nuevo Proveedor (acceso rápido desde esta vista) ────────────────────
+// ── Modal Nuevo Proveedor (acceso rápido) ─────────────────────────────────────
 
 const showProveedorModal = ref(false)
 const isProvSaving = ref(false)
@@ -346,13 +226,15 @@ const provError = ref("")
 
 const emptyProvForm = (): CreateProveedorRequest => ({
   nombre: "",
-  contacto: undefined,
-  email: undefined,
-  telefono: undefined,
+  razonSocial: undefined,
   ruc: "",
-  timbrado: "",
-  vigenciaTimbrado: undefined,
-  establecimiento: undefined,
+  direccion: undefined,
+  ciudad: undefined,
+  sitioWeb: undefined,
+  facebook: undefined,
+  instagram: undefined,
+  whatsApp: undefined,
+  contactos: [],
 })
 
 const provForm = reactive<CreateProveedorRequest>(emptyProvForm())
@@ -368,27 +250,17 @@ async function submitProveedor() {
   if (!provForm.nombre?.trim()) { provError.value = "El nombre es obligatorio."; return }
   if (!provForm.ruc?.trim()) { provError.value = "El RUC es obligatorio."; return }
   if (!/^\d{1,8}-\d$/.test(provForm.ruc.trim())) { provError.value = "RUC inválido. Formato: 80012345-6"; return }
-  if (!provForm.timbrado?.trim()) { provError.value = "El timbrado es obligatorio."; return }
-  if (!/^\d{8}$/.test(provForm.timbrado.trim())) { provError.value = "El timbrado debe tener exactamente 8 dígitos."; return }
-  if ((provForm.establecimiento as string)?.trim() && !/^\d{3}-\d{3}$/.test((provForm.establecimiento as string).trim())) {
-    provError.value = "Establecimiento inválido. Formato: 001-001"; return
-  }
 
   isProvSaving.value = true
   try {
-    const nuevo = await createProveedor({
+    await createProveedor({
       nombre: provForm.nombre.trim(),
-      contacto: (provForm.contacto as string)?.trim() || undefined,
-      email: (provForm.email as string)?.trim() || undefined,
-      telefono: (provForm.telefono as string)?.trim() || undefined,
+      razonSocial: (provForm.razonSocial as string)?.trim() || undefined,
       ruc: provForm.ruc.trim(),
-      timbrado: provForm.timbrado.trim(),
-      vigenciaTimbrado: (provForm.vigenciaTimbrado as string)?.trim() || undefined,
-      establecimiento: (provForm.establecimiento as string)?.trim() || undefined,
+      contactos: [],
     })
     showProveedorModal.value = false
     await load()
-    pedidoForm.proveedorId = nuevo.id
   } catch (err: unknown) {
     provError.value = err instanceof Error ? err.message : "Error al crear proveedor."
   } finally {
@@ -425,7 +297,7 @@ async function submitProveedor() {
           </div>
         </div>
 
-        <!-- Filtros de estado -->
+        <!-- Filtros -->
         <div class="flex items-center gap-3 mb-6 flex-wrap">
           <FilterChips
             :model-value="estadoFilter"
@@ -443,57 +315,86 @@ async function submitProveedor() {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="pedidoColumns" :items="pedidos" :loading="isLoading"
-          empty-text="No hay órdenes de compra registradas." @row-click="openDetail">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+          <BaseTable :columns="pedidoColumns" :items="pedidos" :loading="isLoading"
+            empty-text="No hay órdenes de compra registradas." @row-click="openDetail">
 
-          <template #id="{ item }">
-            <span class="text-sm font-bold" style="color: var(--color-primary)">#{{ item.id }}</span>
-          </template>
+            <template #id="{ item }">
+              <span class="text-sm font-bold" style="color: var(--color-primary)">#{{ item.id }}</span>
+            </template>
 
-          <template #proveedor="{ item }">
-            <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.proveedorNombre }}</span>
-          </template>
+            <template #proveedor="{ item }">
+              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.proveedorNombre }}</span>
+            </template>
 
-          <template #fecha="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</span>
-          </template>
+            <template #fecha="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</span>
+            </template>
 
             <template #items="{ item }">
               <span class="text-sm" style="color: var(--color-on-surface-variant)">
                 {{ item.items.length }} ítem{{ item.items.length !== 1 ? "s" : "" }}
-                — {{ formatPrice(item.items.reduce((s: number, i: PedidoItem) => s + i.cantidad * i.precioUnitario, 0)) }}
+                — {{ formatPrice(item.items.reduce((s: number, i: { cantidad: number; precioUnitario: number }) => s + i.cantidad * i.precioUnitario, 0)) }}
               </span>
             </template>
 
-          <template #estado="{ item }">
-            <span
-              class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="`background-color: ${estadoStyle(item.estado).bg}; color: ${estadoStyle(item.estado).text}`"
-            >{{ estadoLabel(item.estado) }}</span>
-          </template>
+            <template #estado="{ item }">
+              <span
+                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                :style="`background-color: ${estadoStyle(item.estado).bg}; color: ${estadoStyle(item.estado).text}`"
+              >{{ estadoLabel(item.estado) }}</span>
+            </template>
 
-          <template #acciones="{ item }">
-            <div class="flex items-center justify-end">
+            <template #acciones="{ item }">
+              <div class="flex items-center justify-end">
+                <button
+                  @click.stop="openDetail(item)"
+                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                  style="background-color: var(--color-surface-container-high)"
+                  title="Ver detalle"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">open_in_new</span>
+                </button>
+              </div>
+            </template>
+          </BaseTable>
+
+          <!-- Footer paginador -->
+          <div
+            v-if="pedidos.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+          >
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              órdenes
+            </span>
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
               <button
-                @click.stop="openDetail(item)"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                style="background-color: var(--color-surface-container-high)"
-                title="Ver detalle"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">open_in_new</span>
-              </button>
+                @click="goToPage(currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                <button
+                  v-else
+                  @click="goToPage(p as number)"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                >{{ p }}</button>
+              </template>
+              <button
+                @click="goToPage(currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
             </div>
-          </template>
-        </BaseTable>
-
-        <!-- Paginación -->
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ pedidos.length }} de {{ totalCount }} órdenes
-          </p>
-          <div v-if="totalPages > 1" class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage <= 1" @click="goToPage(currentPage - 1)">Anterior</BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage >= totalPages" @click="goToPage(currentPage + 1)">Siguiente</BaseButton>
           </div>
         </div>
 
@@ -589,209 +490,7 @@ async function submitProveedor() {
       </template>
     </BaseModal>
 
-    <!-- ── MODAL DETALLE ──────────────────────────────────────────────────────── -->
-    <BaseModal :show="showDetailModal" title="Detalle de Orden" size="xl" @close="showDetailModal = false">
-      <template v-if="detailPedido">
-        <div v-if="detailError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-          <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-          {{ detailError }}
-        </div>
-
-        <!-- Cabecera -->
-        <div class="flex items-start justify-between mb-5">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Orden #{{ detailPedido.id }}</p>
-            <p class="text-lg font-extrabold" style="color: var(--color-on-surface)">{{ detailPedido.proveedorNombre }}</p>
-            <p class="text-sm mt-0.5" style="color: var(--color-on-surface-variant)">{{ formatDate(detailPedido.createdAt) }}</p>
-            <p v-if="detailPedido.observaciones" class="text-sm mt-1 italic" style="color: var(--color-on-surface-variant)">
-              {{ detailPedido.observaciones }}
-            </p>
-          </div>
-          <span
-            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold"
-            :style="`background-color: ${estadoStyle(detailPedido.estado).bg}; color: ${estadoStyle(detailPedido.estado).text}`"
-          >{{ estadoLabel(detailPedido.estado) }}</span>
-        </div>
-
-        <!-- Ítems -->
-        <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Ítems</p>
-        <div class="rounded-2xl overflow-hidden mb-5" style="border: 1px solid rgba(196,197,213,0.2)">
-          <table class="w-full text-sm">
-            <thead>
-              <tr style="background-color: var(--color-surface-container-low)">
-                <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
-                <th class="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Pedido</th>
-                <th class="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Recibido</th>
-                <th class="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Precio c/u</th>
-                <th class="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in detailPedido.items" :key="item.id" style="border-top: 1px solid rgba(196,197,213,0.12)">
-                <td class="px-4 py-3 font-medium" style="color: var(--color-on-surface)">{{ item.productoNombre }}</td>
-                <td class="px-4 py-3 text-right" style="color: var(--color-on-surface-variant)">{{ item.cantidad }}</td>
-                <td class="px-4 py-3 text-right">
-                  <span :style="item.cantidadRecibida >= item.cantidad
-                    ? 'color: #166534; font-weight: 600'
-                    : item.cantidadRecibida > 0
-                      ? 'color: #92400e; font-weight: 600'
-                      : 'color: var(--color-on-surface-variant)'">
-                    {{ item.cantidadRecibida }}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-right" style="color: var(--color-on-surface-variant)">{{ formatPrice(item.precioUnitario) }}</td>
-                <td class="px-4 py-3 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(item.cantidad * item.precioUnitario) }}</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr style="border-top: 1px solid rgba(196,197,213,0.3); background-color: var(--color-surface-container-low)">
-                <td colspan="4" class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Total Orden</td>
-                <td class="px-4 py-3 text-right font-extrabold" style="color: var(--color-primary)">{{ formatPrice(pedidoTotal(detailPedido)) }}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <!-- Devoluciones -->
-        <template v-if="detailPedido.devoluciones.length > 0">
-          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Devoluciones</p>
-          <div class="space-y-2 mb-5">
-            <div v-for="dev in detailPedido.devoluciones" :key="dev.id"
-              class="flex items-center justify-between px-4 py-3 rounded-xl text-sm"
-              style="background-color: #fee2e2">
-              <div>
-                <span class="font-semibold" style="color: #991b1b">{{ dev.productoNombre }}</span>
-                <span class="ml-2" style="color: #b91c1c">· {{ dev.cantidad }} und.</span>
-                <span class="ml-2 italic" style="color: #991b1b">{{ dev.motivo }}</span>
-              </div>
-              <span class="text-xs" style="color: #b91c1c">{{ formatDate(dev.createdAt) }}</span>
-            </div>
-          </div>
-        </template>
-
-        <!-- Acciones según estado -->
-        <div v-if="canManage" class="flex flex-wrap gap-2">
-          <BaseButton
-            v-if="detailPedido.estado === 'Borrador'"
-            variant="primary" size="sm" :disabled="isActionLoading"
-            @click="onEmitir"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px">send</span>
-            Emitir al proveedor
-          </BaseButton>
-
-          <BaseButton
-            v-if="detailPedido.estado === 'Emitida' || detailPedido.estado === 'ParcialmenteRecibida'"
-            variant="secondary" size="sm"
-            @click="openRecepcion"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px">inventory</span>
-            Registrar recepción
-          </BaseButton>
-
-          <BaseButton
-            v-if="detailPedido.estado === 'Recibida' || detailPedido.estado === 'ParcialmenteRecibida'"
-            variant="secondary" size="sm"
-            @click="openDevolucion"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px">undo</span>
-            Registrar devolución
-          </BaseButton>
-
-          <BaseButton
-            v-if="detailPedido.estado !== 'Recibida' && detailPedido.estado !== 'Cancelada'"
-            variant="danger" size="sm" :disabled="isActionLoading"
-            @click="onCancelar"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px">cancel</span>
-            Cancelar orden
-          </BaseButton>
-        </div>
-      </template>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showDetailModal = false">Cerrar</BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL RECEPCIÓN ────────────────────────────────────────────────────── -->
-    <BaseModal :show="showRecepcionModal" title="Registrar Recepción" size="md" @close="showRecepcionModal = false">
-      <div v-if="recepcionError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ recepcionError }}
-      </div>
-
-      <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
-        Ingresá la cantidad recibida por ítem. Podés recibir menos de lo pedido (recepción parcial).
-      </p>
-
-      <div class="space-y-3">
-        <div v-for="item in recepcionItems" :key="item.itemId"
-          class="flex items-center gap-3 p-3 rounded-xl"
-          style="background-color: var(--color-surface-container-low)">
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ item.productoNombre }}</p>
-            <p class="text-xs" style="color: var(--color-outline)">Pendiente: {{ item.maximo }}</p>
-          </div>
-          <input v-model.number="item.cantidadRecibida" type="number" :min="0" :max="item.maximo"
-            class="w-24 px-3 py-2 rounded-xl text-sm text-right outline-none"
-            style="border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)" />
-        </div>
-      </div>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showRecepcionModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isRecepcionSaving" @click="submitRecepcion">
-          {{ isRecepcionSaving ? "Guardando…" : "Confirmar Recepción" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL DEVOLUCIÓN ───────────────────────────────────────────────────── -->
-    <BaseModal :show="showDevolucionModal" title="Registrar Devolución" size="md" @close="showDevolucionModal = false">
-      <div v-if="devolucionError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ devolucionError }}
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Producto a devolver *</label>
-          <select v-model="devolucionForm.itemId" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-            <option :value="null" disabled>Seleccioná un ítem</option>
-            <option v-for="item in itemsConRecepcion()" :key="item.id" :value="item.id">
-              {{ item.productoNombre }} (recibidos: {{ item.cantidadRecibida }})
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Cantidad *</label>
-          <input v-model.number="devolucionForm.cantidad" type="number" min="1" :max="maxDevolucion()"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-          <p class="text-xs mt-1" style="color: var(--color-outline)">Máximo: {{ maxDevolucion() }}</p>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo *</label>
-          <input v-model="devolucionForm.motivo" type="text" placeholder="Defecto, daño, error de pedido..."
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-      </div>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showDevolucionModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" size="default" :disabled="isDevolucionSaving" @click="submitDevolucion">
-          {{ isDevolucionSaving ? "Registrando…" : "Confirmar Devolución" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL NUEVO PROVEEDOR (acceso rápido) ──────────────────────────────── -->
+    <!-- ── MODAL NUEVO PROVEEDOR ──────────────────────────────────────────────── -->
     <BaseModal :show="showProveedorModal" title="Nuevo Proveedor" size="lg" @close="showProveedorModal = false">
       <div v-if="provError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
@@ -801,7 +500,7 @@ async function submitProveedor() {
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre comercial *</label>
           <input v-model="provForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
@@ -816,47 +515,16 @@ async function submitProveedor() {
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Timbrado SET *</label>
-            <input v-model="provForm.timbrado" type="text" placeholder="12345678" maxlength="8"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vigencia timbrado</label>
-            <input v-model="provForm.vigenciaTimbrado" type="date"
+            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Razón social</label>
+            <input v-model="provForm.razonSocial" type="text"
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Establecimiento</label>
-            <input v-model="provForm.establecimiento" type="text" placeholder="001-001"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
         </div>
 
-        <p class="text-xs font-bold uppercase tracking-wider pt-2" style="color: var(--color-primary)">Contacto</p>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Persona de contacto</label>
-          <input v-model="provForm.contacto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Email</label>
-            <input v-model="provForm.email" type="email" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Teléfono</label>
-            <input v-model="provForm.telefono" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-        </div>
+        <p class="text-xs text-center pt-1" style="color: var(--color-outline)">
+          Para agregar contactos y más datos, usá la sección de Proveedores.
+        </p>
       </div>
 
       <template #footer>

@@ -43,15 +43,33 @@ const marcaSelectOptions = computed(() =>
 
 // ── Paginación ─────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 15
-const page = ref(1)
+const PAGE_SIZE = 10
+const currentPage = ref(1)
 
 const modelosPaginados = computed(() => {
-  const start = (page.value - 1) * PAGE_SIZE
+  const start = (currentPage.value - 1) * PAGE_SIZE
   return modelosFiltrados.value.slice(start, start + PAGE_SIZE)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(modelosFiltrados.value.length / PAGE_SIZE)))
+const totalCount = computed(() => modelosFiltrados.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
+})
 
 const estadoOptions = [
   { value: "activo",   label: "Activos",   dot: "#166534" },
@@ -59,7 +77,7 @@ const estadoOptions = [
 ]
 
 const modelosFiltrados = computed(() => {
-  page.value = 1
+  currentPage.value = 1
   let result = modelos.value
 
   if (marcaFilter.value.length > 0) {
@@ -256,6 +274,7 @@ async function confirmDeactivate() {
         </div>
 
         <!-- Tabla -->
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
         <BaseTable :columns="columns" :items="modelosPaginados" :loading="isLoading"
           empty-text="No hay modelos registrados.">
 
@@ -289,14 +308,42 @@ async function confirmDeactivate() {
           </template>
         </BaseTable>
 
-        <!-- Paginación -->
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ modelosPaginados.length }} de {{ modelosFiltrados.length }} modelos
-          </p>
-          <div v-if="totalPages > 1" class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--">Anterior</BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++">Siguiente</BaseButton>
+          <!-- Footer: conteo + paginador -->
+          <div
+            v-if="modelosPaginados.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+          >
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              modelos
+            </span>
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
+              <button
+                @click="currentPage--"
+                :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                <button
+                  v-else
+                  @click="currentPage = (p as number)"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                >{{ p }}</button>
+              </template>
+              <button
+                @click="currentPage++"
+                :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
+            </div>
           </div>
         </div>
 

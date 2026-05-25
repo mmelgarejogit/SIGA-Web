@@ -41,9 +41,27 @@ const loadError = ref("")
 const search = ref("")
 const categoriaFilter = ref<string[]>([])
 const bajoStockFilter = ref(false)
-const page = ref(1)
+const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
+const PAGE_SIZE = 10
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
+})
 
 const categoriaOptions = computed(() =>
   categoriasDisponibles.value
@@ -75,8 +93,8 @@ async function loadProductos() {
   loadError.value = ""
   try {
     const result = await getProductos({
-      page: page.value,
-      pageSize: 20,
+      page: currentPage.value,
+      pageSize: PAGE_SIZE,
       search: search.value || undefined,
       categoria: categoriaFilter.value[0] || undefined,
       bajoStock: bajoStockFilter.value || undefined,
@@ -102,19 +120,19 @@ onMounted(async () => {
 
 function onSearch(val: string) {
   search.value = val
-  page.value = 1
+  currentPage.value = 1
   loadProductos()
 }
 
 function onCategoriaChange(val: string[]) {
   categoriaFilter.value = val
-  page.value = 1
+  currentPage.value = 1
   loadProductos()
 }
 
 function toggleBajoStock() {
   bajoStockFilter.value = !bajoStockFilter.value
-  page.value = 1
+  currentPage.value = 1
   loadProductos()
 }
 
@@ -373,6 +391,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
         <BaseTable
           :columns="columns"
           :items="productos"
@@ -415,14 +434,42 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </template>
         </BaseTable>
 
-        <!-- Paginación -->
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ productos.length }} de {{ totalCount }} productos
-          </p>
-          <div v-if="totalPages > 1" class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; loadProductos()">Anterior</BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; loadProductos()">Siguiente</BaseButton>
+          <!-- Footer: conteo + paginador -->
+          <div
+            v-if="productos.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+          >
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              productos
+            </span>
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
+              <button
+                @click="currentPage--; loadProductos()"
+                :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                <button
+                  v-else
+                  @click="currentPage = (p as number); loadProductos()"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                >{{ p }}</button>
+              </template>
+              <button
+                @click="currentPage++; loadProductos()"
+                :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
+            </div>
           </div>
         </div>
       </div>

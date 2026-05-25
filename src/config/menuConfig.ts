@@ -126,9 +126,21 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Facturas de Compra",
+        icon: "receipt",
+        route: "/compras/facturas",
+        permission: "ver_inventario",
+      },
+      {
         label: "Proveedores",
         icon: "storefront",
         route: "/inventario/proveedores",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Reportes",
+        icon: "analytics",
+        route: "/compras/reportes",
         permission: "ver_inventario",
       },
     ],

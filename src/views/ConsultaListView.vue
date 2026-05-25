@@ -87,11 +87,22 @@ function goToPage(p: number) {
   loadConsultas()
 }
 
+const PAGE_SIZE = 10
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
 const visiblePages = computed(() => {
-  const pages: number[] = []
-  const start = Math.max(1, currentPage.value - 1)
-  const end = Math.min(totalPages.value, start + 2)
-  for (let i = start; i <= end; i++) pages.push(i)
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
   return pages
 })
 
@@ -551,44 +562,41 @@ function handleRowClick(item: ConsultaClinica) {
             </template>
           </BaseTable>
 
+          <!-- Footer: conteo + paginador -->
           <div
-            v-if="consultas.length"
-            class="flex items-center justify-between px-6 py-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.2)"
+            v-if="consultas.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
           >
-            <span class="text-xs font-medium" style="color: var(--color-outline)"
-              >{{ totalCount }} consulta{{ totalCount !== 1 ? "s" : "" }} en total</span
-            >
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              consultas
+            </span>
             <div v-if="totalPages > 1" class="flex items-center gap-1">
               <button
                 @click="goToPage(currentPage - 1)"
                 :disabled="currentPage === 1"
-                class="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30"
-                style="color: var(--color-outline)"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
-              </button>
-              <button
-                v-for="p in visiblePages"
-                :key="p"
-                @click="goToPage(p)"
-                class="w-8 h-8 rounded-lg text-sm font-bold"
-                :style="
-                  p === currentPage
-                    ? 'background-color: var(--color-primary); color: white;'
-                    : 'color: var(--color-outline);'
-                "
-              >
-                {{ p }}
-              </button>
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                <button
+                  v-else
+                  @click="goToPage(p as number)"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                >{{ p }}</button>
+              </template>
               <button
                 @click="goToPage(currentPage + 1)"
                 :disabled="currentPage === totalPages"
-                class="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30"
-                style="color: var(--color-outline)"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
-              </button>
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
             </div>
           </div>
         </div>
