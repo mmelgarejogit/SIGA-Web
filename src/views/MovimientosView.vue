@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -11,10 +11,27 @@ const movimientos = ref<MovimientoStock[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const tipoFilter = ref<string[]>([])
-const page = ref(1)
+const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
+})
 
 const tipoOptions = [
   { value: "Entrada", label: "Entradas", dot: "#166534" },
@@ -50,7 +67,7 @@ async function load() {
   loadError.value = ""
   try {
     const result = await getMovimientos({
-      page: page.value,
+      page: currentPage.value,
       pageSize: PAGE_SIZE,
       tipo: tipoFilter.value[0] || undefined,
     })
@@ -68,7 +85,7 @@ onMounted(load)
 
 function onTipoChange(val: string[]) {
   tipoFilter.value = val
-  page.value = 1
+  currentPage.value = 1
   load()
 }
 </script>
@@ -107,6 +124,7 @@ function onTipoChange(val: string[]) {
           {{ loadError }}
         </div>
 
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
         <BaseTable
           :columns="columns"
           :items="movimientos"
@@ -145,14 +163,42 @@ function onTipoChange(val: string[]) {
           </template>
         </BaseTable>
 
-        <!-- Paginación -->
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ movimientos.length }} de {{ totalCount }} movimientos
-          </p>
-          <div v-if="totalPages > 1" class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; load()">Anterior</BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; load()">Siguiente</BaseButton>
+          <!-- Footer: conteo + paginador -->
+          <div
+            v-if="movimientos.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+          >
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              movimientos
+            </span>
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
+              <button
+                @click="currentPage--; load()"
+                :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                <button
+                  v-else
+                  @click="currentPage = (p as number); load()"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                >{{ p }}</button>
+              </template>
+              <button
+                @click="currentPage++; load()"
+                :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)"
+              ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
+            </div>
           </div>
         </div>
       </div>

@@ -51,18 +51,28 @@ export interface MovimientoStock {
   createdAt: string
 }
 
+export interface ProveedorContacto {
+  id: number
+  nombre: string
+  cargo: string | null
+  telefono: string | null
+  email: string | null
+}
+
 export interface Proveedor {
   id: number
   nombre: string
-  contacto: string | null
-  email: string | null
-  telefono: string | null
+  razonSocial: string | null
   ruc: string
-  timbrado: string
-  vigenciaTimbrado: string | null
-  establecimiento: string | null
+  direccion: string | null
+  ciudad: string | null
+  sitioWeb: string | null
+  facebook: string | null
+  instagram: string | null
+  whatsApp: string | null
   isActive: boolean
   createdAt: string
+  contactos: ProveedorContacto[]
 }
 
 export interface PedidoItem {
@@ -151,15 +161,24 @@ export interface CreateMovimientoRequest {
   motivo?: string
 }
 
+export interface CreateProveedorContactoRequest {
+  nombre: string
+  cargo?: string
+  telefono?: string
+  email?: string
+}
+
 export interface CreateProveedorRequest {
   nombre: string
-  contacto?: string
-  email?: string
-  telefono?: string
+  razonSocial?: string
   ruc: string
-  timbrado: string
-  vigenciaTimbrado?: string
-  establecimiento?: string
+  direccion?: string
+  ciudad?: string
+  sitioWeb?: string
+  facebook?: string
+  instagram?: string
+  whatsApp?: string
+  contactos: CreateProveedorContactoRequest[]
 }
 
 export interface CreatePedidoItemRequest {
@@ -253,9 +272,18 @@ export async function getMovimientos(params: {
 
 // ── Proveedores ────────────────────────────────────────────────────────────────
 
-export async function getProveedores(search?: string): Promise<Proveedor[]> {
-  const q = search ? `?search=${encodeURIComponent(search)}` : ""
-  const { data } = await http.get<Proveedor[]>(`/api/proveedores${q}`)
+export async function getProveedores(params: {
+  page?: number
+  pageSize?: number
+  search?: string
+  isActive?: boolean
+} = {}): Promise<PagedResult<Proveedor>> {
+  const q = new URLSearchParams()
+  if (params.page)     q.set("page", String(params.page))
+  if (params.pageSize) q.set("pageSize", String(params.pageSize))
+  if (params.search)   q.set("search", params.search)
+  if (params.isActive != null) q.set("isActive", String(params.isActive))
+  const { data } = await http.get<PagedResult<Proveedor>>(`/api/proveedores?${q}`)
   return data
 }
 

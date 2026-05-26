@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import BaseButton from "@/components/BaseButton.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type ConfiguracionNegocio,
@@ -664,17 +665,14 @@ onMounted(() => {
         </div>
       </form>
       <template #footer>
-        <button type="button" @click="showCreateEspModal = false" class="px-6 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="submitCreateEsp" :disabled="isCreatingEsp"
-          class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-primary); color: white;">
+        <BaseButton variant="secondary" @click="showCreateEspModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isCreatingEsp" @click="submitCreateEsp">
           <svg v-if="isCreatingEsp" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isCreatingEsp ? "Guardando..." : "Crear" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -695,17 +693,14 @@ onMounted(() => {
         </div>
       </form>
       <template #footer>
-        <button type="button" @click="showEditEspModal = false" class="px-6 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="submitEditEsp" :disabled="isEditingEsp"
-          class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-primary); color: white;">
+        <BaseButton variant="secondary" @click="showEditEspModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isEditingEsp" @click="submitEditEsp">
           <svg v-if="isEditingEsp" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isEditingEsp ? "Guardando..." : "Guardar" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -727,17 +722,14 @@ onMounted(() => {
         </div>
       </div>
       <template #footer>
-        <button type="button" @click="showDeleteEspModal = false" class="flex-1 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="confirmDeleteEsp" :disabled="isDeletingEsp"
-          class="flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-error); color: white;">
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteEspModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isDeletingEsp" @click="confirmDeleteEsp">
           <svg v-if="isDeletingEsp" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isDeletingEsp ? "Eliminando..." : "Eliminar" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -770,17 +762,14 @@ onMounted(() => {
         </div>
       </form>
       <template #footer>
-        <button type="button" @click="showCreateEstadoModal = false" class="px-6 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="submitCreateEstado" :disabled="isCreatingEstado"
-          class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-primary); color: white;">
+        <BaseButton variant="secondary" @click="showCreateEstadoModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isCreatingEstado" @click="submitCreateEstado">
           <svg v-if="isCreatingEstado" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isCreatingEstado ? "Guardando..." : "Crear" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -817,17 +806,14 @@ onMounted(() => {
         </div>
       </form>
       <template #footer>
-        <button type="button" @click="showEditEstadoModal = false" class="px-6 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="submitEditEstado" :disabled="isEditingEstado"
-          class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-primary); color: white;">
+        <BaseButton variant="secondary" @click="showEditEstadoModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isEditingEstado" @click="submitEditEstado">
           <svg v-if="isEditingEstado" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isEditingEstado ? "Guardando..." : "Guardar" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -849,17 +835,14 @@ onMounted(() => {
         </div>
       </div>
       <template #footer>
-        <button type="button" @click="showDeleteEstadoModal = false" class="flex-1 py-3 rounded-full text-sm font-bold"
-          style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);">Cancelar</button>
-        <button @click="confirmDeleteEstado" :disabled="isDeletingEstado"
-          class="flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-sm font-bold disabled:opacity-60"
-          style="background-color: var(--color-error); color: white;">
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteEstadoModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isDeletingEstado" @click="confirmDeleteEstado">
           <svg v-if="isDeletingEstado" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isDeletingEstado ? "Eliminando..." : "Eliminar" }}
-        </button>
+        </BaseButton>
       </template>
     </BaseModal>
   </div>

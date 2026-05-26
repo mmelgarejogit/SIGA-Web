@@ -10,7 +10,7 @@ import { type AppUser, getAppUsers, deactivateUser } from "@/services/userServic
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 10
 import {
   type Role,
   type RoleRequest,
@@ -166,11 +166,14 @@ const paginationEnd = computed(() =>
 
 const visiblePages = computed(() => {
   const total = totalPages.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-  let start = Math.max(1, currentPage.value - 2)
-  const end = Math.min(total, start + 4)
-  if (end - start < 4) start = Math.max(1, end - 4)
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
 })
 
 // Resetear a página 1 cuando cambia el filtro
@@ -724,8 +727,8 @@ const roleColumns = [
 
             <!-- Footer con conteo y paginación -->
             <div
-              class="px-6 py-4 flex items-center justify-between flex-wrap gap-4 bg-white"
-              style="border-top: 1px solid rgba(196, 197, 213, 0.12)"
+              class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+              style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
             >
               <!-- Conteo -->
               <span class="text-sm" style="color: var(--color-on-surface-variant)">
@@ -744,76 +747,28 @@ const roleColumns = [
                 <button
                   @click="currentPage--"
                   :disabled="currentPage === 1"
-                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
                   style="color: var(--color-on-surface-variant)"
-                  onmouseover="
-                    if (!this.disabled)
-                      this.style.backgroundColor = 'var(--color-surface-container-high)'
-                  "
-                  onmouseout="this.style.backgroundColor = ''"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 20px; width: 20px; height: 20px"
-                    >chevron_left</span
-                  >
-                </button>
+                ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
 
-                <!-- Elipsis izquierdo -->
-                <span
-                  v-if="visiblePages[0] && visiblePages[0] > 1"
-                  class="w-9 h-9 flex items-center justify-center text-sm"
-                  style="color: var(--color-outline)"
-                  >…</span
-                >
-
-                <!-- Números de página -->
-                <button
-                  v-for="page in visiblePages"
-                  :key="page"
-                  @click="currentPage = page"
-                  class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all"
-                  :style="
-                    currentPage === page
-                      ? 'background-color: var(--color-primary); color: white;'
-                      : 'color: var(--color-on-surface-variant);'
-                  "
-                  :onmouseover="
-                    currentPage !== page
-                      ? `this.style.backgroundColor='var(--color-surface-container-high)'`
-                      : ''
-                  "
-                  :onmouseout="currentPage !== page ? `this.style.backgroundColor=''` : ''"
-                >
-                  {{ page }}
-                </button>
-
-                <!-- Elipsis derecho -->
-                <span
-                  v-if="(visiblePages.at(-1) ?? 0) < totalPages"
-                  class="w-9 h-9 flex items-center justify-center text-sm"
-                  style="color: var(--color-outline)"
-                  >…</span
-                >
+                <!-- Números de página con ellipsis -->
+                <template v-for="p in visiblePages" :key="p">
+                  <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                  <button
+                    v-else
+                    @click="currentPage = (p as number)"
+                    class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                    :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  >{{ p }}</button>
+                </template>
 
                 <!-- Siguiente -->
                 <button
                   @click="currentPage++"
                   :disabled="currentPage === totalPages"
-                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
                   style="color: var(--color-on-surface-variant)"
-                  onmouseover="
-                    if (!this.disabled)
-                      this.style.backgroundColor = 'var(--color-surface-container-high)'
-                  "
-                  onmouseout="this.style.backgroundColor = ''"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 20px; width: 20px; height: 20px"
-                    >chevron_right</span
-                  >
-                </button>
+                ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
               </div>
             </div>
           </template>
@@ -1820,40 +1775,36 @@ const roleColumns = [
       </div>
 
       <template #footer>
-        <div class="w-full flex flex-col gap-2">
-          <BaseButton
-            variant="danger"
-            size="default"
-            :disabled="isDeletingRole"
-            @click="confirmDeleteRole"
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteRoleModal = false">Cancelar</BaseButton>
+        <BaseButton
+          variant="danger"
+          class="flex-1"
+          :disabled="isDeletingRole"
+          @click="confirmDeleteRole"
+        >
+          <svg
+            v-if="isDeletingRole"
+            class="animate-spin w-4 h-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            <svg
-              v-if="isDeletingRole"
-              class="animate-spin w-4 h-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            {{ isDeletingRole ? "Eliminando..." : "Eliminar" }}
-          </BaseButton>
-          <BaseButton variant="secondary" size="default" @click="showDeleteRoleModal = false">
-            Cancelar
-          </BaseButton>
-        </div>
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          {{ isDeletingRole ? "Eliminando..." : "Eliminar" }}
+        </BaseButton>
       </template>
     </BaseModal>
   </div>

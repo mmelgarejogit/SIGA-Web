@@ -608,8 +608,8 @@ async function guardar() {
       </div>
     </template>
     <template #footer>
-      <BaseButton variant="secondary" @click="showLineaManual = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" @click="addLineaManual">Agregar</BaseButton>
+      <BaseButton variant="secondary" class="flex-1" @click="showLineaManual = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" class="flex-1" @click="addLineaManual">Agregar</BaseButton>
     </template>
   </BaseModal>
 </template>

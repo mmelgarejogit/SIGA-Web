@@ -340,21 +340,42 @@ function initials(item: { firstName: string; lastName: string }) {
 
 ## 9. Paginación
 
+### Estructura obligatoria
+
+El footer de paginación va **dentro** del wrapper de la tabla (después de `</BaseTable>` pero antes del `</div>` de cierre):
+
+```vue
+<!-- Tabla + footer en el mismo contenedor -->
+<div class="rounded-2xl overflow-hidden"
+     style="background-color: var(--color-surface-container-lowest);
+            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+            outline: 1px solid rgba(196, 197, 213, 0.15);">
+  <BaseTable ... />
+
+  <!-- Footer: conteo + paginador -->
+  <div v-if="items.length > 0" ...>
+    ...
+  </div>
+</div>
+```
+
 ### Lógica (computed)
 ```ts
-const PAGE_SIZE = 10
+const PAGE_SIZE = 10   // estándar de toda la app
 const currentPage = ref(1)
+const totalPages  = ref(1)  // viene del backend, o computed para client-side
+const totalCount  = ref(0)
 
 const rangeStart = computed(() =>
-  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1,
 )
 const rangeEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
 
+// Máx 7 botones con ellipsis automática
 const visiblePages = computed(() => {
   const total = totalPages.value
   const cur   = currentPage.value
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-
   const pages: (number | '...')[] = [1]
   if (cur > 3) pages.push('...')
   for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
@@ -366,11 +387,13 @@ const visiblePages = computed(() => {
 
 ### Template (footer de tabla)
 ```vue
-<div v-if="patients.length > 0"
-     class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-     style="border-top: 1px solid rgba(196,197,213,0.12);
-            background-color: var(--color-surface-container-lowest);">
-
+<!-- Footer: conteo + paginador -->
+<div
+  v-if="items.length > 0"
+  class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+  style="border-top: 1px solid rgba(196, 197, 213, 0.12);
+         background-color: var(--color-surface-container-lowest);"
+>
   <!-- Conteo -->
   <span class="text-sm" style="color: var(--color-on-surface-variant)">
     Mostrando
@@ -382,39 +405,49 @@ const visiblePages = computed(() => {
 
   <!-- Paginador -->
   <div v-if="totalPages > 1" class="flex items-center gap-1">
-    <button @click="currentPage--" :disabled="currentPage === 1"
-            class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
-            style="color: var(--color-on-surface-variant)"
-            onmouseover="if(!this.disabled) this.style.backgroundColor='var(--color-surface-container-high)'"
-            onmouseout="this.style.backgroundColor=''">
-      <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
-    </button>
+    <!-- Anterior -->
+    <button
+      @click="currentPage--; load()"
+      :disabled="currentPage === 1"
+      class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+      style="color: var(--color-on-surface-variant)"
+    ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
 
+    <!-- Números + ellipsis -->
     <template v-for="p in visiblePages" :key="p">
       <span v-if="p === '...'"
             class="w-9 h-9 flex items-center justify-center text-sm"
             style="color: var(--color-outline)">…</span>
-      <button v-else @click="currentPage = p"
-              class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-              :style="currentPage === p
-                ? 'background-color: var(--color-primary); color: white;'
-                : 'color: var(--color-on-surface-variant);'"
-              :onmouseover="currentPage !== p ? 'this.style.backgroundColor=\'var(--color-surface-container-high)\'' : ''"
-              :onmouseout="currentPage !== p ? 'this.style.backgroundColor=\'\'' : ''">
-        {{ p }}
-      </button>
+      <button
+        v-else
+        @click="currentPage = (p as number); load()"
+        class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+        :class="currentPage === p
+          ? 'bg-primary text-white'
+          : 'text-on-surface-variant hover:bg-surface-container-high'"
+      >{{ p }}</button>
     </template>
 
-    <button @click="currentPage++" :disabled="currentPage === totalPages"
-            class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
-            style="color: var(--color-on-surface-variant)"
-            onmouseover="if(!this.disabled) this.style.backgroundColor='var(--color-surface-container-high)'"
-            onmouseout="this.style.backgroundColor=''">
-      <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
-    </button>
+    <!-- Siguiente -->
+    <button
+      @click="currentPage++; load()"
+      :disabled="currentPage === totalPages"
+      class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+      style="color: var(--color-on-surface-variant)"
+    ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
   </div>
 </div>
 ```
+
+### Reglas
+- **Nunca** usar `BaseButton` para los controles de paginación — usar `<button>` con clases directas.
+- **Nunca** usar `onmouseover`/`onmouseout` inline — usar `hover:bg-surface-container-high` de Tailwind.
+- La página activa usa clases Tailwind: `bg-primary text-white`.
+- Las páginas inactivas usan: `text-on-surface-variant hover:bg-surface-container-high`.
+- Prev/Next deshabilitados: `disabled:opacity-30`.
+- `rangeStart` y `rangeEnd` son siempre `computed`, nunca valores en template.
+- Al cambiar filtros o búsqueda, resetear `currentPage.value = 1` antes de cargar.
+- Para paginación client-side (MarcasView, ModelosView): `totalCount` y `totalPages` son `computed` sobre el array filtrado.
 
 ---
 
