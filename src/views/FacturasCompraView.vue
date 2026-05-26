@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   getFacturasCompra,
   anularFactura,
@@ -152,6 +153,31 @@ async function confirmarAnulacion() {
 const inputStyle = (hasError = false) => hasError
   ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
   : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+
+// ── Context menu ─────────────────────────────────────────────────────────────
+function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
+  const hasOC     = !!f.pedidoProveedorId
+  const canAnular = f.estado !== "Anulado"
+
+  return [
+    {
+      type: "item",
+      label: "Ver Orden de Compra",
+      icon: "open_in_new",
+      hidden: !hasOC,
+      action: () => router.push(`/compras/oc/${f.pedidoProveedorId}`),
+    },
+    ...(hasOC && canAnular ? [{ type: "separator" as const }] : []),
+    {
+      type: "item",
+      label: "Anular Factura",
+      icon: "block",
+      danger: true,
+      hidden: !canAnular,
+      action: () => openAnularModal(f),
+    },
+  ]
+}
 </script>
 
 <template>
@@ -268,12 +294,13 @@ const inputStyle = (hasError = false) => hasError
           <table v-else class="w-full">
             <thead style="background-color: var(--color-surface-container-low)">
               <tr>
-                <th v-for="h in ['Nro. Factura','Proveedor','Origen','Fecha Emisión','Monto Total','Condición','Estado','']"
+                <th v-for="h in ['Nro. Factura','Proveedor','Origen','Fecha Emisión','Monto Total','Condición','Estado']"
                   :key="h"
                   class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest"
                   style="color: var(--color-outline)">
                   {{ h }}
                 </th>
+                <th class="px-6 py-5" />
               </tr>
             </thead>
             <tbody>
@@ -323,25 +350,8 @@ const inputStyle = (hasError = false) => hasError
                 </td>
 
                 <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <button
-                      v-if="f.pedidoProveedorId"
-                      class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 bg-blue-100"
-                      title="Ver Orden de Compra"
-                      @click="router.push(`/compras/oc/${f.pedidoProveedorId}`)"
-                    >
-                      <span class="material-symbols-outlined text-blue-700" style="font-size: 18px">open_in_new</span>
-                    </button>
-
-                    <button
-                      v-if="f.estado !== 'Anulado'"
-                      class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                      style="background-color: var(--color-error-container)"
-                      title="Anular factura"
-                      @click="openAnularModal(f)"
-                    >
-                      <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-error)">block</span>
-                    </button>
+                  <div class="flex justify-end">
+                    <RowContextMenu :items="menuItems(f)" />
                   </div>
                 </td>
               </tr>
