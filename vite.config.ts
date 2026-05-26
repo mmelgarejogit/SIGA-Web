@@ -23,8 +23,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        // Todas las llamadas a /api/* se reenvían al backend .NET
         '/api': {
+          target: env.VITE_API_URL ?? 'http://localhost:5038',
+          changeOrigin: true,
+        },
+        '/uploads': {
           target: env.VITE_API_URL ?? 'http://localhost:5038',
           changeOrigin: true,
         },

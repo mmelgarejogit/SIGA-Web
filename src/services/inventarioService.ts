@@ -23,6 +23,7 @@ export interface Producto {
   color: string | null
   talle: string | null
   descripcion: string | null
+  imagenUrl: string | null
 }
 
 export interface Marca {
@@ -225,6 +226,24 @@ export async function deactivateProducto(id: number): Promise<void> {
   await http.delete(`/api/productos/${id}`)
 }
 
+export async function updateStockInfo(id: number, request: UpdateStockInfoRequest): Promise<Producto> {
+  const { data } = await http.put<Producto>(`/api/productos/${id}/stock`, request)
+  return data
+}
+
+export async function uploadProductoImagen(id: number, file: File): Promise<string> {
+  const form = new FormData()
+  form.append("file", file)
+  const { data } = await http.post<string>(`/api/productos/${id}/imagen`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return data
+}
+
+export async function deleteProductoImagen(id: number): Promise<void> {
+  await http.delete(`/api/productos/${id}/imagen`)
+}
+
 // ── Movimientos ────────────────────────────────────────────────────────────────
 
 export async function registrarMovimiento(
@@ -318,6 +337,7 @@ export interface CategoriaProducto {
   id: number
   nombre: string
   descripcion: string | null
+  margen: number
   descuento: number
   isActive: boolean
   totalProductos: number
@@ -326,14 +346,21 @@ export interface CategoriaProducto {
 export interface CreateCategoriaProductoRequest {
   nombre: string
   descripcion?: string
+  margen: number
   descuento: number
 }
 
 export interface UpdateCategoriaProductoRequest {
   nombre: string
   descripcion?: string
+  margen: number
   descuento: number
   isActive: boolean
+}
+
+export interface UpdateStockInfoRequest {
+  precioCosto: number
+  stockMinimo: number
 }
 
 export async function getCategorias(): Promise<CategoriaProducto[]> {

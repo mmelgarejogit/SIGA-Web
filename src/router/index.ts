@@ -172,10 +172,20 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Modelos" },
     },
     {
-      path: "/inventario/movimientos",
-      name: "inventario-movimientos",
+      path: "/stock",
+      name: "stock",
+      component: () => import("@/views/StockView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Stock" },
+    },
+    {
+      path: "/stock/movimientos",
+      name: "stock-movimientos",
       component: () => import("@/views/MovimientosView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Movimientos de Stock" },
+    },
+    {
+      path: "/inventario/movimientos",
+      redirect: "/stock/movimientos",
     },
     {
       path: "/inventario/pedidos",
