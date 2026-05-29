@@ -21,6 +21,8 @@ import { getProfessionals, type Professional } from "@/services/professionalServ
 import { getPatients, type Patient } from "@/services/patientService"
 import DateRangeBar from "@/components/DateRangeBar.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import DateInput from "@/components/DateInput.vue"
 
 const auth = useAuthStore()
 
@@ -195,6 +197,14 @@ async function loadInit() {
   }
   await loadTurnos()
 }
+
+const professionalOptions = computed(() =>
+  professionals.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })),
+)
+
+const slotOptions = computed(() =>
+  slots.value.map(s => ({ value: s.horaInicio, label: formatSlot(s) })),
+)
 
 onMounted(loadInit)
 watch([selectedDate, selectedProfessionalId, viewMode], loadTurnos)
@@ -478,21 +488,14 @@ function menuItems(t: Turno): ContextMenuItem[] {
           <DateRangeBar v-model="selectedDate" v-model:mode="viewMode" />
 
           <!-- Filtro por profesional -->
-          <select
-            v-model="selectedProfessionalId"
-            class="px-4 py-2 rounded-2xl text-sm font-medium outline-none"
-            style="
-              background-color: var(--color-surface-container-lowest);
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              min-width: 220px;
-            "
-          >
-            <option :value="null">Todos los profesionales</option>
-            <option v-for="p in professionals" :key="p.id" :value="p.id">
-              {{ p.firstName }} {{ p.lastName }}
-            </option>
-          </select>
+          <div class="agenda-prof-filter">
+            <SearchableSelect
+              :model-value="selectedProfessionalId"
+              :options="professionalOptions"
+              null-label="Todos los profesionales"
+              @update:model-value="selectedProfessionalId = $event as number | null"
+            />
+          </div>
         </div>
 
         <!-- ── STATS CARDS ─────────────────────────────────────────────── -->
@@ -625,7 +628,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
       <Transition name="fade">
         <div
           v-if="createError"
-          class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+          class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
           style="
             background-color: var(--color-error-container);
             color: var(--color-on-error-container);
@@ -637,128 +640,74 @@ function menuItems(t: Turno): ContextMenuItem[] {
       </Transition>
 
       <form @submit.prevent="submitCreate" class="space-y-4">
+
         <!-- Profesional -->
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
-            >Profesional</label
-          >
-          <select
-            v-model="createForm.professionalId"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
-          >
-            <option :value="null" disabled>Seleccioná un profesional</option>
-            <option v-for="p in professionals" :key="p.id" :value="p.id">
-              {{ p.firstName }} {{ p.lastName }}
-            </option>
-          </select>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Profesional</label>
+          <div class="modal-field">
+            <SearchableSelect
+              :model-value="createForm.professionalId"
+              :options="professionalOptions"
+              placeholder="Buscar profesional..."
+              @update:model-value="createForm.professionalId = $event as number | null"
+            />
+          </div>
         </div>
 
         <!-- Fecha -->
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
-            >Fecha</label
-          >
-          <input
-            v-model="createForm.fecha"
-            type="date"
-            :min="toDateStr(new Date())"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
-          />
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha</label>
+          <DateInput v-model="createForm.fecha" />
         </div>
 
         <!-- Horario disponible -->
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
-            >Horario</label
-          >
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Horario</label>
           <div v-if="isLoadingSlots" class="text-xs py-1" style="color: var(--color-outline)">
             Cargando horarios...
           </div>
-          <div
-            v-else-if="!createForm.professionalId || !createForm.fecha"
-            class="text-xs py-1"
-            style="color: var(--color-outline-variant)"
-          >
+          <div v-else-if="!createForm.professionalId || !createForm.fecha" class="text-xs py-1"
+            style="color: var(--color-outline-variant)">
             Seleccioná profesional y fecha primero
           </div>
-          <div
-            v-else-if="isPastDate"
-            class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium bg-amber-50 text-amber-800"
-          >
+          <div v-else-if="isPastDate"
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-amber-50 text-amber-800"
+            style="border-radius: 12px">
             <span class="material-symbols-outlined flex-shrink-0" style="font-size: 14px">event_busy</span>
             No se pueden reservar turnos en fechas pasadas
           </div>
-          <div
-            v-else-if="slots.length === 0"
-            class="text-xs py-1 font-medium text-amber-600"
-          >
+          <div v-else-if="slots.length === 0" class="text-xs py-1 font-medium text-amber-600">
             El profesional no tiene horario disponible ese día
           </div>
-          <select
-            v-else
-            v-model="createForm.slot"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
-          >
-            <option value="" disabled>Seleccioná un horario</option>
-            <option v-for="s in slots" :key="s.horaInicio" :value="s.horaInicio">
-              {{ formatSlot(s) }}
-            </option>
-          </select>
+          <div v-else class="modal-field">
+            <SearchableSelect
+              :model-value="createForm.slot"
+              :options="slotOptions"
+              placeholder="Seleccioná un horario"
+              @update:model-value="createForm.slot = $event as string"
+            />
+          </div>
         </div>
 
         <!-- Paciente con autocomplete -->
         <div class="relative">
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)"
-            >Paciente</label
-          >
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Paciente</label>
           <input
             v-model="patientSearch"
             type="text"
             placeholder="Buscar por nombre o CI..."
             @focus="showPatientDropdown = true"
             @blur="onPatientBlur"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
           />
-          <div
-            v-if="showPatientDropdown && filteredPatients.length > 0"
-            class="absolute left-0 right-0 z-20 mt-1 rounded-xl shadow-lg overflow-hidden"
-            style="
-              background-color: var(--color-surface-container-lowest);
-              border: 1px solid var(--color-outline-variant);
-              max-height: 180px;
-              overflow-y: auto;
-            "
-          >
-            <button
-              v-for="p in filteredPatients"
-              :key="p.id"
-              type="button"
+          <div v-if="showPatientDropdown && filteredPatients.length > 0"
+            class="absolute left-0 right-0 z-20 mt-1 shadow-lg overflow-hidden"
+            style="border-radius: 12px; background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); max-height: 180px; overflow-y: auto;">
+            <button v-for="p in filteredPatients" :key="p.id" type="button"
               @mousedown.prevent="selectPatient(p)"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container-low transition-colors"
-            >
-              <span class="font-medium" style="color: var(--color-on-surface)"
-                >{{ p.firstName }} {{ p.lastName }}</span
-              >
+              class="w-full text-left px-3 py-2 text-sm hover:bg-surface-container-low transition-colors">
+              <span class="font-medium" style="color: var(--color-on-surface)">{{ p.firstName }} {{ p.lastName }}</span>
               <span class="ml-2 text-xs" style="color: var(--color-outline)">{{ p.ci }}</span>
             </button>
           </div>
@@ -774,12 +723,8 @@ function menuItems(t: Turno): ContextMenuItem[] {
             v-model="createForm.motivo"
             type="text"
             placeholder="Ej: Control anual, adaptación de lentes..."
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
           />
         </div>
 
@@ -793,49 +738,20 @@ function menuItems(t: Turno): ContextMenuItem[] {
             v-model="createForm.notas"
             rows="2"
             placeholder="Notas para el staff..."
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="
-              border: 1px solid var(--color-outline-variant);
-              color: var(--color-on-surface);
-              background-color: var(--color-surface-container-low);
-            "
+            class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
+            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
           />
         </div>
       </form>
 
       <template #footer>
-        <BaseButton
-          class="flex-1"
-          variant="secondary"
-          size="default"
-          @click="showCreateModal = false"
-        >
-          Cancelar
-        </BaseButton>
-        <BaseButton
-          class="flex-1"
-          variant="primary"
-          size="default"
-          :disabled="isSavingCreate"
-          @click="submitCreate"
-        >
-          <svg v-if="isSavingCreate" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isSavingCreate ? "Guardando..." : "Confirmar Turno" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" size="default" @click="showCreateModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" size="default" :disabled="isSavingCreate" @click="submitCreate">
+            <span v-if="isSavingCreate" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSavingCreate ? "Guardando..." : "Confirmar Turno" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -976,11 +892,28 @@ function menuItems(t: Turno): ContextMenuItem[] {
 
 <style scoped>
 .fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
+.fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.fade-leave-to { opacity: 0; }
+
+/* Filtro de profesional en la barra de controles */
+.agenda-prof-filter {
+  width: 240px;
+}
+.agenda-prof-filter :deep(.ss-trigger) {
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+/* SearchableSelect dentro del modal: misma altura que los inputs (48px) */
+.modal-field :deep(.ss-trigger) {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: var(--color-surface-container-low);
+  border-color: var(--color-outline-variant);
 }
 </style>

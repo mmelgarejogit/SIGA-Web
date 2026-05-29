@@ -136,7 +136,7 @@ export const menuConfig: MenuItem[] = [
       {
         label: "Órdenes de Compra",
         icon: "shopping_cart",
-        route: "/inventario/pedidos",
+        route: "/compras/oc",
         permission: "ver_inventario",
       },
       {

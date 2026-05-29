@@ -49,7 +49,7 @@ onMounted(load)
 function menuItems(c: CategoriaGasto): ContextMenuItem[] {
   return [
     { type: "item", label: "Editar", icon: "edit", action: () => openEdit(c), hidden: !canManage },
-    { type: "separator" },
+    ...(canManage ? [{ type: "separator" as const }] : []),
     {
       type: "item",
       label: c.activo ? "Desactivar" : "Activar",

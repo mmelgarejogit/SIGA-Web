@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   getRecepciones,
   type RecepcionListItem,
@@ -21,11 +22,23 @@ const pageSize = 20
 const isLoading = ref(false)
 
 const filtroEstado = ref<string[]>([])
-const filtroProveedorId = ref<number | undefined>(undefined)
+const filtroProveedorId = ref<number | null>(null)
 const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
 
 const proveedores = ref<Proveedor[]>([])
+const inputDesde = ref<HTMLInputElement | null>(null)
+const inputHasta = ref<HTMLInputElement | null>(null)
+
+const proveedorOptions = computed(() =>
+  proveedores.value.map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
+)
+
+function openPicker(input: HTMLInputElement | null) {
+  if (!input) return
+  if ("showPicker" in input) (input as any).showPicker()
+  else input.focus()
+}
 
 const estadoOpciones = [
   { value: "Facturada",       label: "Facturada",       dot: "#5b21b6" },
@@ -49,7 +62,7 @@ async function load() {
   isLoading.value = true
   try {
     const r = await getRecepciones({
-      proveedorId: filtroProveedorId.value,
+      proveedorId: filtroProveedorId.value ?? undefined,
       estadoOC: filtroEstado.value[0],
       fechaDesde: filtroFechaDesde.value || undefined,
       fechaHasta: filtroFechaHasta.value || undefined,
@@ -74,6 +87,12 @@ function clearFechas() {
   filtroFechaDesde.value = ""
   filtroFechaHasta.value = ""
   applyFilters()
+}
+
+function formatFilterDate(dateStr: string) {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("es-PY", {
+    day: "2-digit", month: "short",
+  })
 }
 
 function openNueva() {
@@ -103,7 +122,7 @@ function estadoOCLabel(estado: EstadoPedido) {
 
 const hayFiltros = computed(() =>
   filtroEstado.value.length > 0 ||
-  filtroProveedorId.value !== undefined ||
+  filtroProveedorId.value !== null ||
   filtroFechaDesde.value !== "" ||
   filtroFechaHasta.value !== "",
 )
@@ -141,32 +160,43 @@ const hayFiltros = computed(() =>
               @update:model-value="v => { filtroEstado = v; applyFilters() }"
             />
 
-            <select
-              v-model="filtroProveedorId"
-              class="px-3 py-2 rounded-xl text-sm font-medium outline-none transition-all"
-              style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface); min-width: 180px;"
-              @change="applyFilters"
-            >
-              <option :value="undefined">Todos los proveedores</option>
-              <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-            </select>
+            <div class="fc-prov-filter">
+              <SearchableSelect
+                :model-value="filtroProveedorId"
+                :options="proveedorOptions"
+                null-label="Todos los proveedores"
+                @update:model-value="filtroProveedorId = $event as number | null; applyFilters()"
+              />
+            </div>
 
-            <div class="flex items-center gap-2">
-              <input v-model="filtroFechaDesde" type="date"
-                class="px-3 py-2 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface);"
-                @change="applyFilters" />
-              <span class="text-sm font-medium" style="color: var(--color-on-surface-variant)">—</span>
-              <input v-model="filtroFechaHasta" type="date"
-                class="px-3 py-2 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface);"
-                @change="applyFilters" />
-              <button v-if="filtroFechaDesde || filtroFechaHasta"
-                class="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-105"
-                style="background-color: var(--color-surface-container-high)"
-                title="Limpiar fechas" @click="clearFechas">
-                <span class="material-symbols-outlined" style="font-size: 14px; color: var(--color-on-surface-variant)">close</span>
-              </button>
+            <div class="flex items-center gap-1.5">
+              <!-- Desde -->
+              <div class="flex items-center gap-1">
+                <div class="fc-date-wrap">
+                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaDesde }" @click="openPicker(inputDesde)">
+                    <span class="material-symbols-outlined" style="font-size: 15px">calendar_today</span>
+                    <span>{{ filtroFechaDesde ? formatFilterDate(filtroFechaDesde) : 'Desde' }}</span>
+                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
+                  </button>
+                  <input ref="inputDesde" type="date" v-model="filtroFechaDesde" class="date-hidden" @change="applyFilters" />
+                </div>
+                <button v-if="filtroFechaDesde" class="fc-date-clear" title="Limpiar" @click="filtroFechaDesde = ''; applyFilters()">×</button>
+              </div>
+
+              <span style="color: var(--color-outline); font-size: 13px; font-weight: 500">—</span>
+
+              <!-- Hasta -->
+              <div class="flex items-center gap-1">
+                <div class="fc-date-wrap">
+                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaHasta }" @click="openPicker(inputHasta)">
+                    <span class="material-symbols-outlined" style="font-size: 15px">event</span>
+                    <span>{{ filtroFechaHasta ? formatFilterDate(filtroFechaHasta) : 'Hasta' }}</span>
+                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
+                  </button>
+                  <input ref="inputHasta" type="date" v-model="filtroFechaHasta" class="date-hidden" @change="applyFilters" />
+                </div>
+                <button v-if="filtroFechaHasta" class="fc-date-clear" title="Limpiar" @click="filtroFechaHasta = ''; applyFilters()">×</button>
+              </div>
             </div>
           </div>
         </div>
@@ -272,3 +302,80 @@ const hayFiltros = computed(() =>
     </main>
   </div>
 </template>
+
+<style scoped>
+.fc-prov-filter {
+  width: 240px;
+}
+.fc-prov-filter :deep(.ss-trigger) {
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.fc-date-wrap {
+  position: relative;
+}
+
+.fc-date-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  width: 140px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.fc-date-trigger:hover:not(.active) {
+  background: var(--color-surface-container-high);
+}
+.fc-date-trigger.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #EEF2FF;
+}
+
+.date-hidden {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+}
+
+.fc-date-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.fc-date-clear:hover {
+  background: var(--color-error-container);
+  color: var(--color-error);
+}
+</style>

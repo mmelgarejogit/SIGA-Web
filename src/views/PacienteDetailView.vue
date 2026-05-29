@@ -9,13 +9,12 @@ import { useAuthStore } from "@/stores/auth"
 
 import {
   type Patient,
-  type UpdatePatientRequest,
   type UpsertDatosFacturacionRequest,
   getPatientById,
-  updatePatient,
   upsertDatosFacturacion,
   deletePatient,
 } from "@/services/patientService"
+import PacienteEditModal from "@/components/PacienteEditModal.vue"
 
 import { type ConsultaClinica, getConsultasByPatient } from "@/services/clinicaService"
 
@@ -259,86 +258,16 @@ watch(activeTab, (tab) => {
 // ── Modal Editar ──────────────────────────────────────────────────────────────
 
 const showEditModal = ref(false)
-const SEXO_OPTIONS = ["Masculino", "Femenino", "Otro"]
-
-const editForm = ref<UpdatePatientRequest>({
-  firstName: "",
-  lastName: "",
-  birthDate: "",
-  sexo: "",
-  phoneNumber: "",
-  email: "",
-  isActive: true,
-})
-const editError = ref("")
-const isSavingEdit = ref(false)
-
-type EditErrors = {
-  firstName?: string
-  lastName?: string
-  birthDate?: string
-  email?: string
-}
-const editErrors = ref<EditErrors>({})
-
-const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function validateEdit(): boolean {
-  const e: EditErrors = {}
-  const f = editForm.value
-  if (!f.firstName.trim()) e.firstName = "El nombre es obligatorio."
-  else if (!ONLY_LETTERS.test(f.firstName.trim())) e.firstName = "Solo letras y espacios."
-  if (!f.lastName.trim()) e.lastName = "El apellido es obligatorio."
-  else if (!ONLY_LETTERS.test(f.lastName.trim())) e.lastName = "Solo letras y espacios."
-  if (!f.birthDate) e.birthDate = "La fecha de nacimiento es obligatoria."
-  if (f.email?.trim() && !EMAIL_RE.test(f.email.trim()))
-    e.email = "El formato del email no es válido."
-  editErrors.value = e
-  return Object.keys(e).length === 0
-}
 
 function openEditModal() {
-  if (!patient.value) return
-  editForm.value = {
-    firstName:   patient.value.firstName,
-    lastName:    patient.value.lastName,
-    birthDate:   patient.value.birthDate,
-    sexo:        patient.value.sexo ?? "",
-    phoneNumber: patient.value.phoneNumber ?? "",
-    email:       patient.value.email ?? "",
-    isActive:    patient.value.isActive,
-  }
-  editErrors.value = {}
-  editError.value = ""
   showEditModal.value = true
 }
 
-async function submitEdit() {
-  if (isSavingEdit.value) return
-  if (!validateEdit()) return
-  editError.value = ""
-  isSavingEdit.value = true
-  try {
-    const updated = await updatePatient(patientId.value, {
-      ...editForm.value,
-      sexo:        editForm.value.sexo || undefined,
-      phoneNumber: editForm.value.phoneNumber || undefined,
-      email:       editForm.value.email || undefined,
-    })
-    patient.value = updated
-    showEditModal.value = false
-  } catch (err: unknown) {
-    editError.value = err instanceof Error ? err.message : "Error al actualizar paciente."
-  } finally {
-    isSavingEdit.value = false
-  }
-}
-
 function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 // ── Modal Facturación ─────────────────────────────────────────────────────────
@@ -1149,207 +1078,12 @@ async function confirmDelete() {
       </div>
     </main>
 
-    <!-- MODAL: EDITAR PACIENTE -->
-    <BaseModal
+    <PacienteEditModal
       :show="showEditModal"
-      title="Editar Paciente"
-      size="lg"
+      :patient="patient"
       @close="showEditModal = false"
-    >
-      <form @submit.prevent="submitEdit" class="space-y-5">
-        <div
-          v-if="editError"
-          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-          style="
-            background-color: var(--color-error-container);
-            color: var(--color-on-error-container);
-          "
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
-          {{ editError }}
-        </div>
-
-        <!-- CI — solo lectura -->
-        <div
-          class="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);"
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-outline)">lock</span>
-          <div class="flex flex-col gap-0.5 flex-1">
-            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nro. de Cédula</span>
-            <span class="text-sm font-bold tracking-wider" style="color: var(--color-on-surface-variant)">{{ patient?.ci }}</span>
-          </div>
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color: rgba(117,118,132,0.1); color: var(--color-outline)">No editable</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1.5">
-            <label
-              class="text-xs font-bold uppercase tracking-wider"
-              style="color: var(--color-outline)"
-              >Nombre *</label
-            >
-            <input
-              v-model="editForm.firstName"
-              type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              :style="inputStyle(!!editErrors.firstName)"
-            />
-            <p
-              v-if="editErrors.firstName"
-              class="text-xs font-medium"
-              style="color: var(--color-error)"
-            >
-              {{ editErrors.firstName }}
-            </p>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label
-              class="text-xs font-bold uppercase tracking-wider"
-              style="color: var(--color-outline)"
-              >Apellido *</label
-            >
-            <input
-              v-model="editForm.lastName"
-              type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              :style="inputStyle(!!editErrors.lastName)"
-            />
-            <p
-              v-if="editErrors.lastName"
-              class="text-xs font-medium"
-              style="color: var(--color-error)"
-            >
-              {{ editErrors.lastName }}
-            </p>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Fecha de Nacimiento *</label
-          >
-          <input
-            v-model="editForm.birthDate"
-            type="date"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-            :style="inputStyle(!!editErrors.birthDate)"
-          />
-          <p
-            v-if="editErrors.birthDate"
-            class="text-xs font-medium"
-            style="color: var(--color-error)"
-          >
-            {{ editErrors.birthDate }}
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Sexo</label
-          >
-          <select
-            v-model="editForm.sexo"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
-            :style="inputStyle(false)"
-          >
-            <option value="">Sin especificar</option>
-            <option v-for="op in SEXO_OPTIONS" :key="op" :value="op">{{ op }}</option>
-          </select>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Teléfono</label
-          >
-          <input
-            v-model="editForm.phoneNumber"
-            type="tel"
-            placeholder="0972123456"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-            :style="inputStyle(false)"
-          />
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Email</label
-          >
-          <input
-            v-model="editForm.email"
-            type="email"
-            placeholder="paciente@email.com"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-            :style="inputStyle(!!editErrors.email)"
-          />
-          <p v-if="editErrors.email" class="text-xs font-medium" style="color: var(--color-error)">
-            {{ editErrors.email }}
-          </p>
-        </div>
-
-        <div
-          class="flex items-center justify-between px-4 py-3 rounded-xl"
-          style="background-color: var(--color-surface-container-low)"
-        >
-          <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)"
-            >Cuenta activa</span
-          >
-          <button
-            type="button"
-            @click="editForm.isActive = !editForm.isActive"
-            class="relative w-12 h-6 rounded-full transition-all"
-            :style="
-              editForm.isActive
-                ? 'background-color: var(--color-primary);'
-                : 'background-color: var(--color-outline-variant);'
-            "
-          >
-            <span
-              class="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-              :style="editForm.isActive ? 'left: calc(100% - 1.25rem);' : 'left: 0.25rem;'"
-            ></span>
-          </button>
-        </div>
-      </form>
-
-      <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showEditModal = false"
-          >Cancelar</BaseButton
-        >
-        <BaseButton variant="primary" size="default" :disabled="isSavingEdit" @click="submitEdit">
-          <svg
-            v-if="isSavingEdit"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
+      @saved="p => { patient = p }"
+    />
 
     <!-- MODAL: DATOS DE FACTURACIÓN -->
     <BaseModal
@@ -1375,7 +1109,7 @@ async function confirmDelete() {
               v-model="facturacionForm.rucCiFiscal"
               type="text"
               placeholder="80012345-6"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -1385,7 +1119,7 @@ async function confirmDelete() {
               v-model="facturacionForm.razonSocial"
               type="text"
               placeholder="Juan Pérez o Empresa S.A."
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -1397,7 +1131,7 @@ async function confirmDelete() {
             v-model="facturacionForm.direccion"
             type="text"
             placeholder="Av. Mariscal López 1234, Asunción"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
             :style="inputStyle(false)"
           />
         </div>
@@ -1409,7 +1143,7 @@ async function confirmDelete() {
               v-model="facturacionForm.email"
               type="email"
               placeholder="facturacion@empresa.com"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -1419,7 +1153,7 @@ async function confirmDelete() {
               v-model="facturacionForm.telefono"
               type="tel"
               placeholder="0981234567"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -1427,14 +1161,13 @@ async function confirmDelete() {
       </form>
 
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showFacturacionModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isSavingFacturacion" @click="submitFacturacion">
-          <svg v-if="isSavingFacturacion" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingFacturacion ? "Guardando..." : "Guardar Datos" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showFacturacionModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingFacturacion" @click="submitFacturacion">
+            <span v-if="isSavingFacturacion" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSavingFacturacion ? "Guardando..." : "Guardar Datos" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 

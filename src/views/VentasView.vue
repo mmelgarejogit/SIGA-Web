@@ -288,13 +288,15 @@ function canFactura(v: Venta)  { return v.estado !== "Anulada" && !v.factura }
 function canAnular(v: Venta)   { return !["Pagada", "Cobrada", "Anulada"].includes(v.estado) }
 
 function menuItems(v: Venta): ContextMenuItem[] {
+  const hasGrupo = canConfirm(v) || canCobrar(v) || canFactura(v)
+
   return [
     { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(v) },
-    { type: "separator" },
-    { type: "item", label: "Confirmar", icon: "check_circle", action: () => openConfirmar(v), hidden: !canConfirm(v) },
-    { type: "item", label: "Registrar cobro", icon: "payments", action: () => openCobro(v), hidden: !canCobrar(v) },
-    { type: "item", label: "Emitir factura", icon: "receipt", action: () => openFactura(v), hidden: !canFactura(v) },
-    { type: "separator" },
+    ...(hasGrupo || canAnular(v) ? [{ type: "separator" as const }] : []),
+    { type: "item", label: "Confirmar",        icon: "check_circle", action: () => openConfirmar(v), hidden: !canConfirm(v) },
+    { type: "item", label: "Registrar cobro",  icon: "payments",     action: () => openCobro(v),     hidden: !canCobrar(v) },
+    { type: "item", label: "Emitir factura",   icon: "receipt",      action: () => openFactura(v),   hidden: !canFactura(v) },
+    ...(hasGrupo && canAnular(v) ? [{ type: "separator" as const }] : []),
     { type: "item", label: "Anular", icon: "cancel", action: () => openAnular(v), hidden: !canAnular(v), danger: true },
   ]
 }

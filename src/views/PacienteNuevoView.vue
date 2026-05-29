@@ -4,6 +4,8 @@ import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import DateInput from "@/components/DateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { createPatient, type CreatePatientRequest } from "@/services/patientService"
 
 const router = useRouter()
@@ -20,7 +22,11 @@ type FormErrors = {
 const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const SEXO_OPTIONS = ["Masculino", "Femenino", "Otro"]
+const SEXO_OPTIONS = [
+  { value: "Masculino", label: "Masculino" },
+  { value: "Femenino",  label: "Femenino"  },
+  { value: "Otro",      label: "Otro"      },
+]
 
 const form = ref<CreatePatientRequest>({
   ci: "",
@@ -37,9 +43,10 @@ const error = ref("")
 const saving = ref(false)
 
 function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 function validate(): boolean {
@@ -174,7 +181,7 @@ function cancel() {
                   v-model="form.firstName"
                   type="text"
                   placeholder="Juan"
-                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                   :style="inputStyle(!!errors.firstName)"
                 />
                 <p
@@ -197,7 +204,7 @@ function cancel() {
                   v-model="form.lastName"
                   type="text"
                   placeholder="Pérez"
-                  class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                   :style="inputStyle(!!errors.lastName)"
                 />
                 <p
@@ -222,7 +229,7 @@ function cancel() {
                 v-model="form.ci"
                 type="text"
                 placeholder="1.234.567"
-                class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                 :style="inputStyle(!!errors.ci)"
               />
               <p v-if="errors.ci" class="text-xs font-medium" style="color: var(--color-error)">
@@ -238,12 +245,7 @@ function cancel() {
               >
                 Fecha de Nacimiento <span style="color: var(--color-error)">*</span>
               </label>
-              <input
-                v-model="form.birthDate"
-                type="date"
-                class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                :style="inputStyle(!!errors.birthDate)"
-              />
+              <DateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
               <p
                 v-if="errors.birthDate"
                 class="text-xs font-medium"
@@ -261,14 +263,12 @@ function cancel() {
               >
                 Sexo
               </label>
-              <select
-                v-model="form.sexo"
-                class="px-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
-                :style="inputStyle(false)"
-              >
-                <option value="">Sin especificar</option>
-                <option v-for="op in SEXO_OPTIONS" :key="op" :value="op">{{ op }}</option>
-              </select>
+              <SearchableSelect
+                :model-value="form.sexo || null"
+                :options="SEXO_OPTIONS"
+                null-label="Sin especificar"
+                @update:model-value="form.sexo = ($event as string) ?? ''"
+              />
             </div>
 
             <!-- Teléfono -->
@@ -283,7 +283,7 @@ function cancel() {
                 v-model="form.phoneNumber"
                 type="tel"
                 placeholder="0972123456"
-                class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                 :style="inputStyle(false)"
               />
             </div>
@@ -300,7 +300,7 @@ function cancel() {
                 v-model="form.email"
                 type="email"
                 placeholder="juan.perez@email.com"
-                class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                 :style="inputStyle(!!errors.email)"
               />
               <p
@@ -337,21 +337,7 @@ function cancel() {
                 :disabled="saving"
                 class="flex-1 h-12"
               >
-                <svg v-if="saving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  />
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
+                <span v-if="saving" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
                 {{ saving ? "Registrando..." : "Registrar Paciente" }}
               </BaseButton>
             </div>
@@ -364,11 +350,15 @@ function cancel() {
 
 <style scoped>
 .fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
+.fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.fade-leave-to { opacity: 0; }
+
+:deep(.ss-trigger) {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  border-color: var(--color-outline-variant);
 }
 </style>

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   registrarFacturaDirecta,
   registrarFactura,
@@ -60,7 +61,7 @@ const ocItems = ref<ItemLinea[]>([])
 const directaItems = ref<ItemLinea[]>([newItemLinea()])
 
 const form = reactive({
-  proveedorId: 0,
+  proveedorId: null as number | null,
   pedidoId: initialPedidoId.value as number | null,
   nroFactura: "",
   fechaEmision: new Date().toISOString().slice(0, 10),
@@ -92,6 +93,16 @@ const ocProveedorNombre = computed(() => {
 
 const itemsConProducto = computed(() =>
   directaItems.value.filter(i => i.productoId !== null).length,
+)
+
+const proveedorOptions = computed(() =>
+  proveedores.value
+    .filter(p => p.isActive)
+    .map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
+)
+
+const productoOptions = computed(() =>
+  productos.value.map(p => ({ value: p.id, label: p.nombre, code: p.sku ?? undefined })),
 )
 
 function formatMonto(n: number) {
@@ -144,7 +155,7 @@ async function loadOCItems(pedidoId: number) {
 }
 
 function onOrigenChange() {
-  form.proveedorId = 0
+  form.proveedorId = null
   form.pedidoId = null
   ocItems.value = []
   if (origen.value === "Directa") directaItems.value = [newItemLinea()]
@@ -164,13 +175,12 @@ function removeItem(i: number) {
 }
 
 /** Al seleccionar un producto autocompleta descripción y precio */
-function onProductoChange(item: ItemLinea, e: Event) {
-  const value = (e.target as HTMLSelectElement).value
-  if (!value) {
+function onProductoChange(item: ItemLinea, val: number | string | null) {
+  if (!val) {
     item.productoId = null
     return
   }
-  const prod = productos.value.find(p => p.id === Number(value))
+  const prod = productos.value.find(p => p.id === Number(val))
   if (!prod) return
   item.productoId = prod.id
   item.descripcion = prod.nombre
@@ -350,12 +360,12 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Proveedor *
                 </label>
-                <select v-model="form.proveedorId"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-                  :style="inputStyle(false)">
-                  <option :value="0">Seleccionar proveedor...</option>
-                  <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                </select>
+                <SearchableSelect
+                  :model-value="form.proveedorId"
+                  :options="proveedorOptions"
+                  placeholder="Buscar proveedor..."
+                  @update:model-value="form.proveedorId = $event as number | null"
+                />
               </div>
 
               <!-- Proveedor (Con OC, read-only) -->
@@ -501,14 +511,12 @@ const inputStyle = (hasError = false) => hasError
               <tbody>
                 <tr v-for="(item, i) in directaItems" :key="i" style="border-top: 1px solid rgba(196,197,213,0.12)">
                   <td class="px-6 py-3">
-                    <select :value="item.productoId ?? ''" @change="onProductoChange(item, $event)"
-                      class="w-full px-2 py-2 rounded-xl text-xs outline-none appearance-none"
-                      :style="item.productoId !== null
-                        ? 'border: 1.5px solid var(--color-primary); background-color: #EEF2FF; color: var(--color-primary); font-weight: 600;'
-                        : 'border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface);'">
-                      <option value="">— Sin producto —</option>
-                      <option v-for="p in productos" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                    </select>
+                    <SearchableSelect
+                      :model-value="item.productoId"
+                      :options="productoOptions"
+                      null-label="— Sin producto —"
+                      @update:model-value="onProductoChange(item, $event)"
+                    />
                   </td>
                   <td class="px-3 py-3">
                     <input v-model="item.descripcion" type="text" placeholder="Descripción…"
