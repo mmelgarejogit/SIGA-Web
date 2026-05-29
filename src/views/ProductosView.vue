@@ -31,6 +31,7 @@ import {
 
 const auth = useAuthStore()
 const canManage = computed(() => auth.hasPermission("gestionar_inventario"))
+const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ async function loadProductos() {
       pageSize: PAGE_SIZE,
       search: search.value || undefined,
       categoria: categoriaFilter.value[0] || undefined,
+      bajoStock: bajoStockFilter.value || undefined,
     })
     productos.value = result.items
     totalPages.value = result.totalPages
@@ -117,7 +119,10 @@ onMounted(async () => {
     getMarcas().then((m) => (marcasDisponibles.value = m)),
     getModelos().then((m) => (modelosDisponibles.value = m)),
   ])
+  document.addEventListener("keydown", onEscape)
 })
+
+onUnmounted(() => document.removeEventListener("keydown", onEscape))
 
 function onSearch(val: string) {
   search.value = val
@@ -333,16 +338,12 @@ function onEscape(e: KeyboardEvent) {
   if (e.key === "Escape") closeDetail()
 }
 
-onMounted(() => document.addEventListener("keydown", onEscape))
-onUnmounted(() => document.removeEventListener("keydown", onEscape))
-
 // ── Imagen ────────────────────────────────────────────────────────────────────
 
 const imageFileInput = ref<HTMLInputElement | null>(null)
 const isUploadingImage = ref(false)
 const imageError = ref("")
 const editImagenUrl = ref<string | null>(null)
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 function triggerImagePick() {
   imageFileInput.value?.click()
@@ -430,6 +431,18 @@ function menuItems(p: Producto): ContextMenuItem[] {
               placeholder="Categoría"
               @update:model-value="onCategoriaChange"
             />
+            <button
+              @click="toggleBajoStock"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              :style="
+                bajoStockFilter
+                  ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+                  : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
+              "
+            >
+              <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
+              Bajo stock
+            </button>
           </div>
           <SearchInput
             :model-value="search"
@@ -451,48 +464,48 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
-        <BaseTable
-          :columns="columns"
-          :items="productos"
-          :loading="isLoading"
-          empty-text="No hay productos en el inventario."
-          @row-click="openDetail"
-        >
-          <template #nombre="{ item }">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                style="background-color: var(--color-surface-container-low)">
-                <img v-if="item.imagenUrl" :src="API_BASE + item.imagenUrl" :alt="item.nombre"
-                  class="w-full h-full object-cover" />
-                <span v-else class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">inventory_2</span>
+          <BaseTable
+            :columns="columns"
+            :items="productos"
+            :loading="isLoading"
+            empty-text="No hay productos en el inventario."
+            @row-click="openDetail"
+          >
+            <template #nombre="{ item }">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                  style="background-color: var(--color-surface-container-low)">
+                  <img v-if="item.imagenUrl" :src="API_BASE + item.imagenUrl" :alt="item.nombre"
+                    class="w-full h-full object-cover" />
+                  <span v-else class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">inventory_2</span>
+                </div>
+                <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
               </div>
-              <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
-            </div>
-          </template>
+            </template>
 
-          <template #categoria="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.categoria }}</span>
-          </template>
+            <template #categoria="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.categoria }}</span>
+            </template>
 
-          <template #sku="{ item }">
-            <span class="text-sm font-mono" style="color: var(--color-outline)">{{ item.sku ?? "—" }}</span>
-          </template>
+            <template #sku="{ item }">
+              <span class="text-sm font-mono" style="color: var(--color-outline)">{{ item.sku ?? "—" }}</span>
+            </template>
 
-          <template #estado="{ item }">
-            <span
-              class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="item.isActive
-                ? 'background-color: #dcfce7; color: #166534'
-                : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
-            >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
-          </template>
+            <template #estado="{ item }">
+              <span
+                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                :style="item.isActive
+                  ? 'background-color: #dcfce7; color: #166534'
+                  : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
+              >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
+            </template>
 
-          <template #acciones="{ item }">
-            <div class="flex justify-end">
-              <RowContextMenu :items="menuItems(item)" />
-            </div>
-          </template>
-        </BaseTable>
+            <template #acciones="{ item }">
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(item)" />
+              </div>
+            </template>
+          </BaseTable>
 
           <!-- Footer: conteo + paginador -->
           <div
@@ -534,6 +547,104 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
       </div>
     </main>
+
+    <!-- ── PANEL DETALLE ──────────────────────────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="detail-overlay">
+        <div v-if="showDetail" class="fixed inset-0 z-40" style="background-color: rgba(24,28,32,0.35)"
+          @click.self="closeDetail" />
+      </Transition>
+      <Transition name="detail-panel">
+        <aside v-if="showDetail && detailProducto"
+          class="fixed top-0 right-0 h-screen z-50 flex flex-col overflow-hidden"
+          style="width: 400px; background-color: var(--color-surface-container-lowest); box-shadow: -8px 0 40px rgba(0,40,142,0.12)">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0"
+            style="border-bottom: 1px solid rgba(196,197,213,0.2)">
+            <h3 class="text-lg font-extrabold truncate pr-4" style="color: var(--color-primary)">
+              {{ detailProducto.nombre }}
+            </h3>
+            <button @click="closeDetail"
+              class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors hover:bg-surface-container-high"
+              style="color: var(--color-outline)">
+              <span class="material-symbols-outlined" style="font-size: 20px">close</span>
+            </button>
+          </div>
+
+          <!-- Scrollable body -->
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+            <!-- Imagen -->
+            <div class="w-full rounded-2xl overflow-hidden flex items-center justify-center"
+              style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.2)">
+              <img v-if="detailProducto.imagenUrl"
+                :src="API_BASE + detailProducto.imagenUrl"
+                :alt="detailProducto.nombre"
+                class="w-full h-full object-contain" />
+              <div v-else class="flex flex-col items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size: 56px; color: var(--color-outline)">image</span>
+                <span class="text-xs font-medium" style="color: var(--color-outline)">Sin imagen</span>
+              </div>
+            </div>
+
+            <!-- Estado + badges -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                :style="detailProducto.isActive
+                  ? 'background-color:#dcfce7;color:#166534'
+                  : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
+                {{ detailProducto.isActive ? "Activo" : "Inactivo" }}
+              </span>
+              <span v-if="detailProducto.descuentoCategoria > 0"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                style="background-color:#dbeafe;color:#1e40af">
+                <span class="material-symbols-outlined" style="font-size:13px">percent</span>
+                {{ detailProducto.descuentoCategoria }}% dto. categoría
+              </span>
+            </div>
+
+            <!-- Info general -->
+            <div class="rounded-2xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
+              <div v-for="row in [
+                { label: 'Categoría',  value: detailProducto.categoria },
+                { label: 'SKU',        value: detailProducto.sku ?? '—' },
+                { label: 'Marca',      value: detailProducto.marcaNombre ?? '—' },
+                { label: 'Modelo',     value: detailProducto.modeloNombre ?? '—' },
+                { label: 'Color',      value: detailProducto.color ?? '—' },
+                { label: 'Talle',      value: detailProducto.talle ?? '—' },
+              ]" :key="row.label"
+                class="flex items-center justify-between px-4 py-3"
+                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ row.label }}</span>
+                <span class="text-sm font-medium text-right" style="color: var(--color-on-surface); max-width: 220px">{{ row.value }}</span>
+              </div>
+            </div>
+
+            <!-- Descripción -->
+            <div v-if="detailProducto.descripcion">
+              <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Descripción</p>
+              <p class="text-sm leading-relaxed" style="color: var(--color-on-surface-variant)">{{ detailProducto.descripcion }}</p>
+            </div>
+
+          </div>
+
+          <!-- Footer actions -->
+          <div v-if="canManage" class="flex gap-3 px-6 py-4 flex-shrink-0"
+            style="border-top: 1px solid rgba(196,197,213,0.2)">
+            <BaseButton variant="secondary" size="default" class="flex-1" @click="openEdit(detailProducto); closeDetail()">
+              <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+              Editar
+            </BaseButton>
+            <BaseButton v-if="detailProducto.isActive" variant="danger" size="default" class="flex-1"
+              @click="openDeactivate(detailProducto); closeDetail()">
+              <span class="material-symbols-outlined" style="font-size:18px">block</span>
+              Desactivar
+            </BaseButton>
+          </div>
+        </aside>
+      </Transition>
+    </Teleport>
 
     <!-- MODAL CREAR -->
     <BaseModal :show="showCreateModal" title="Nuevo Producto" size="lg" @close="showCreateModal = false">
@@ -753,104 +864,6 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </BaseButton>
       </template>
     </BaseModal>
-
-    <!-- ── PANEL DETALLE ──────────────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="detail-overlay">
-        <div v-if="showDetail" class="fixed inset-0 z-40" style="background-color: rgba(24,28,32,0.35)"
-          @click.self="closeDetail" />
-      </Transition>
-      <Transition name="detail-panel">
-        <aside v-if="showDetail && detailProducto"
-          class="fixed top-0 right-0 h-screen z-50 flex flex-col overflow-hidden"
-          style="width: 400px; background-color: var(--color-surface-container-lowest); box-shadow: -8px 0 40px rgba(0,40,142,0.12)">
-
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0"
-            style="border-bottom: 1px solid rgba(196,197,213,0.2)">
-            <h3 class="text-lg font-extrabold truncate pr-4" style="color: var(--color-primary)">
-              {{ detailProducto.nombre }}
-            </h3>
-            <button @click="closeDetail"
-              class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors hover:bg-surface-container-high"
-              style="color: var(--color-outline)">
-              <span class="material-symbols-outlined" style="font-size: 20px">close</span>
-            </button>
-          </div>
-
-          <!-- Scrollable body -->
-          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-
-            <!-- Imagen -->
-            <div class="w-full rounded-2xl overflow-hidden flex items-center justify-center"
-              style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.2)">
-              <img v-if="detailProducto.imagenUrl"
-                :src="API_BASE + detailProducto.imagenUrl"
-                :alt="detailProducto.nombre"
-                class="w-full h-full object-contain" />
-              <div v-else class="flex flex-col items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size: 56px; color: var(--color-outline)">image</span>
-                <span class="text-xs font-medium" style="color: var(--color-outline)">Sin imagen</span>
-              </div>
-            </div>
-
-            <!-- Estado + badges -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="detailProducto.isActive
-                  ? 'background-color:#dcfce7;color:#166534'
-                  : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
-                {{ detailProducto.isActive ? "Activo" : "Inactivo" }}
-              </span>
-              <span v-if="detailProducto.descuentoCategoria > 0"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style="background-color:#dbeafe;color:#1e40af">
-                <span class="material-symbols-outlined" style="font-size:13px">percent</span>
-                {{ detailProducto.descuentoCategoria }}% dto. categoría
-              </span>
-            </div>
-
-            <!-- Info general -->
-            <div class="rounded-2xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
-              <div v-for="row in [
-                { label: 'Categoría',  value: detailProducto.categoria },
-                { label: 'SKU',        value: detailProducto.sku ?? '—' },
-                { label: 'Marca',      value: detailProducto.marcaNombre ?? '—' },
-                { label: 'Modelo',     value: detailProducto.modeloNombre ?? '—' },
-                { label: 'Color',      value: detailProducto.color ?? '—' },
-                { label: 'Talle',      value: detailProducto.talle ?? '—' },
-              ]" :key="row.label"
-                class="flex items-center justify-between px-4 py-3"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
-                <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ row.label }}</span>
-                <span class="text-sm font-medium text-right" style="color: var(--color-on-surface); max-width: 220px">{{ row.value }}</span>
-              </div>
-            </div>
-
-            <!-- Descripción -->
-            <div v-if="detailProducto.descripcion">
-              <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Descripción</p>
-              <p class="text-sm leading-relaxed" style="color: var(--color-on-surface-variant)">{{ detailProducto.descripcion }}</p>
-            </div>
-
-          </div>
-
-          <!-- Footer actions -->
-          <div v-if="canManage" class="flex gap-3 px-6 py-4 flex-shrink-0"
-            style="border-top: 1px solid rgba(196,197,213,0.2)">
-            <BaseButton variant="secondary" size="default" class="flex-1" @click="openEdit(detailProducto); closeDetail()">
-              <span class="material-symbols-outlined" style="font-size:18px">edit</span>
-              Editar
-            </BaseButton>
-            <BaseButton v-if="detailProducto.isActive" variant="danger" size="default" class="flex-1"
-              @click="openDeactivate(detailProducto); closeDetail()">
-              <span class="material-symbols-outlined" style="font-size:18px">block</span>
-              Desactivar
-            </BaseButton>
-          </div>
-        </aside>
-      </Transition>
-    </Teleport>
 
     <!-- MODAL MOVIMIENTO -->
     <BaseModal :show="showMovModal" title="Registrar Movimiento" size="sm" @close="showMovModal = false">

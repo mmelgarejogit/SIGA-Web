@@ -15,11 +15,14 @@ import {
   registrarDevolucion,
   cancelarPedido,
 } from "@/services/comprasService"
+import { useOcPdf } from "@/composables/useOcPdf"
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const canManage = computed(() => auth.hasPermission("gestionar_pedidos"))
+
+const { generarPdfOC } = useOcPdf()
 
 const ocId = Number(route.params.id)
 
@@ -218,33 +221,41 @@ async function submitDevolucion() {
               </div>
 
               <!-- Acciones según estado -->
-              <div v-if="canManage" class="flex items-center gap-2 flex-wrap">
-                <BaseButton
-                  v-if="pedido.estado === 'Borrador'"
-                  variant="primary" size="lg" :disabled="isConfirmando"
-                  @click="onConfirmar"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">send</span>
-                  {{ isConfirmando ? "Confirmando…" : "Confirmar OC" }}
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Descargar PDF (siempre visible) -->
+                <BaseButton variant="secondary" size="lg" @click="generarPdfOC(pedido)">
+                  <span class="material-symbols-outlined" style="font-size: 18px">download</span>
+                  Descargar PDF
                 </BaseButton>
 
-                <BaseButton
-                  v-if="pedido.estado === 'RecibidaTotal' || pedido.estado === 'RecibidaParcial'"
-                  variant="secondary" size="lg"
-                  @click="openDevolucionModal"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">undo</span>
-                  Registrar Devolución
-                </BaseButton>
+                <template v-if="canManage">
+                  <BaseButton
+                    v-if="pedido.estado === 'Borrador'"
+                    variant="primary" size="lg" :disabled="isConfirmando"
+                    @click="onConfirmar"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 18px">send</span>
+                    {{ isConfirmando ? "Confirmando…" : "Confirmar OC" }}
+                  </BaseButton>
 
-                <BaseButton
-                  v-if="pedido.estado !== 'RecibidaTotal' && pedido.estado !== 'Cancelada'"
-                  variant="danger" size="lg"
-                  @click="showCancelModal = true"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">cancel</span>
-                  Cancelar OC
-                </BaseButton>
+                  <BaseButton
+                    v-if="pedido.estado === 'RecibidaTotal' || pedido.estado === 'RecibidaParcial'"
+                    variant="secondary" size="lg"
+                    @click="openDevolucionModal"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 18px">undo</span>
+                    Registrar Devolución
+                  </BaseButton>
+
+                  <BaseButton
+                    v-if="pedido.estado !== 'RecibidaTotal' && pedido.estado !== 'Cancelada'"
+                    variant="danger" size="lg"
+                    @click="showCancelModal = true"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 18px">cancel</span>
+                    Cancelar OC
+                  </BaseButton>
+                </template>
               </div>
             </div>
 
