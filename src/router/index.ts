@@ -324,10 +324,34 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Egresos" },
     },
     {
+      path: "/egresos/nuevo",
+      name: "egresos-nuevo",
+      component: () => import("@/views/NuevoEgresoView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nueva Solicitud" },
+    },
+    {
+      path: "/egresos/aprobacion",
+      name: "egresos-aprobacion",
+      component: () => import("@/views/AprobacionEgresosView.vue"),
+      meta: { requiresAuth: true, permission: "aprobar_egresos", label: "Aprobación de Egresos" },
+    },
+    {
       path: "/egresos/categorias",
       name: "egresos-categorias",
       component: () => import("@/views/CategoriasGastoView.vue"),
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Categorías de Gasto" },
+    },
+    {
+      path: "/personal/empleados",
+      name: "personal-empleados",
+      component: () => import("@/views/EmpleadosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_empleados", label: "Empleados" },
+    },
+    {
+      path: "/personal/empleados/cargos",
+      name: "personal-empleados-cargos",
+      component: () => import("@/views/CargosEmpleadoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_empleados", label: "Cargos de Empleados" },
     },
     {
       path: "/admin/auditoria",

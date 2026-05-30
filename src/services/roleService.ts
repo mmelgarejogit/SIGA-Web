@@ -49,6 +49,8 @@ export const SYSTEM_PERMISSIONS = [
 
   { id: "ver_egresos", label: "Ver egresos" },
   { id: "gestionar_egresos", label: "Gestionar egresos" },
+  { id: "aprobar_egresos", label: "Aprobar/rechazar egresos" },
+  { id: "pagar_egresos", label: "Registrar pago de egresos" },
 
   { id: "ver_ventas", label: "Ver ventas" },
   { id: "registrar_venta", label: "Registrar venta" },

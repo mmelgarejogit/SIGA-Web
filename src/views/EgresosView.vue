@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -10,22 +11,20 @@ import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMen
 import { useAuthStore } from "@/stores/auth"
 import {
   type Egreso,
-  type CategoriaGasto,
   type MetodoPago,
   getEgresos,
-  crearFacturaCompra,
-  crearHonorario,
-  crearGastoGeneral,
   registrarPago,
+  aprobarEgreso,
+  rechazarEgreso,
   anularEgreso,
   getCategorias,
-  crearCategoria,
 } from "@/services/egresosService"
-import { getProveedores, type Proveedor } from "@/services/inventarioService"
-import { getProfessionals, type Professional } from "@/services/professionalService"
 
+const router = useRouter()
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_egresos")
+const canAprobar = auth.hasPermission("aprobar_egresos")
+const canPagar = auth.hasPermission("pagar_egresos")
 
 // ── Formato ───────────────────────────────────────────────────────────────────
 
@@ -49,14 +48,16 @@ const estadoFiltros = ref<string[]>([])
 const soloVencidos = ref(false)
 
 const tipoOptions = [
-  { value: "FacturaCompra", label: "Factura" },
   { value: "Honorario", label: "Honorario" },
   { value: "GastoGeneral", label: "Gasto General" },
+  { value: "FacturaCompra", label: "Factura (hist.)" },
 ]
 
 const estadoOptions = [
   { value: "Pendiente", label: "Pendiente", dot: "#92400E" },
+  { value: "Aprobado", label: "Aprobado", dot: "#1D4ED8" },
   { value: "Pagado", label: "Pagado", dot: "#166534" },
+  { value: "Rechazado", label: "Rechazado", dot: "#991B1B" },
   { value: "Anulado", label: "Anulado", dot: "var(--color-outline)" },
 ]
 
@@ -77,7 +78,6 @@ const columns = [
   { key: "concepto", label: "Concepto" },
   { key: "monto", label: "Monto", align: "right" as const },
   { key: "fechaEmision", label: "Emisión" },
-  { key: "vencimiento", label: "Vencimiento" },
   { key: "estado", label: "Estado" },
   { key: "acciones", label: "", align: "right" as const },
 ]
@@ -100,41 +100,20 @@ async function load() {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([load(), loadCatalogos()])
-})
+onMounted(load)
 
 function applyFilter() {
   currentPage.value = 1
   load()
 }
 
-// ── Catálogos ─────────────────────────────────────────────────────────────────
+// ── KPIs ──────────────────────────────────────────────────────────────────────
 
-const categorias = ref<CategoriaGasto[]>([])
-const proveedores = ref<Proveedor[]>([])
-const profesionales = ref<Professional[]>([])
-
-async function loadCatalogos() {
-  const [cats, provs, profs] = await Promise.allSettled([
-    getCategorias(),
-    getProveedores(),
-    getProfessionals(),
-  ])
-  if (cats.status === "fulfilled") categorias.value = cats.value
-  if (provs.status === "fulfilled") {
-    const provData = provs.value as unknown
-    if (Array.isArray(provData)) proveedores.value = provData as typeof proveedores.value
-    else if (provData && typeof provData === "object" && "items" in provData)
-      proveedores.value = (provData as { items: typeof proveedores.value }).items
-  }
-  if (profs.status === "fulfilled") {
-    const data = profs.value as unknown
-    if (Array.isArray(data)) profesionales.value = data as Professional[]
-    else if (data && typeof data === "object" && "items" in data)
-      profesionales.value = (data as { items: Professional[] }).items
-  }
-}
+const totalPendiente = computed(() =>
+  egresos.value.filter(e => e.estado === "Pendiente").reduce((s, e) => s + e.monto, 0))
+const totalAprobado = computed(() =>
+  egresos.value.filter(e => e.estado === "Aprobado").reduce((s, e) => s + e.monto, 0))
+const cantAprobados = computed(() => egresos.value.filter(e => e.estado === "Aprobado").length)
 
 // ── Helpers de UI ─────────────────────────────────────────────────────────────
 
@@ -166,19 +145,21 @@ function tipoColor(tipo: string): { bg: string; color: string } {
 }
 
 function estadoBadgeStyle(estado: string, vencido: boolean) {
-  if (vencido && estado !== "Pagado" && estado !== "Anulado")
+  if (vencido && estado !== "Pagado" && estado !== "Anulado" && estado !== "Rechazado")
     return "background-color: #FEE2E2; color: #991B1B"
   const map: Record<string, string> = {
     Pendiente: "background-color: #FEF3C7; color: #92400E",
-    Pagado: "background-color: #DCFCE7; color: #166534",
-    Anulado: "background-color: var(--color-surface-container-high); color: var(--color-outline)",
-    Borrador: "background-color: var(--color-surface-container-high); color: var(--color-outline)",
+    Aprobado:  "background-color: #DBEAFE; color: #1D4ED8",
+    Pagado:    "background-color: #DCFCE7; color: #166534",
+    Rechazado: "background-color: #FEE2E2; color: #991B1B",
+    Anulado:   "background-color: var(--color-surface-container-high); color: var(--color-outline)",
+    Borrador:  "background-color: var(--color-surface-container-high); color: var(--color-outline)",
   }
   return map[estado] ?? ""
 }
 
 function estadoLabel(e: Egreso) {
-  if (e.estaVencido && e.estado !== "Pagado" && e.estado !== "Anulado") return "Vencido"
+  if (e.estaVencido && e.estado !== "Pagado" && e.estado !== "Anulado" && e.estado !== "Rechazado") return "Vencido"
   return e.estado
 }
 
@@ -192,120 +173,6 @@ function openDetalle(e: Egreso) {
   showDetalle.value = true
 }
 
-// ── Modal nuevo egreso (unificado) ────────────────────────────────────────────
-
-type TipoNuevo = "FacturaCompra" | "Honorario" | "GastoGeneral"
-
-const tiposNuevo: { key: TipoNuevo; label: string; icon: string }[] = [
-  { key: "FacturaCompra", label: "Factura de Compra", icon: "receipt" },
-  { key: "Honorario", label: "Honorario", icon: "person_check" },
-  { key: "GastoGeneral", label: "Gasto General", icon: "payments" },
-]
-
-const showNuevoEgreso = ref(false)
-const isSavingNuevo = ref(false)
-const nuevoError = ref("")
-const nuevoForm = reactive({
-  tipo: "FacturaCompra" as TipoNuevo,
-  // Honorario / GastoGeneral
-  monto: 0,
-  concepto: "",
-  observaciones: "",
-  fechaEmision: new Date().toISOString().slice(0, 10),
-  fechaVencimiento: "",
-  // FacturaCompra
-  proveedorId: 0,
-  nroFactura: "",
-  montoExento: 0,
-  montoGravado5: 0,
-  montoGravado10: 0,
-  condicionVenta: "Contado" as "Contado" | "Credito",
-  // Honorario
-  professionalId: 0,
-  periodo: "",
-  // GastoGeneral
-  categoriaGastoId: 0,
-})
-
-const iva5Preview = computed(() => Math.round(nuevoForm.montoGravado5 / 21))
-const iva10Preview = computed(() => Math.round(nuevoForm.montoGravado10 / 11))
-const totalPreview = computed(() => nuevoForm.montoExento + nuevoForm.montoGravado5 + nuevoForm.montoGravado10)
-
-function openNuevoEgreso() {
-  Object.assign(nuevoForm, {
-    tipo: "FacturaCompra" as TipoNuevo,
-    monto: 0,
-    concepto: "",
-    observaciones: "",
-    fechaEmision: new Date().toISOString().slice(0, 10),
-    fechaVencimiento: "",
-    proveedorId: 0,
-    nroFactura: "",
-    montoExento: 0,
-    montoGravado5: 0,
-    montoGravado10: 0,
-    condicionVenta: "Contado" as "Contado" | "Credito",
-    professionalId: 0,
-    periodo: "",
-    categoriaGastoId: 0,
-  })
-  nuevoError.value = ""
-  showNuevoEgreso.value = true
-}
-
-async function submitNuevoEgreso() {
-  nuevoError.value = ""
-  if (!nuevoForm.concepto.trim()) { nuevoError.value = "El concepto es obligatorio."; return }
-  if (nuevoForm.tipo === "FacturaCompra") {
-    if (!nuevoForm.proveedorId) { nuevoError.value = "Seleccioná un proveedor."; return }
-    if (totalPreview.value <= 0) { nuevoError.value = "Al menos un monto (Exento, Gravado 5% o Gravado 10%) debe ser mayor a 0."; return }
-  } else {
-    if (!nuevoForm.monto || nuevoForm.monto <= 0) { nuevoError.value = "El monto debe ser mayor a 0."; return }
-  }
-  if (nuevoForm.tipo === "Honorario" && !nuevoForm.professionalId) { nuevoError.value = "Seleccioná un profesional."; return }
-  if (nuevoForm.tipo === "GastoGeneral" && !nuevoForm.categoriaGastoId) { nuevoError.value = "Seleccioná una categoría."; return }
-
-  isSavingNuevo.value = true
-  try {
-    const commonBase = {
-      concepto: nuevoForm.concepto.trim(),
-      observaciones: nuevoForm.observaciones.trim() || undefined,
-      fechaEmision: nuevoForm.fechaEmision,
-      fechaVencimiento: nuevoForm.fechaVencimiento || undefined,
-    }
-    if (nuevoForm.tipo === "FacturaCompra") {
-      await crearFacturaCompra({
-        ...commonBase,
-        proveedorId: nuevoForm.proveedorId,
-        nroFactura: nuevoForm.nroFactura.trim() || undefined,
-        montoExento: nuevoForm.montoExento,
-        montoGravado5: nuevoForm.montoGravado5,
-        montoGravado10: nuevoForm.montoGravado10,
-        condicionVenta: nuevoForm.condicionVenta,
-      })
-    } else if (nuevoForm.tipo === "Honorario") {
-      await crearHonorario({
-        ...commonBase,
-        monto: nuevoForm.monto,
-        professionalId: nuevoForm.professionalId,
-        periodo: nuevoForm.periodo.trim() || undefined,
-      })
-    } else {
-      await crearGastoGeneral({
-        ...commonBase,
-        monto: nuevoForm.monto,
-        categoriaGastoId: nuevoForm.categoriaGastoId,
-      })
-    }
-    showNuevoEgreso.value = false
-    await load()
-  } catch (err: unknown) {
-    nuevoError.value = err instanceof Error ? err.message : "Error al crear egreso."
-  } finally {
-    isSavingNuevo.value = false
-  }
-}
-
 // ── Modal registrar pago ──────────────────────────────────────────────────────
 
 const showPago = ref(false)
@@ -315,12 +182,18 @@ const pagoEgresoId = ref(0)
 const pagoForm = reactive({
   metodoPago: "Efectivo" as MetodoPago,
   fechaPago: new Date().toISOString().slice(0, 10),
+  nroComprobante: "",
+  observaciones: "",
 })
 
 function openPago(e: Egreso) {
   pagoEgresoId.value = e.id
-  pagoForm.metodoPago = "Efectivo"
-  pagoForm.fechaPago = new Date().toISOString().slice(0, 10)
+  Object.assign(pagoForm, {
+    metodoPago: "Efectivo",
+    fechaPago: new Date().toISOString().slice(0, 10),
+    nroComprobante: "",
+    observaciones: "",
+  })
   pagoError.value = ""
   showPago.value = true
 }
@@ -332,6 +205,8 @@ async function submitPago() {
     await registrarPago(pagoEgresoId.value, {
       metodoPago: pagoForm.metodoPago,
       fechaPago: pagoForm.fechaPago,
+      nroComprobante: pagoForm.nroComprobante.trim() || undefined,
+      observaciones: pagoForm.observaciones.trim() || undefined,
     })
     showPago.value = false
     showDetalle.value = false
@@ -340,6 +215,65 @@ async function submitPago() {
     pagoError.value = err instanceof Error ? err.message : "Error al registrar pago."
   } finally {
     isSavingPago.value = false
+  }
+}
+
+// ── Modal aprobar ─────────────────────────────────────────────────────────────
+
+const showAprobar = ref(false)
+const isSavingAprobar = ref(false)
+const aprobarError = ref("")
+const aprobarEgresoId = ref(0)
+
+function openAprobar(e: Egreso) {
+  aprobarEgresoId.value = e.id
+  aprobarError.value = ""
+  showAprobar.value = true
+}
+
+async function submitAprobar() {
+  isSavingAprobar.value = true
+  aprobarError.value = ""
+  try {
+    await aprobarEgreso(aprobarEgresoId.value)
+    showAprobar.value = false
+    showDetalle.value = false
+    await load()
+  } catch (err: unknown) {
+    aprobarError.value = err instanceof Error ? err.message : "Error al aprobar egreso."
+  } finally {
+    isSavingAprobar.value = false
+  }
+}
+
+// ── Modal rechazar ────────────────────────────────────────────────────────────
+
+const showRechazar = ref(false)
+const isSavingRechazar = ref(false)
+const rechazarError = ref("")
+const rechazarEgresoId = ref(0)
+const rechazarMotivo = ref("")
+
+function openRechazar(e: Egreso) {
+  rechazarEgresoId.value = e.id
+  rechazarMotivo.value = ""
+  rechazarError.value = ""
+  showRechazar.value = true
+}
+
+async function submitRechazar() {
+  if (!rechazarMotivo.value.trim()) { rechazarError.value = "El motivo es obligatorio."; return }
+  isSavingRechazar.value = true
+  rechazarError.value = ""
+  try {
+    await rechazarEgreso(rechazarEgresoId.value, { motivo: rechazarMotivo.value.trim() })
+    showRechazar.value = false
+    showDetalle.value = false
+    await load()
+  } catch (err: unknown) {
+    rechazarError.value = err instanceof Error ? err.message : "Error al rechazar egreso."
+  } finally {
+    isSavingRechazar.value = false
   }
 }
 
@@ -373,65 +307,40 @@ async function submitAnular() {
   }
 }
 
-// ── Menú contextual de fila ───────────────────────────────────────────────────
-
-function canPay(e: Egreso) {
-  return canManage && e.estado !== "Pagado" && e.estado !== "Anulado"
-}
-
-function canCancel(e: Egreso) {
-  return canManage && e.estado !== "Pagado" && e.estado !== "Anulado"
-}
+// ── Menú contextual ───────────────────────────────────────────────────────────
 
 function menuItems(e: Egreso): ContextMenuItem[] {
-  const hasActions = canPay(e) || canCancel(e)
+  const isPendiente = e.estado === "Pendiente"
+  const isAprobado = e.estado === "Aprobado"
+  const isFinalizado = e.estado === "Pagado" || e.estado === "Anulado" || e.estado === "Rechazado"
+
   return [
     { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(e) },
-    ...(hasActions ? [{ type: "separator" } as ContextMenuItem] : []),
-    { type: "item", label: "Registrar pago", icon: "payments", action: () => openPago(e), hidden: !canPay(e) },
-    { type: "item", label: "Anular egreso", icon: "cancel", action: () => openAnular(e), hidden: !canCancel(e), danger: true },
+    { type: "separator" },
+    {
+      type: "item", label: "Aprobar", icon: "check_circle",
+      action: () => openAprobar(e),
+      hidden: !canAprobar || !isPendiente,
+    },
+    {
+      type: "item", label: "Rechazar", icon: "cancel",
+      action: () => openRechazar(e),
+      hidden: !canAprobar || !isPendiente,
+      danger: true,
+    },
+    {
+      type: "item", label: "Registrar pago", icon: "payments",
+      action: () => openPago(e),
+      hidden: !canPagar || !isAprobado,
+    },
+    {
+      type: "item", label: "Anular egreso", icon: "block",
+      action: () => openAnular(e),
+      hidden: !canManage || isFinalizado || isAprobado,
+      danger: true,
+    },
   ]
 }
-
-// ── Modal nueva categoría (acceso rápido desde nuevo egreso) ─────────────────
-
-const showCategoriaModal = ref(false)
-const isCatSaving = ref(false)
-const catError = ref("")
-const catForm = reactive({ nombre: "", descripcion: "" })
-
-function openCreateCategoria() {
-  Object.assign(catForm, { nombre: "", descripcion: "" })
-  catError.value = ""
-  showCategoriaModal.value = true
-}
-
-async function submitCategoria() {
-  if (!catForm.nombre.trim()) { catError.value = "El nombre es obligatorio."; return }
-  isCatSaving.value = true
-  catError.value = ""
-  try {
-    const nueva = await crearCategoria({
-      nombre: catForm.nombre.trim(),
-      descripcion: catForm.descripcion.trim() || undefined,
-    })
-    categorias.value = [...categorias.value, nueva]
-    nuevoForm.categoriaGastoId = nueva.id
-    showCategoriaModal.value = false
-  } catch (err: unknown) {
-    catError.value = err instanceof Error ? err.message : "Error al crear categoría."
-  } finally {
-    isCatSaving.value = false
-  }
-}
-
-// ── KPIs ──────────────────────────────────────────────────────────────────────
-
-const totalPendiente = computed(() =>
-  egresos.value.filter(e => e.estado === "Pendiente").reduce((s, e) => s + e.monto, 0))
-const totalVencido = computed(() =>
-  egresos.value.filter(e => e.estaVencido).reduce((s, e) => s + e.monto, 0))
-const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).length)
 </script>
 
 <template>
@@ -450,42 +359,32 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
               {{ totalCount }} egreso{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
-          <BaseButton v-if="canManage" variant="primary" size="lg" @click="openNuevoEgreso">
+          <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/egresos/nuevo')">
             <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
-            Nuevo Egreso
+            Nueva Solicitud
           </BaseButton>
         </div>
 
         <!-- KPIs -->
         <div class="grid grid-cols-3 gap-4 mb-6">
           <div class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Pendiente de pago</p>
+            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Pendiente de aprobación</p>
             <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ formatPrice(totalPendiente) }}</p>
           </div>
-          <div class="rounded-2xl p-5" style="background-color: #FEF2F2; border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #991B1B">Monto vencido</p>
-            <p class="text-2xl font-extrabold" style="color: #991B1B">{{ formatPrice(totalVencido) }}</p>
+          <div class="rounded-2xl p-5" style="background-color: #EFF6FF; border: 1px solid rgba(196,197,213,0.2)">
+            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #1D4ED8">Aprobados pendientes de pago</p>
+            <p class="text-2xl font-extrabold" style="color: #1D4ED8">{{ formatPrice(totalAprobado) }}</p>
           </div>
           <div class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Vencidos</p>
-            <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ cantVencidos }}</p>
+            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Aprobados sin pagar</p>
+            <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ cantAprobados }}</p>
           </div>
         </div>
 
         <!-- Filtros -->
         <div class="flex items-center gap-3 mb-6 flex-wrap">
-          <FilterChips
-            :options="tipoOptions"
-            :modelValue="tipoFiltros"
-            placeholder="Tipo"
-            @update:modelValue="setTipoFiltro"
-          />
-          <FilterChips
-            :options="estadoOptions"
-            :modelValue="estadoFiltros"
-            placeholder="Estado"
-            @update:modelValue="setEstadoFiltro"
-          />
+          <FilterChips :options="tipoOptions" :modelValue="tipoFiltros" placeholder="Tipo" @update:modelValue="setTipoFiltro" />
+          <FilterChips :options="estadoOptions" :modelValue="estadoFiltros" placeholder="Estado" @update:modelValue="setEstadoFiltro" />
           <button
             @click="soloVencidos = !soloVencidos; applyFilter()"
             class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
@@ -510,10 +409,8 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
 
           <template #tipo="{ item }">
             <div class="flex items-center gap-2">
-              <span
-                class="w-9 h-9 rounded-full flex-shrink-0"
-                :style="`background-color: ${tipoColor(item.tipo).bg}; display: flex; align-items: center; justify-content: center`"
-              >
+              <span class="w-9 h-9 rounded-full flex-shrink-0"
+                :style="`background-color: ${tipoColor(item.tipo).bg}; display: flex; align-items: center; justify-content: center`">
                 <span class="material-symbols-outlined" :style="`font-size: 18px; color: ${tipoColor(item.tipo).color}`">{{ tipoIcon(item.tipo) }}</span>
               </span>
               <span class="text-xs font-bold" :style="`color: ${tipoColor(item.tipo).color}`">{{ tipoLabel(item.tipo) }}</span>
@@ -539,21 +436,9 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaEmision) }}</span>
           </template>
 
-          <template #vencimiento="{ item }">
-            <span v-if="item.fechaVencimiento"
-              class="text-sm font-medium"
-              :style="item.estaVencido ? 'color: #DC2626' : 'color: var(--color-on-surface-variant)'"
-            >
-              {{ formatDate(item.fechaVencimiento) }}
-            </span>
-            <span v-else class="text-sm" style="color: var(--color-outline)">—</span>
-          </template>
-
           <template #estado="{ item }">
-            <span
-              class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="estadoBadgeStyle(item.estado, item.estaVencido)"
-            >{{ estadoLabel(item) }}</span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="estadoBadgeStyle(item.estado, item.estaVencido)">{{ estadoLabel(item) }}</span>
           </template>
 
           <template #acciones="{ item }">
@@ -585,10 +470,8 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
     <BaseModal :show="showDetalle" title="Detalle de Egreso" size="lg" @close="showDetalle = false">
       <div v-if="detalleEgreso" class="space-y-4">
         <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
-          <span
-            class="w-12 h-12 rounded-2xl flex items-center justify-center"
-            :style="`background-color: ${tipoColor(detalleEgreso.tipo).bg}`"
-          >
+          <span class="w-12 h-12 rounded-2xl flex items-center justify-center"
+            :style="`background-color: ${tipoColor(detalleEgreso.tipo).bg}`">
             <span class="material-symbols-outlined" :style="`font-size: 22px; color: ${tipoColor(detalleEgreso.tipo).color}`">{{ tipoIcon(detalleEgreso.tipo) }}</span>
           </span>
           <div>
@@ -614,6 +497,10 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
               {{ formatDate(detalleEgreso.fechaVencimiento) }}
             </p>
           </div>
+          <div v-if="detalleEgreso.fechaAprobacion">
+            <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de aprobación</p>
+            <p style="color: var(--color-on-surface)">{{ formatDate(detalleEgreso.fechaAprobacion) }}</p>
+          </div>
           <div v-if="detalleEgreso.fechaPago">
             <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de pago</p>
             <p style="color: var(--color-on-surface)">{{ formatDate(detalleEgreso.fechaPago) }}</p>
@@ -622,21 +509,10 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Método de pago</p>
             <p style="color: var(--color-on-surface)">{{ detalleEgreso.metodoPago }}</p>
           </div>
-
-          <template v-if="detalleEgreso.tipo === 'FacturaCompra'">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Proveedor</p>
-              <p style="color: var(--color-on-surface)">{{ detalleEgreso.proveedorNombre ?? '—' }}</p>
-            </div>
-            <div v-if="detalleEgreso.nroFactura">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura</p>
-              <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
-            </div>
-            <div v-if="detalleEgreso.condicionVenta">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Condición</p>
-              <p style="color: var(--color-on-surface)">{{ detalleEgreso.condicionVenta }}</p>
-            </div>
-          </template>
+          <div v-if="detalleEgreso.nroComprobante">
+            <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Comprobante</p>
+            <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroComprobante }}</p>
+          </div>
 
           <template v-if="detalleEgreso.tipo === 'Honorario'">
             <div>
@@ -655,38 +531,23 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
               <p style="color: var(--color-on-surface)">{{ detalleEgreso.categoriaGastoNombre ?? '—' }}</p>
             </div>
           </template>
+
+          <template v-if="detalleEgreso.tipo === 'FacturaCompra'">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Proveedor</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.proveedorNombre ?? '—' }}</p>
+            </div>
+            <div v-if="detalleEgreso.nroFactura">
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura</p>
+              <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
+            </div>
+          </template>
         </div>
 
-        <!-- Desglose fiscal FacturaCompra -->
-        <div v-if="detalleEgreso.tipo === 'FacturaCompra' && detalleEgreso.montoTotal != null"
-          class="rounded-xl p-4" style="background-color: var(--color-surface-container-low)">
-          <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-primary)">Desglose fiscal</p>
-          <div class="space-y-1.5 text-sm">
-            <div class="flex justify-between">
-              <span style="color: var(--color-on-surface-variant)">Monto exento</span>
-              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoExento ?? 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span style="color: var(--color-on-surface-variant)">Gravado 5%</span>
-              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoGravado5 ?? 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span style="color: var(--color-on-surface-variant)">IVA 5%</span>
-              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.iva5 ?? 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span style="color: var(--color-on-surface-variant)">Gravado 10%</span>
-              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.montoGravado10 ?? 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span style="color: var(--color-on-surface-variant)">IVA 10%</span>
-              <span class="font-medium" style="color: var(--color-on-surface)">{{ formatPrice(detalleEgreso.iva10 ?? 0) }}</span>
-            </div>
-            <div class="flex justify-between pt-1.5" style="border-top: 1px solid rgba(196,197,213,0.3)">
-              <span class="font-bold" style="color: var(--color-primary)">Total</span>
-              <span class="font-bold" style="color: var(--color-primary)">{{ formatPrice(detalleEgreso.montoTotal ?? 0) }}</span>
-            </div>
-          </div>
+        <!-- Motivo de rechazo -->
+        <div v-if="detalleEgreso.motivoRechazo" class="rounded-xl p-3" style="background-color: #FEF2F2">
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #991B1B">Motivo de rechazo</p>
+          <p class="text-sm" style="color: #991B1B">{{ detalleEgreso.motivoRechazo }}</p>
         </div>
 
         <div v-if="detalleEgreso.observaciones" class="rounded-xl p-3" style="background-color: var(--color-surface-container-low)">
@@ -696,191 +557,82 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
       </div>
 
       <template #footer>
-        <BaseButton v-if="detalleEgreso && canCancel(detalleEgreso)" variant="danger" size="default" @click="openAnular(detalleEgreso!)">
-          Anular
-        </BaseButton>
-        <BaseButton v-if="detalleEgreso && canPay(detalleEgreso)" variant="primary" size="default" @click="openPago(detalleEgreso!)">
-          Registrar Pago
-        </BaseButton>
-        <BaseButton v-if="!detalleEgreso || (!canPay(detalleEgreso) && !canCancel(detalleEgreso))" variant="secondary" size="default" @click="showDetalle = false">
-          Cerrar
+        <BaseButton
+          v-if="detalleEgreso && canAprobar && detalleEgreso.estado === 'Pendiente'"
+          variant="danger" size="default"
+          @click="openRechazar(detalleEgreso!)"
+        >Rechazar</BaseButton>
+        <BaseButton
+          v-if="detalleEgreso && canAprobar && detalleEgreso.estado === 'Pendiente'"
+          variant="primary" size="default"
+          @click="openAprobar(detalleEgreso!)"
+        >Aprobar</BaseButton>
+        <BaseButton
+          v-if="detalleEgreso && canPagar && detalleEgreso.estado === 'Aprobado'"
+          variant="primary" size="default"
+          @click="openPago(detalleEgreso!)"
+        >Registrar Pago</BaseButton>
+        <BaseButton
+          v-if="detalleEgreso && canManage && detalleEgreso.estado === 'Pendiente'"
+          variant="danger" size="default"
+          @click="openAnular(detalleEgreso!)"
+        >Anular</BaseButton>
+        <BaseButton
+          v-if="!detalleEgreso || (detalleEgreso.estado !== 'Pendiente' && detalleEgreso.estado !== 'Aprobado')"
+          variant="secondary" size="default"
+          @click="showDetalle = false"
+        >Cerrar</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── MODAL APROBAR ─────────────────────────────────────────────────────── -->
+    <BaseModal :show="showAprobar" title="Aprobar Egreso" size="sm" @close="showAprobar = false">
+      <div v-if="aprobarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        {{ aprobarError }}
+      </div>
+      <p class="text-sm" style="color: var(--color-on-surface-variant)">
+        ¿Confirmás la aprobación de este egreso? El responsable de caja podrá registrar el pago.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" class="flex-1" @click="showAprobar = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" class="flex-1" :disabled="isSavingAprobar" @click="submitAprobar">
+          <svg v-if="isSavingAprobar" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ isSavingAprobar ? "Aprobando..." : "Confirmar Aprobación" }}
         </BaseButton>
       </template>
     </BaseModal>
 
-    <!-- ── MODAL NUEVO EGRESO ────────────────────────────────────────────────── -->
-    <BaseModal :show="showNuevoEgreso" title="Nuevo Egreso" size="lg" @close="showNuevoEgreso = false">
-      <div v-if="nuevoError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+    <!-- ── MODAL RECHAZAR ────────────────────────────────────────────────────── -->
+    <BaseModal :show="showRechazar" title="Rechazar Egreso" size="sm" @close="showRechazar = false">
+      <div v-if="rechazarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ nuevoError }}
+        {{ rechazarError }}
       </div>
-
-      <!-- Selector de tipo -->
-      <div class="grid grid-cols-3 gap-3 mb-6">
-        <button
-          v-for="t in tiposNuevo"
-          :key="t.key"
-          @click="nuevoForm.tipo = t.key"
-          class="flex flex-col items-center gap-2 px-4 py-4 rounded-2xl transition-all"
-          :style="nuevoForm.tipo === t.key
-            ? `background-color: ${tipoColor(t.key).bg}; border: 2px solid ${tipoColor(t.key).color}`
-            : 'background-color: var(--color-surface-container-low); border: 2px solid transparent'"
-        >
-          <span
-            class="w-10 h-10 rounded-full flex items-center justify-center"
-            :style="`background-color: ${nuevoForm.tipo === t.key ? tipoColor(t.key).color : 'var(--color-surface-container-high)'}`"
-          >
-            <span class="material-symbols-outlined" :style="`font-size: 20px; color: ${nuevoForm.tipo === t.key ? '#fff' : 'var(--color-on-surface-variant)'}`">{{ t.icon }}</span>
-          </span>
-          <span class="text-xs font-bold text-center leading-tight" :style="`color: ${nuevoForm.tipo === t.key ? tipoColor(t.key).color : 'var(--color-on-surface-variant)'}`">
-            {{ t.label }}
-          </span>
-        </button>
-      </div>
-
-      <div class="space-y-4">
-        <!-- Campo específico por tipo -->
-        <div v-if="nuevoForm.tipo === 'FacturaCompra'">
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor *</label>
-          <select v-model="nuevoForm.proveedorId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option :value="0" disabled>Seleccionar proveedor</option>
-            <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-          </select>
-        </div>
-
-        <div v-if="nuevoForm.tipo === 'Honorario'">
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Profesional *</label>
-          <select v-model="nuevoForm.professionalId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option :value="0" disabled>Seleccionar profesional</option>
-            <option v-for="p in profesionales" :key="p.id" :value="p.id">{{ p.firstName }} {{ p.lastName }}</option>
-          </select>
-        </div>
-
-        <div v-if="nuevoForm.tipo === 'GastoGeneral'">
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
-          <div class="flex gap-2">
-            <select v-model="nuevoForm.categoriaGastoId" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-              <option :value="0" disabled>Seleccionar categoría</option>
-              <option v-for="c in categorias.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-            </select>
-            <button
-              type="button"
-              @click="openCreateCategoria"
-              class="flex-shrink-0 w-12 rounded-xl flex items-center justify-center transition-colors hover:opacity-80"
-              style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)"
-              title="Agregar nueva categoría"
-            >
-              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-primary)">add</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Campos extra por tipo -->
-        <template v-if="nuevoForm.tipo === 'FacturaCompra'">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Factura</label>
-              <input v-model="nuevoForm.nroFactura" type="text" placeholder="001-001-0000001" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Condición *</label>
-              <select v-model="nuevoForm.condicionVenta" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-                <option value="Contado">Contado</option>
-                <option value="Credito">Crédito</option>
-              </select>
-            </div>
-          </div>
-
-          <p class="text-xs font-bold uppercase tracking-wider pt-1" style="color: var(--color-primary)">Desglose fiscal (Gs.)</p>
-
-          <div class="grid grid-cols-3 gap-3">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Exento</label>
-              <input v-model.number="nuevoForm.montoExento" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Gravado 5%</label>
-              <input v-model.number="nuevoForm.montoGravado5" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Gravado 10%</label>
-              <input v-model.number="nuevoForm.montoGravado10" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-            </div>
-          </div>
-
-          <!-- Preview IVA -->
-          <div v-if="totalPreview > 0" class="rounded-xl p-4 grid grid-cols-3 gap-2 text-center" style="background-color: var(--color-surface-container-low)">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">IVA 5%</p>
-              <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(iva5Preview) }}</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">IVA 10%</p>
-              <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(iva10Preview) }}</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-primary)">Total</p>
-              <p class="text-sm font-bold" style="color: var(--color-primary)">{{ formatPrice(totalPreview) }}</p>
-            </div>
-          </div>
-        </template>
-
-        <div v-if="nuevoForm.tipo === 'Honorario'">
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Período</label>
-          <input v-model="nuevoForm.periodo" type="text" placeholder="Ej: Mayo 2025" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-
-        <!-- Campos comunes -->
+      <div class="space-y-3">
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          El egreso será rechazado y no podrá reactivarse. Un usuario podrá crear uno nuevo si es necesario.
+        </p>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Concepto *</label>
-          <input v-model="nuevoForm.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div v-if="nuevoForm.tipo !== 'FacturaCompra'">
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-            <input v-model.number="nuevoForm.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-          <div :class="nuevoForm.tipo !== 'FacturaCompra' ? '' : 'col-span-2'">
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de emisión *</label>
-            <input v-model="nuevoForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
-          <input v-model="nuevoForm.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <textarea v-model="nuevoForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo *</label>
+          <textarea v-model="rechazarMotivo" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+            placeholder="Explicá el motivo del rechazo..." />
         </div>
       </div>
-
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showNuevoEgreso = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isSavingNuevo" @click="submitNuevoEgreso">
-          <svg v-if="isSavingNuevo" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <BaseButton variant="secondary" class="flex-1" @click="showRechazar = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isSavingRechazar" @click="submitRechazar">
+          <svg v-if="isSavingRechazar" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          {{ isSavingNuevo ? "Guardando..." : "Crear Egreso" }}
+          {{ isSavingRechazar ? "Rechazando..." : "Confirmar Rechazo" }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -908,6 +660,16 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
           <input v-model="pagoForm.fechaPago" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Comprobante</label>
+          <input v-model="pagoForm.nroComprobante" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
+          <textarea v-model="pagoForm.observaciones" rows="2" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
       </div>
       <template #footer>
         <BaseButton variant="secondary" class="flex-1" @click="showPago = false">Cancelar</BaseButton>
@@ -917,37 +679,6 @@ const cantVencidos = computed(() => egresos.value.filter(e => e.estaVencido).len
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ isSavingPago ? "Registrando..." : "Confirmar Pago" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL NUEVA CATEGORÍA (acceso rápido) ────────────────────────────── -->
-    <BaseModal :show="showCategoriaModal" title="Nueva Categoría" size="sm" @close="showCategoriaModal = false">
-      <div v-if="catError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ catError }}
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="catForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
-          <input v-model="catForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showCategoriaModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isCatSaving" @click="submitCategoria">
-          <svg v-if="isCatSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isCatSaving ? "Creando..." : "Crear Categoría" }}
         </BaseButton>
       </template>
     </BaseModal>
