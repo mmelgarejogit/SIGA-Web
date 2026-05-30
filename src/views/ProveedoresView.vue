@@ -202,6 +202,13 @@ function openEdit(p: Proveedor) {
   showModal.value = true
 }
 
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+}
+
 async function submit() {
   modalError.value = ""
   if (!form.nombre?.trim()) { modalError.value = "El nombre es obligatorio."; return }
@@ -414,9 +421,9 @@ async function confirmDeactivate() {
       size="lg"
       @close="showModal = false"
     >
-      <div v-if="modalError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="modalError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ modalError }}
       </div>
 
@@ -425,8 +432,8 @@ async function confirmDeactivate() {
         <!-- Nombre -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre comercial *</label>
-          <input v-model="form.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="form.nombre" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
         <!-- Datos fiscales -->
@@ -435,13 +442,13 @@ async function confirmDeactivate() {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">RUC *</label>
-            <input v-model="form.ruc" type="text" placeholder="80012345-6" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.ruc" type="text" placeholder="80012345-6" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all font-mono"
+              :style="inputStyle(false)" />
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Razón social</label>
-            <input v-model="form.razonSocial" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.razonSocial" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
 
@@ -450,13 +457,13 @@ async function confirmDeactivate() {
 
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Dirección</label>
-          <input v-model="form.direccion" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="form.direccion" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Ciudad</label>
-          <input v-model="form.ciudad" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="form.ciudad" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
         <!-- Redes sociales -->
@@ -465,25 +472,25 @@ async function confirmDeactivate() {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sitio web</label>
-            <input v-model="form.sitioWeb" type="url" placeholder="https://..." class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.sitioWeb" type="url" placeholder="https://..." class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">WhatsApp</label>
-            <input v-model="form.whatsApp" type="text" placeholder="+595 9xx xxxxxx" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.whatsApp" type="text" placeholder="+595 9xx xxxxxx" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Facebook</label>
-            <input v-model="form.facebook" type="text" placeholder="@usuario o URL" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.facebook" type="text" placeholder="@usuario o URL" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Instagram</label>
-            <input v-model="form.instagram" type="text" placeholder="@usuario" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            <input v-model="form.instagram" type="text" placeholder="@usuario" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
 
@@ -526,8 +533,8 @@ async function confirmDeactivate() {
                 v-model="c.nombre"
                 type="text"
                 placeholder="Nombre"
-                class="w-full px-2.5 py-2 rounded-lg text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest)"
+                class="w-full px-2.5 py-2 appearance-none shadow-none text-sm outline-none"
+                :style="inputStyle(false)"
               />
             </div>
             <div class="px-2 py-2">
@@ -535,8 +542,8 @@ async function confirmDeactivate() {
                 v-model="c.cargo"
                 type="text"
                 placeholder="Cargo"
-                class="w-full px-2.5 py-2 rounded-lg text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest)"
+                class="w-full px-2.5 py-2 appearance-none shadow-none text-sm outline-none"
+                :style="inputStyle(false)"
               />
             </div>
             <div class="px-2 py-2">
@@ -544,8 +551,8 @@ async function confirmDeactivate() {
                 v-model="c.telefono"
                 type="text"
                 placeholder="Teléfono"
-                class="w-full px-2.5 py-2 rounded-lg text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest)"
+                class="w-full px-2.5 py-2 appearance-none shadow-none text-sm outline-none"
+                :style="inputStyle(false)"
               />
             </div>
             <div class="px-2 py-2">
@@ -553,8 +560,8 @@ async function confirmDeactivate() {
                 v-model="c.email"
                 type="email"
                 placeholder="Email"
-                class="w-full px-2.5 py-2 rounded-lg text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest)"
+                class="w-full px-2.5 py-2 appearance-none shadow-none text-sm outline-none"
+                :style="inputStyle(false)"
               />
             </div>
             <div class="px-2 py-2 flex justify-center">
@@ -578,14 +585,13 @@ async function confirmDeactivate() {
       </div>
 
       <template #footer>
-        <BaseButton variant="secondary" @click="showModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isSaving" @click="submit">
-          <svg v-if="isSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSaving ? "Guardando..." : editingProveedor ? "Guardar Cambios" : "Crear Proveedor" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSaving" @click="submit">
+            <span v-if="isSaving" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSaving ? "Guardando..." : editingProveedor ? "Guardar Cambios" : "Crear Proveedor" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -604,14 +610,13 @@ async function confirmDeactivate() {
         <p v-if="deactivateError" class="mt-3 text-sm font-medium" style="color: var(--color-error)">{{ deactivateError }}</p>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
-          <svg v-if="isDeactivating" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isDeactivating ? "Desactivando..." : "Desactivar" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showDeactivateModal = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" :disabled="isDeactivating" @click="confirmDeactivate">
+            <span v-if="isDeactivating" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isDeactivating ? "Desactivando..." : "Desactivar" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>

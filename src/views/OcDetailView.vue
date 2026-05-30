@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type PedidoCompras,
@@ -146,6 +147,20 @@ function itemsConRecepcion() {
 
 function maxDevolucion() {
   return pedido.value?.items.find((i) => i.id === devolucionForm.itemId)?.cantidadRecibida ?? 1
+}
+
+const devolucionItemOptions = computed(() =>
+  itemsConRecepcion().map(i => ({
+    value: i.id,
+    label: `${i.productoNombre} (recibidos: ${i.cantidadRecibida})`,
+  })),
+)
+
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
 async function submitDevolucion() {
@@ -553,54 +568,65 @@ async function submitDevolucion() {
         {{ cancelError }}
       </div>
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showCancelModal = false">Cerrar</BaseButton>
-        <BaseButton variant="danger" size="default" :disabled="isCancelando" @click="onCancelar">
-          {{ isCancelando ? "Cancelando…" : "Sí, cancelar" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" size="default" @click="showCancelModal = false">Cerrar</BaseButton>
+          <BaseButton variant="danger" size="default" :disabled="isCancelando" @click="onCancelar">
+            {{ isCancelando ? "Cancelando…" : "Sí, cancelar" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
     <!-- ── MODAL DEVOLUCIÓN ──────────────────────────────────────────────────── -->
     <BaseModal :show="showDevolucionModal" title="Registrar Devolución" size="lg" @close="showDevolucionModal = false">
-      <div v-if="devolucionError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="devolucionError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ devolucionError }}
       </div>
 
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Producto a devolver *</label>
-          <select v-model="devolucionForm.itemId" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)">
-            <option :value="null" disabled>Seleccioná un ítem</option>
-            <option v-for="item in itemsConRecepcion()" :key="item.id" :value="item.id">
-              {{ item.productoNombre }} (recibidos: {{ item.cantidadRecibida }})
-            </option>
-          </select>
+          <SearchableSelect
+            :model-value="devolucionForm.itemId"
+            :options="devolucionItemOptions"
+            null-label="Seleccioná un ítem"
+            @update:model-value="devolucionForm.itemId = $event as number | null"
+          />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Cantidad *</label>
           <input v-model.number="devolucionForm.cantidad" type="number" min="1" :max="maxDevolucion()"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
           <p class="text-xs mt-1" style="color: var(--color-outline)">Máximo: {{ maxDevolucion() }}</p>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo *</label>
           <input v-model="devolucionForm.motivo" type="text" placeholder="Defecto, daño, error de pedido..."
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
       </div>
 
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showDevolucionModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" size="default" :disabled="isDevolucionSaving" @click="submitDevolucion">
-          {{ isDevolucionSaving ? "Registrando…" : "Confirmar Devolución" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" size="default" @click="showDevolucionModal = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" size="default" :disabled="isDevolucionSaving" @click="submitDevolucion">
+            {{ isDevolucionSaving ? "Registrando…" : "Confirmar Devolución" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
   </div>
 </template>
+
+<style scoped>
+:deep(.ss-trigger) {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+</style>

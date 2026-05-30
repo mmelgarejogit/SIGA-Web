@@ -159,6 +159,7 @@ function inputStyle(hasError: boolean) {
           <SearchableSelect
             :model-value="form.sexo || null"
             :options="SEXO_OPTIONS"
+            :searchable="false"
             null-label="Sin especificar"
             @update:model-value="form.sexo = ($event as string) ?? ''"
           />

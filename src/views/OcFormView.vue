@@ -151,6 +151,13 @@ function cancel() {
   if (isEdit.value) router.push(`/compras/oc/${editId.value}`)
   else router.push("/compras/oc")
 }
+
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+}
 </script>
 
 <template>
@@ -221,8 +228,8 @@ function cancel() {
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
                 <input v-model="form.observaciones" type="text" placeholder="Opcional"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface-container-low)" />
+                  class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+                  :style="inputStyle(false)" />
               </div>
             </div>
           </div>
@@ -269,13 +276,13 @@ function cancel() {
                   </td>
                   <td class="px-6 py-3">
                     <input v-model.number="item.cantidad" type="number" min="1"
-                      class="w-full px-3 py-2 rounded-xl text-sm text-right outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-6 py-3">
                     <input v-model.number="item.precioUnitario" type="number" min="0" step="1"
-                      class="w-full px-3 py-2 rounded-xl text-sm text-right outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-6 py-3 text-right font-bold" style="color: var(--color-on-surface)">
                     {{ formatPrice(item.cantidad * item.precioUnitario) }}

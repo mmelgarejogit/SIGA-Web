@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   getRecepciones,
   type RecepcionListItem,
@@ -126,6 +127,24 @@ const hayFiltros = computed(() =>
   filtroFechaDesde.value !== "" ||
   filtroFechaHasta.value !== "",
 )
+
+function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
+  return [
+    {
+      type: "item",
+      label: "Ver detalle",
+      icon: "inventory",
+      action: () => router.push(`/compras/recepciones/${r.id}`),
+    },
+    { type: "separator" },
+    {
+      type: "item",
+      label: `Ver OC #${r.pedidoProveedorId}`,
+      icon: "open_in_new",
+      action: () => router.push(`/compras/oc/${r.pedidoProveedorId}`),
+    },
+  ]
+}
 </script>
 
 <template>
@@ -258,11 +277,9 @@ const hayFiltros = computed(() =>
 
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
-                    <button @click="router.push(`/compras/oc/${r.pedidoProveedorId}`)"
-                      class="font-mono text-xs font-semibold transition-all hover:opacity-75"
-                      style="color: var(--color-primary)">
+                    <span class="font-mono text-xs font-semibold" style="color: var(--color-primary)">
                       OC #{{ r.pedidoProveedorId }}
-                    </button>
+                    </span>
                     <span class="px-2 py-0.5 rounded-full text-xs font-bold"
                       :style="`background-color: ${estadoOCStyle(r.estadoOC).bg}; color: ${estadoOCStyle(r.estadoOC).text}`">
                       {{ estadoOCLabel(r.estadoOC) }}
@@ -281,13 +298,9 @@ const hayFiltros = computed(() =>
                 </td>
 
                 <td class="px-6 py-4">
-                  <button
-                    class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 bg-blue-100"
-                    title="Ver OC asociada"
-                    @click="router.push(`/compras/oc/${r.pedidoProveedorId}`)"
-                  >
-                    <span class="material-symbols-outlined text-blue-700" style="font-size: 18px">open_in_new</span>
-                  </button>
+                  <div class="flex justify-end">
+                    <RowContextMenu :items="rowMenuItems(r)" />
+                  </div>
                 </td>
               </tr>
             </tbody>

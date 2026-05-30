@@ -5,6 +5,7 @@ const props = defineProps<{
   modelValue: string   // yyyy-mm-dd or ""
   hasError?: boolean
   placeholder?: string
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{ "update:modelValue": [string] }>()
@@ -12,7 +13,7 @@ const emit = defineEmits<{ "update:modelValue": [string] }>()
 const inputRef = ref<HTMLInputElement | null>(null)
 
 function openPicker() {
-  if (!inputRef.value) return
+  if (props.disabled || !inputRef.value) return
   if ("showPicker" in inputRef.value) (inputRef.value as any).showPicker()
   else inputRef.value.focus()
 }
@@ -28,9 +29,10 @@ function onChange(e: Event) {
 }
 
 function triggerStyle() {
+  const opacity = props.disabled ? "opacity: 0.4; cursor: not-allowed; " : ""
   if (props.hasError)
-    return "border: 1.5px solid var(--color-error); background-color: #FFF8F7;"
-  return "border: 1px solid var(--color-outline-variant); background-color: var(--color-surface);"
+    return opacity + "border: 1.5px solid var(--color-error); background-color: #FFF8F7;"
+  return opacity + "border: 1px solid var(--color-outline-variant); background-color: var(--color-surface);"
 }
 </script>
 

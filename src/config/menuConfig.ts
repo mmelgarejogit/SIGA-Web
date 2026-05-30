@@ -140,6 +140,12 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Aprobación de OC",
+        icon: "task_alt",
+        route: "/compras/oc/aprobacion",
+        permission: "aprobar_pedidos",
+      },
+      {
         label: "Facturas de Compra",
         icon: "receipt",
         route: "/compras/facturas",

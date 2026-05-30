@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
+import DateInput from "@/components/DateInput.vue"
 import {
   getFacturasDisponiblesRecepcion,
   getComprasPedidoById,
@@ -211,7 +212,12 @@ function cancel() {
   router.push("/compras/recepciones")
 }
 
-const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+}
 </script>
 
 <template>
@@ -262,10 +268,10 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                 </label>
                 <div class="flex items-center gap-2">
                   <button type="button" @click="openFacturaModal"
-                    class="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
+                    class="flex-1 flex items-center gap-3 px-4 h-12 text-sm text-left transition-all appearance-none shadow-none"
                     :style="selectedFactura
-                      ? 'border: 1.5px solid var(--color-primary); background-color: #EEF2FF; color: var(--color-primary);'
-                      : inputStyle">
+                      ? 'border-radius: 12px; border: 1.5px solid var(--color-primary); background-color: #EEF2FF; color: var(--color-primary);'
+                      : inputStyle(false)">
                     <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">receipt_long</span>
                     <span class="flex-1 truncate">
                       {{ selectedFactura
@@ -291,8 +297,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Fecha de recepción *
                 </label>
-                <input v-model="fechaRecepcion" type="date"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+                <DateInput v-model="fechaRecepcion" />
               </div>
             </div>
 
@@ -318,7 +323,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                 Observaciones generales
               </label>
               <textarea v-model="observaciones" rows="2" placeholder="Notas sobre la recepción (opcional)…"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" :style="inputStyle" />
+                class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle(false)" />
             </div>
           </div>
 
@@ -382,20 +387,20 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                   <td class="px-3 py-3 text-center font-semibold" style="color: #92400e">{{ l.pendiente }}</td>
                   <td class="px-3 py-3">
                     <input v-model.number="l.cantidadRecibida" type="number" :min="0" :max="l.pendiente"
-                      class="w-full px-2 py-2 rounded-lg text-sm text-center outline-none font-bold"
-                      :style="inputStyle" />
+                      class="w-full px-2 py-2 appearance-none shadow-none text-sm text-center outline-none font-bold"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
                     <input v-model="l.lote" type="text" placeholder="—" maxlength="80"
-                      class="w-full px-2 py-2 rounded-lg text-sm outline-none" :style="inputStyle" />
+                      class="w-full px-2 py-2 appearance-none shadow-none text-sm outline-none" :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
                     <input v-model="l.fechaVencimiento" type="date"
-                      class="w-full px-2 py-2 rounded-lg text-sm outline-none" :style="inputStyle" />
+                      class="w-full px-2 py-2 appearance-none shadow-none text-sm outline-none" :style="inputStyle(false)" />
                   </td>
                   <td class="px-6 py-3">
                     <input v-model="l.observaciones" type="text" placeholder="—" maxlength="500"
-                      class="w-full px-3 py-2 rounded-lg text-sm outline-none" :style="inputStyle" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm outline-none" :style="inputStyle(false)" />
                   </td>
                 </tr>
               </tbody>
@@ -490,8 +495,8 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
         <div class="relative">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style="font-size: 18px; color: var(--color-outline)">search</span>
           <input v-model="modalSearchNro" type="text" placeholder="001-001-0000001…"
-            class="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full pl-10 pr-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
       </div>
     </div>
