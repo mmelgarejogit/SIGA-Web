@@ -45,9 +45,24 @@ export interface MovimientoStock {
   id: number
   productoId: number
   productoNombre: string
-  tipo: "Entrada" | "Salida" | "Ajuste"
+  tipo: "Entrada" | "Salida"
   cantidad: number
   motivo: string | null
+  motivoMovimientoId: number | null
+  fechaMovimiento: string
+  creadoPorNombre: string | null
+  estado: "Pendiente" | "Aprobado" | "Rechazado"
+  aprobadoPorNombre: string | null
+  fechaAprobacion: string | null
+  observacionesAprobacion: string | null
+  createdAt: string
+}
+
+export interface MotivoMovimiento {
+  id: number
+  nombre: string
+  tipo: "Entrada" | "Salida" | "Ambos"
+  isActive: boolean
   createdAt: string
 }
 
@@ -156,9 +171,26 @@ export interface UpdateModeloRequest {
 }
 
 export interface CreateMovimientoRequest {
-  tipo: "Entrada" | "Salida" | "Ajuste"
+  tipo: "Entrada" | "Salida"
   cantidad: number
-  motivo?: string
+  motivoMovimientoId?: number
+  fechaMovimiento?: string
+}
+
+export interface AprobarRechazarMovimientoRequest {
+  estado: "Aprobado" | "Rechazado"
+  observaciones?: string
+}
+
+export interface CreateMotivoMovimientoRequest {
+  nombre: string
+  tipo: "Entrada" | "Salida" | "Ambos"
+}
+
+export interface UpdateMotivoMovimientoRequest {
+  nombre: string
+  tipo: "Entrada" | "Salida" | "Ambos"
+  isActive: boolean
 }
 
 export interface CreateProveedorContactoRequest {
@@ -261,12 +293,22 @@ export async function getMovimientos(params: {
   page?: number
   pageSize?: number
   tipo?: string
+  estado?: string
 } = {}): Promise<PagedResult<MovimientoStock>> {
   const q = new URLSearchParams()
   if (params.page) q.set("page", String(params.page))
   if (params.pageSize) q.set("pageSize", String(params.pageSize))
   if (params.tipo) q.set("tipo", params.tipo)
+  if (params.estado) q.set("estado", params.estado)
   const { data } = await http.get<PagedResult<MovimientoStock>>(`/api/productos/movimientos?${q}`)
+  return data
+}
+
+export async function aprobarRechazarMovimiento(
+  id: number,
+  request: AprobarRechazarMovimientoRequest,
+): Promise<MovimientoStock> {
+  const { data } = await http.patch<MovimientoStock>(`/api/productos/movimientos/${id}/estado`, request)
   return data
 }
 
@@ -423,4 +465,26 @@ export async function updateModelo(id: number, request: UpdateModeloRequest): Pr
 
 export async function deactivateModelo(id: number): Promise<void> {
   await http.delete(`/api/marcas/modelos/${id}`)
+}
+
+// ── Motivos de Movimiento ──────────────────────────────────────────────────────
+
+export async function getMotivosMovimiento(tipo?: string): Promise<MotivoMovimiento[]> {
+  const q = tipo ? `?tipo=${tipo}` : ""
+  const { data } = await http.get<MotivoMovimiento[]>(`/api/motivos-movimiento${q}`)
+  return data
+}
+
+export async function createMotivoMovimiento(request: CreateMotivoMovimientoRequest): Promise<MotivoMovimiento> {
+  const { data } = await http.post<MotivoMovimiento>("/api/motivos-movimiento", request)
+  return data
+}
+
+export async function updateMotivoMovimiento(id: number, request: UpdateMotivoMovimientoRequest): Promise<MotivoMovimiento> {
+  const { data } = await http.put<MotivoMovimiento>(`/api/motivos-movimiento/${id}`, request)
+  return data
+}
+
+export async function deactivateMotivoMovimiento(id: number): Promise<void> {
+  await http.delete(`/api/motivos-movimiento/${id}`)
 }

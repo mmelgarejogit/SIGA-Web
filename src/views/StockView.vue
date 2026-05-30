@@ -12,11 +12,9 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
   type CategoriaProducto,
-  type CreateMovimientoRequest,
   getProductos,
   getCategorias,
   updateStockInfo,
-  registrarMovimiento,
 } from "@/services/inventarioService"
 
 const auth = useAuthStore()
@@ -126,46 +124,11 @@ async function submitEdit() {
   }
 }
 
-// ── Modal Movimiento ──────────────────────────────────────────────────────────
-
-const showMovModal = ref(false)
-const movProducto = ref<Producto | null>(null)
-const isMoving = ref(false)
-const movError = ref("")
-const movForm = reactive<CreateMovimientoRequest>({ tipo: "Entrada", cantidad: 1, motivo: "" })
-
-function openMovimiento(p: Producto) {
-  movProducto.value = p
-  Object.assign(movForm, { tipo: "Entrada", cantidad: 1, motivo: "" })
-  movError.value = ""
-  showMovModal.value = true
-}
-
-async function submitMovimiento() {
-  if (!movProducto.value) return
-  isMoving.value = true
-  movError.value = ""
-  try {
-    await registrarMovimiento(movProducto.value.id, {
-      ...movForm,
-      motivo: movForm.motivo?.trim() || undefined,
-    })
-    showMovModal.value = false
-    await load()
-  } catch (err: unknown) {
-    movError.value = err instanceof Error ? err.message : "Error al registrar movimiento."
-  } finally {
-    isMoving.value = false
-  }
-}
-
 // ── Context menu ──────────────────────────────────────────────────────────────
 
 function menuItems(p: Producto): ContextMenuItem[] {
   if (!canManage.value) return []
   return [
-    { type: "item", label: "Registrar movimiento", icon: "swap_horiz", action: () => openMovimiento(p) },
-    { type: "separator" },
     { type: "item", label: "Editar precios", icon: "edit", action: () => openEdit(p) },
   ]
 }
@@ -371,56 +334,5 @@ function formatGs(n: number) {
       </template>
     </BaseModal>
 
-    <!-- MODAL MOVIMIENTO -->
-    <BaseModal :show="showMovModal" title="Registrar Movimiento" size="sm" @close="showMovModal = false">
-      <p v-if="movProducto" class="text-sm font-semibold mb-4" style="color: var(--color-on-surface)">
-        {{ movProducto.nombre }}
-        <span class="font-normal ml-2" style="color: var(--color-outline)">Stock actual: {{ movProducto.stockActual }}</span>
-      </p>
-
-      <div v-if="movError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ movError }}
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Tipo</label>
-          <div class="flex gap-2">
-            <button v-for="tipo in ['Entrada', 'Salida', 'Ajuste']" :key="tipo"
-              @click="movForm.tipo = tipo as any"
-              class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
-              :style="movForm.tipo === tipo
-                ? 'background-color: var(--color-primary); color: white;'
-                : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant);'"
-            >{{ tipo }}</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
-            {{ movForm.tipo === "Ajuste" ? "Nuevo stock total" : "Cantidad" }}
-          </label>
-          <input v-model.number="movForm.cantidad" type="number" min="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo</label>
-          <input v-model="movForm.motivo" type="text" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
-        </div>
-      </div>
-
-      <template #footer>
-        <BaseButton variant="secondary" @click="showMovModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isMoving" @click="submitMovimiento">
-          {{ isMoving ? "Registrando…" : "Confirmar" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
   </div>
 </template>

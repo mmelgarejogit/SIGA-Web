@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
-import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
-import { useAuthStore } from "@/stores/auth"
+import {
+  type MovimientoStock,
+  getMovimientos,
+  aprobarRechazarMovimiento,
+} from "@/services/inventarioService"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type MovimientoStock, getMovimientos } from "@/services/inventarioService"
 import { http } from "@/api/http"
-
-const router = useRouter()
-const auth = useAuthStore()
-const canManage = computed(() => auth.hasPermission("gestionar_inventario"))
 
 // ── Lista ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +20,6 @@ const movimientos = ref<MovimientoStock[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const tipoFilter = ref<string[]>([])
-const estadoFilter = ref<string[]>([])
 const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
@@ -50,12 +47,6 @@ const tipoOptions = [
   { value: "Salida",  label: "Salidas",  dot: "#991b1b" },
 ]
 
-const estadoOptions = [
-  { value: "Pendiente",  label: "Pendientes",  dot: "#92400E" },
-  { value: "Aprobado",   label: "Aprobados",   dot: "#166534" },
-  { value: "Rechazado",  label: "Rechazados",  dot: "#991b1b" },
-]
-
 const columns = [
   { key: "fecha",    label: "Fecha movimiento" },
   { key: "producto", label: "Producto" },
@@ -63,7 +54,6 @@ const columns = [
   { key: "cantidad", label: "Cantidad" },
   { key: "motivo",   label: "Motivo" },
   { key: "usuario",  label: "Registrado por" },
-  { key: "estado",   label: "Estado" },
   { key: "acciones", label: "", align: "right" as const },
 ]
 
@@ -80,14 +70,6 @@ function tipoStyle(tipo: string) {
     : { bg: "#fee2e2", text: "#991b1b" }
 }
 
-function estadoBadge(estado: string) {
-  switch (estado) {
-    case "Aprobado":  return { bg: "#dcfce7", text: "#166534", icon: "check_circle" }
-    case "Rechazado": return { bg: "#fee2e2", text: "#991b1b", icon: "cancel" }
-    default:          return { bg: "#FEF3C7", text: "#92400E", icon: "schedule" }
-  }
-}
-
 async function load() {
   isLoading.value = true
   loadError.value = ""
@@ -96,7 +78,7 @@ async function load() {
       page: currentPage.value,
       pageSize: PAGE_SIZE,
       tipo: tipoFilter.value[0] || undefined,
-      estado: estadoFilter.value[0] || undefined,
+      estado: "Pendiente",
     })
     movimientos.value = result.items
     totalPages.value = result.totalPages
@@ -111,10 +93,12 @@ async function load() {
 onMounted(load)
 
 function onTipoChange(val: string[]) { tipoFilter.value = val; currentPage.value = 1; load() }
-function onEstadoChange(val: string[]) { estadoFilter.value = val; currentPage.value = 1; load() }
 
 function menuItems(m: MovimientoStock): ContextMenuItem[] {
   return [
+    { type: "item", label: "Aprobar", icon: "check_circle", action: () => openGestion(m, "Aprobado") },
+    { type: "item", label: "Rechazar", icon: "cancel", action: () => openGestion(m, "Rechazado"), danger: true },
+    { type: "separator" },
     { type: "item", label: "Descargar PDF", icon: "picture_as_pdf", action: () => downloadPdf(m) },
   ]
 }
@@ -126,6 +110,48 @@ const detailTarget = ref<MovimientoStock | null>(null)
 
 function openDetail(m: MovimientoStock) { detailTarget.value = m; showDetailModal.value = true }
 function closeDetail() { showDetailModal.value = false }
+
+// ── Aprobar / Rechazar ────────────────────────────────────────────────────────
+
+const showGestionModal = ref(false)
+const gestionTarget = ref<MovimientoStock | null>(null)
+const gestionAccion = ref<"Aprobado" | "Rechazado">("Aprobado")
+const gestionObs = ref("")
+const isGestioning = ref(false)
+const gestionError = ref("")
+
+function openGestion(m: MovimientoStock, accion: "Aprobado" | "Rechazado") {
+  gestionTarget.value = m
+  gestionAccion.value = accion
+  gestionObs.value = ""
+  gestionError.value = ""
+  showGestionModal.value = true
+}
+
+function openGestionFromDetail(accion: "Aprobado" | "Rechazado") {
+  if (!detailTarget.value) return
+  const m = detailTarget.value
+  closeDetail()
+  openGestion(m, accion)
+}
+
+async function submitGestion() {
+  if (!gestionTarget.value) return
+  isGestioning.value = true
+  gestionError.value = ""
+  try {
+    await aprobarRechazarMovimiento(gestionTarget.value.id, {
+      estado: gestionAccion.value,
+      observaciones: gestionObs.value.trim() || undefined,
+    })
+    showGestionModal.value = false
+    await load()
+  } catch (err: unknown) {
+    gestionError.value = err instanceof Error ? err.message : "Error al procesar el movimiento."
+  } finally {
+    isGestioning.value = false
+  }
+}
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
 
@@ -158,21 +184,26 @@ async function downloadPdf(m: MovimientoStock) {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Movimientos de Stock</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Aprobaciones</h1>
             <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
-              {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
+              <span v-if="totalCount > 0">
+                {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} pendiente{{ totalCount !== 1 ? "s" : "" }} de aprobación
+              </span>
+              <span v-else>Sin movimientos pendientes</span>
             </p>
           </div>
-          <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/stock/movimientos/nuevo')">
-            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
-            Nuevo Movimiento
-          </BaseButton>
+          <!-- Badge contador -->
+          <div v-if="totalCount > 0"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold"
+            style="background-color: #FEF3C7; color: #92400E">
+            <span class="material-symbols-outlined" style="font-size: 18px">schedule</span>
+            {{ totalCount }} pendiente{{ totalCount !== 1 ? "s" : "" }}
+          </div>
         </div>
 
         <!-- Filtros -->
         <div class="flex items-center gap-3 mb-6 flex-wrap">
           <FilterChips :model-value="tipoFilter" :options="tipoOptions" placeholder="Tipo" @update:model-value="onTipoChange" />
-          <FilterChips :model-value="estadoFilter" :options="estadoOptions" placeholder="Estado" @update:model-value="onEstadoChange" />
         </div>
 
         <!-- Error -->
@@ -185,7 +216,7 @@ async function downloadPdf(m: MovimientoStock) {
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden"
           style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
-          <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos registrados." @row-click="openDetail">
+          <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos pendientes de aprobación." @row-click="openDetail">
 
             <template #fecha="{ item }">
               <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaMovimiento) }}</span>
@@ -214,14 +245,6 @@ async function downloadPdf(m: MovimientoStock) {
 
             <template #usuario="{ item }">
               <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.creadoPorNombre ?? "—" }}</span>
-            </template>
-
-            <template #estado="{ item }">
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="`background-color: ${estadoBadge(item.estado).bg}; color: ${estadoBadge(item.estado).text}`">
-                <span class="material-symbols-outlined" style="font-size: 13px">{{ estadoBadge(item.estado).icon }}</span>
-                {{ item.estado }}
-              </span>
             </template>
 
             <template #acciones="{ item }">
@@ -274,10 +297,9 @@ async function downloadPdf(m: MovimientoStock) {
             :style="`background-color: ${tipoStyle(detailTarget.tipo).bg}; color: ${tipoStyle(detailTarget.tipo).text}`">
             {{ detailTarget.tipo }}
           </span>
-          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
-            :style="`background-color: ${estadoBadge(detailTarget.estado).bg}; color: ${estadoBadge(detailTarget.estado).text}`">
-            <span class="material-symbols-outlined" style="font-size: 13px">{{ estadoBadge(detailTarget.estado).icon }}</span>
-            {{ detailTarget.estado }}
+          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold" style="background-color: #FEF3C7; color: #92400E">
+            <span class="material-symbols-outlined" style="font-size: 13px">schedule</span>
+            Pendiente
           </span>
         </div>
 
@@ -306,32 +328,6 @@ async function downloadPdf(m: MovimientoStock) {
           </div>
         </div>
 
-        <div v-if="detailTarget.estado !== 'Pendiente'" class="rounded-2xl overflow-hidden"
-          :style="`border: 1px solid ${estadoBadge(detailTarget.estado).bg}`">
-          <div class="px-5 py-2.5 flex items-center gap-2" :style="`background-color: ${estadoBadge(detailTarget.estado).bg}`">
-            <span class="material-symbols-outlined" style="font-size: 16px" :style="`color: ${estadoBadge(detailTarget.estado).text}`">{{ estadoBadge(detailTarget.estado).icon }}</span>
-            <p class="text-xs font-bold uppercase tracking-wider" :style="`color: ${estadoBadge(detailTarget.estado).text}`">
-              {{ detailTarget.estado === "Aprobado" ? "Aprobación" : "Rechazo" }}
-            </p>
-          </div>
-          <div class="grid grid-cols-2">
-            <div class="px-5 py-3.5" style="border-bottom: 1px solid rgba(196,197,213,0.2); border-right: 1px solid rgba(196,197,213,0.2)">
-              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">
-                {{ detailTarget.estado === "Aprobado" ? "Aprobado por" : "Rechazado por" }}
-              </p>
-              <p class="text-sm" style="color: var(--color-on-surface)">{{ detailTarget.aprobadoPorNombre ?? "—" }}</p>
-            </div>
-            <div class="px-5 py-3.5" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
-              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Fecha</p>
-              <p class="text-sm" style="color: var(--color-on-surface)">{{ detailTarget.fechaAprobacion ? formatDate(detailTarget.fechaAprobacion) : "—" }}</p>
-            </div>
-            <div v-if="detailTarget.observacionesAprobacion" class="col-span-2 px-5 py-3.5">
-              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Observaciones</p>
-              <p class="text-sm" style="color: var(--color-on-surface)">{{ detailTarget.observacionesAprobacion }}</p>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       <template #footer>
@@ -342,8 +338,62 @@ async function downloadPdf(m: MovimientoStock) {
             <span v-else class="material-symbols-outlined" style="font-size: 16px">picture_as_pdf</span>
             Descargar PDF
           </button>
-          <BaseButton variant="secondary" @click="closeDetail">Cerrar</BaseButton>
+          <div class="flex items-center gap-2">
+            <BaseButton variant="secondary" @click="closeDetail">Cerrar</BaseButton>
+            <BaseButton variant="danger" @click="openGestionFromDetail('Rechazado')">
+              <span class="material-symbols-outlined" style="font-size: 16px">cancel</span>
+              Rechazar
+            </BaseButton>
+            <BaseButton variant="primary" @click="openGestionFromDetail('Aprobado')">
+              <span class="material-symbols-outlined" style="font-size: 16px">check_circle</span>
+              Aprobar
+            </BaseButton>
+          </div>
         </div>
+      </template>
+    </BaseModal>
+
+    <!-- MODAL CONFIRMAR ACCIÓN -->
+    <BaseModal
+      :show="showGestionModal"
+      :title="gestionAccion === 'Aprobado' ? 'Aprobar Movimiento' : 'Rechazar Movimiento'"
+      size="sm"
+      @close="showGestionModal = false"
+    >
+      <div v-if="gestionTarget">
+        <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
+          <span v-if="gestionAccion === 'Aprobado'">
+            ¿Aprobar el movimiento de
+            <strong style="color: var(--color-on-surface)">{{ gestionTarget.tipo === 'Entrada' ? '+' : '-' }}{{ gestionTarget.cantidad }}</strong>
+            en <strong style="color: var(--color-on-surface)">{{ gestionTarget.productoNombre }}</strong>?
+            Se actualizará el stock al confirmar.
+          </span>
+          <span v-else>
+            ¿Rechazar el movimiento de <strong style="color: var(--color-on-surface)">{{ gestionTarget.productoNombre }}</strong>?
+            No se aplicarán cambios al stock.
+          </span>
+        </p>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
+            {{ gestionAccion === 'Rechazado' ? 'Motivo del rechazo' : 'Observaciones (opcional)' }}
+          </label>
+          <textarea v-model="gestionObs" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+            :placeholder="gestionAccion === 'Rechazado' ? 'Indicá el motivo del rechazo…' : 'Opcional…'" />
+        </div>
+
+        <div v-if="gestionError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mt-3 text-sm font-medium"
+          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+          {{ gestionError }}
+        </div>
+      </div>
+
+      <template #footer>
+        <BaseButton variant="secondary" @click="showGestionModal = false">Cancelar</BaseButton>
+        <BaseButton :variant="gestionAccion === 'Aprobado' ? 'primary' : 'danger'" :disabled="isGestioning" @click="submitGestion">
+          {{ isGestioning ? "Procesando…" : (gestionAccion === 'Aprobado' ? 'Aprobar' : 'Rechazar') }}
+        </BaseButton>
       </template>
     </BaseModal>
   </div>

@@ -125,6 +125,18 @@ export const menuConfig: MenuItem[] = [
         route: "/stock/movimientos",
         permission: "ver_inventario",
       },
+      {
+        label: "Motivos",
+        icon: "list_alt",
+        route: "/stock/motivos",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Aprobaciones",
+        icon: "task_alt",
+        route: "/stock/aprobaciones",
+        permission: "gestionar_inventario",
+      },
     ],
   },
   {

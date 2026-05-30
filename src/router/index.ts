@@ -184,6 +184,24 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Movimientos de Stock" },
     },
     {
+      path: "/stock/movimientos/nuevo",
+      name: "stock-movimientos-nuevo",
+      component: () => import("@/views/MovimientoFormView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Nuevo Movimiento" },
+    },
+    {
+      path: "/stock/motivos",
+      name: "stock-motivos",
+      component: () => import("@/views/MotivosMovimientoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Motivos de Movimiento" },
+    },
+    {
+      path: "/stock/aprobaciones",
+      name: "stock-aprobaciones",
+      component: () => import("@/views/AprobacionesView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Aprobaciones" },
+    },
+    {
       path: "/inventario/movimientos",
       redirect: "/stock/movimientos",
     },
