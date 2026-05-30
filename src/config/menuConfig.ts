@@ -125,6 +125,18 @@ export const menuConfig: MenuItem[] = [
         route: "/stock/movimientos",
         permission: "ver_inventario",
       },
+      {
+        label: "Motivos",
+        icon: "list_alt",
+        route: "/stock/motivos",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Aprobaciones",
+        icon: "task_alt",
+        route: "/stock/aprobaciones",
+        permission: "gestionar_inventario",
+      },
     ],
   },
   {
@@ -178,10 +190,22 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_egresos",
     children: [
       {
-        label: "Egresos",
+        label: "Lista de Egresos",
         icon: "receipt_long",
         route: "/egresos",
         permission: "ver_egresos",
+      },
+      {
+        label: "Nueva Solicitud",
+        icon: "add_circle",
+        route: "/egresos/nuevo",
+        permission: "gestionar_egresos",
+      },
+      {
+        label: "Aprobación",
+        icon: "task_alt",
+        route: "/egresos/aprobacion",
+        permission: "aprobar_egresos",
       },
       {
         label: "Categorías de Gasto",
@@ -250,6 +274,32 @@ export const menuConfig: MenuItem[] = [
     ],
   },
   {
+    id: "personal",
+    label: "Personal",
+    icon: "people",
+    permission: "ver_profesionales",
+    children: [
+      {
+        label: "Profesionales",
+        icon: "stethoscope",
+        route: "/profesionales",
+        permission: "ver_profesionales",
+      },
+      {
+        label: "Empleados",
+        icon: "badge",
+        route: "/personal/empleados",
+        permission: "ver_empleados",
+      },
+      {
+        label: "Cargos",
+        icon: "work",
+        route: "/personal/empleados/cargos",
+        permission: "ver_empleados",
+      },
+    ],
+  },
+  {
     id: "admin",
     label: "Administración",
     icon: "manage_accounts",
@@ -260,12 +310,6 @@ export const menuConfig: MenuItem[] = [
         icon: "shield_person",
         route: "/usuarios",
         permission: "ver_usuarios",
-      },
-      {
-        label: "Profesionales",
-        icon: "stethoscope",
-        route: "/profesionales",
-        permission: "ver_profesionales",
       },
       {
         label: "Configuración",
