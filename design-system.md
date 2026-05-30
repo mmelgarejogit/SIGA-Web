@@ -97,9 +97,12 @@ Toda la app usa variables CSS con naming de Material Design 3. **Nunca usar colo
 | Elemento | Valor |
 |---|---|
 | Tabla, cards, modales | `rounded-2xl` |
-| Inputs, toggles, filas de toggle | `rounded-xl` |
+| Inputs de formulario (text, select, date, textarea) | `border-radius: 12px` vía `inputStyle()` — **no usar** `rounded-xl` (en este proyecto vale 3rem) |
+| Dropdowns (SearchableSelect, DateRangeBar, RowContextMenu) | `border-radius: 12px` |
+| Filtros de barra (FilterChips, SearchableSelect en toolbar) | `border-radius: 8px` |
 | Avatares, badges de estado, botones de paginación | `rounded-full` |
-| Badges de estado | `rounded-full` |
+
+> **Importante:** `--radius-xl` está definido como `3rem` en este proyecto. Usar siempre `border-radius: 12px` inline o vía `inputStyle()` para campos de formulario — **nunca** `rounded-xl`.
 
 ---
 
@@ -216,7 +219,7 @@ Toda la app usa variables CSS con naming de Material Design 3. **Nunca usar colo
     v-model="form.campo"
     type="text"
     placeholder="Placeholder"
-    class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+    class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
     :style="inputStyle(!!errors.campo)"
   />
   <p v-if="errors.campo" class="text-xs font-medium" style="color: var(--color-error)">
@@ -225,13 +228,34 @@ Toda la app usa variables CSS con naming de Material Design 3. **Nunca usar colo
 </div>
 ```
 
+### Reglas de aspecto para campos de formulario
+
+- **Alto fijo:** `h-12` (48px) en todos los campos — text, tel, email, select, date. Garantiza que todos los campos tengan la misma altura independientemente del browser.
+- **Border radius:** siempre `border-radius: 12px` vía `inputStyle()`. **No usar** `rounded-xl` (en este proyecto = 3rem).
+- **Sin decoraciones nativas:** `appearance-none shadow-none` elimina el inset shadow y el estilo nativo del browser, dando un aspecto plano y rectangular.
+- **Textarea:** no usa `h-12` (es multi-línea), pero sí `appearance-none shadow-none` y `border-radius: 12px`.
+- **Campos de solo lectura** (ej: CI no editable): mismo aspecto pero con fondo `var(--color-surface-container-low)`, texto `var(--color-on-surface-variant)` y `cursor-not-allowed`.
+
 ### Función `inputStyle` (copiar en cada página)
 ```ts
 function inputStyle(hasError: boolean) {
+  const base = 'border-radius: 12px; '
   return hasError
-    ? 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
-    : 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
+```
+
+### Campo de solo lectura (no editable)
+```vue
+<input
+  :value="item.ci"
+  type="text"
+  readonly
+  class="px-4 h-12 text-sm outline-none appearance-none shadow-none cursor-not-allowed"
+  style="border-radius: 12px; border: 1px solid var(--color-outline-variant);
+         color: var(--color-on-surface-variant); background-color: var(--color-surface-container-low);"
+/>
 ```
 
 ### Toggle de estado
@@ -1062,18 +1086,115 @@ watch(activeFilters, () => { currentPage.value = 1; loadItems() })
 
 ---
 
-## 19. Checklist para nuevas páginas
+## 19. `DateInput` — Selector de Fecha con Formato dd/mm/aaaa
+
+Componente en `src/components/DateInput.vue`.
+
+Reemplaza `<input type="date">` en todos los formularios. Muestra el valor en formato `dd/mm/aaaa`, abre el calendario nativo del browser al hacer clic, y se integra visualmente con los demás campos del formulario.
+
+### Props / Emits
+```ts
+defineProps<{
+  modelValue: string   // yyyy-mm-dd (ISO) o ""
+  hasError?: boolean
+  placeholder?: string // default: "dd/mm/aaaa"
+}>()
+defineEmits<{ "update:modelValue": [string] }>()
+```
+
+### Uso
+```vue
+<div class="flex flex-col gap-1.5">
+  <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+    Fecha de Nacimiento *
+  </label>
+  <DateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
+  <p v-if="errors.birthDate" class="text-xs font-medium" style="color: var(--color-error)">
+    {{ errors.birthDate }}
+  </p>
+</div>
+```
+
+### Comportamiento
+- Muestra `dd/mm/aaaa` cuando no hay valor (placeholder en gris).
+- Muestra la fecha formateada (ej: `15/06/1990`) cuando hay valor.
+- Al hacer clic abre el calendario nativo del browser vía `showPicker()`.
+- Emite el valor en formato ISO `yyyy-mm-dd` para la API.
+- La `prop` `modelValue` acepta ISO y convierte automáticamente al mostrar.
+- `hasError: true` aplica el borde rojo y fondo rosado de `inputStyle()`.
+
+### Aspecto visual
+- Mismo alto (48px), `border-radius: 12px`, bordes y fondo que los demás inputs.
+- Ícono `calendar_today` a la izquierda.
+- El input `type="date"` real queda oculto (`1px × 1px`, `opacity: 0`) anclado en `bottom: 0` del wrapper para que el picker nativo aparezca debajo del botón.
+
+---
+
+## 20. `DateRangeBar` — Barra de Navegación de Fechas con Mini Calendario
+
+Componente en `src/components/DateRangeBar.vue`. Usado en la vista de Agenda.
+
+### Props / Emits
+```ts
+defineProps<{
+  modelValue: Date
+  mode: "dia" | "semana" | "mes"
+}>()
+defineEmits<{
+  (e: "update:modelValue", value: Date): void
+  (e: "update:mode", value: "dia" | "semana" | "mes"): void
+}>()
+```
+
+### Uso
+```vue
+<DateRangeBar v-model="selectedDate" v-model:mode="viewMode" />
+```
+
+### Elementos que compone
+1. **Navegador de fecha** — botones `chevron_left` / `chevron_right` y etiqueta central clicable.
+2. **Botón "Hoy"** — aparece solo cuando no se está viendo hoy (modo día).
+3. **Selector de modo** — segmented control Día / Semana / Mes.
+4. **Mini calendario flotante** — se abre al clicar la etiqueta de fecha. Es un dropdown posicionado con `position: absolute; top: calc(100% + 8px)` sobre el resto del contenido (no desplaza el layout).
+
+### Mini calendario — aspecto y comportamiento
+- Fondo blanco, `border-radius: 16px` (`rounded-2xl`), sombra `0 8px 24px rgba(0,40,142,0.12)`.
+- Grilla 7 columnas (Lun–Dom), días del mes anterior/siguiente en `opacity: 0.4`.
+- Día seleccionado: fondo `var(--color-primary)`, texto blanco, `border-radius: 8px`.
+- Modo semana: días de la semana seleccionada con fondo `color-mix(in srgb, primary 15%, transparent)`.
+- Se cierra al seleccionar un día o al hacer clic fuera.
+- **Flotante:** `z-index: 50`, nunca empuja el contenido siguiente.
+
+### Regla de posicionamiento del dropdown
+El wrapper raíz es `position: relative; display: inline-flex`. El calendario usa:
+```css
+position: absolute;
+top: calc(100% + 8px);
+left: 0;
+z-index: 50;
+min-width: 280px;
+```
+
+---
+
+## 21. Checklist para nuevas páginas
 
 - [ ] Layout: `<AppSidebar />` + `<AppHeader />` + `<main style="margin-left: var(--sidebar-width); padding-top: 64px">`
 - [ ] Page header con H1, subtítulo y botón de acción principal
-- [ ] Toolbar: `<FilterTabs>` a la izquierda, `<SearchInput>` a la derecha
+- [ ] Toolbar: `<FilterChips>` a la izquierda, `<SearchInput>` a la derecha
 - [ ] Tabla envuelta en `rounded-2xl` con `box-shadow` + `outline` estándar
 - [ ] Footer de paginación con conteo "Mostrando X–Y de Z"
 - [ ] Modales con `<BaseModal>`: crear (`lg`), editar (`lg`), confirmar (`sm`)
-- [ ] `inputStyle()` presente para todos los inputs
+- [ ] Footer de modal con `<div class="flex justify-between w-full">` — Cancelar izquierda, Confirmar derecha
+- [ ] `inputStyle()` con `border-radius: 12px` presente para todos los inputs
+- [ ] Inputs con `h-12 appearance-none shadow-none` (ver §5)
+- [ ] Campos de fecha con `<DateInput>` — nunca `<input type="date">` directo
+- [ ] Campos de solo lectura con estilo grisáceo (ver §5)
+- [ ] Selects de búsqueda con `<SearchableSelect>` — nunca `<select>` nativo en formularios
 - [ ] Errores de campo con `text-xs font-medium color: --color-error`
 - [ ] Banners de error con `rounded-2xl` e ícono de 18px
-- [ ] Spinners en todos los botones de submit mientras `isSaving === true`
+- [ ] Spinner: `<span class="material-symbols-outlined animate-spin">progress_activity</span>` mientras `isSaving`
 - [ ] Permisos verificados con `auth.hasPermission('...')` antes de mostrar acciones
 - [ ] Debounce de 350ms en búsqueda
+- [ ] Acciones de fila con `<RowContextMenu>` (ver §17)
 - [ ] Cards de insight al final (opcional, según la página)

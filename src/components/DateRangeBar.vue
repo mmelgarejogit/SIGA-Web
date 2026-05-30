@@ -207,13 +207,13 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
 </script>
 
 <template>
-  <div ref="barRef" class="inline-flex flex-col">
+  <div ref="barRef" class="relative inline-flex">
     <!-- Bar -->
     <div class="flex items-center gap-3 flex-wrap">
       <!-- Date navigator -->
       <div
-        class="flex items-center rounded-xl overflow-hidden"
-        style="border: 1px solid var(--color-outline-variant); background: white"
+        class="flex items-center overflow-hidden"
+        style="border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white"
       >
         <button
           @click="prev"
@@ -256,16 +256,16 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
       <button
         v-if="showHoyButton"
         @click="goToToday"
-        class="px-4 rounded-xl text-sm font-semibold transition-colors hover:bg-surface-container-high"
-        style="height: 36px; border: 1px solid var(--color-outline-variant); background: white; color: var(--color-on-surface)"
+        class="px-4 text-sm font-semibold transition-colors hover:bg-surface-container-high"
+        style="height: 36px; border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white; color: var(--color-on-surface)"
       >
         Hoy
       </button>
 
       <!-- Mode segmented -->
       <div
-        class="flex items-center rounded-xl overflow-hidden"
-        style="border: 1px solid var(--color-outline-variant); background: white"
+        class="flex items-center overflow-hidden"
+        style="border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white"
       >
         <button
           v-for="m in modes"
@@ -289,11 +289,11 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
       </div>
     </div>
 
-    <!-- Mini calendar (inline) -->
+    <!-- Mini calendar (floating dropdown) -->
     <div
       v-if="showCalendar"
-      class="mt-2 p-4 rounded-2xl"
-      style="background: white; border: 1px solid var(--color-outline-variant)"
+      class="absolute p-4 z-50"
+      style="top: calc(100% + 8px); left: 0; border-radius: 12px; background: white; border: 1px solid var(--color-outline-variant); box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12); min-width: 280px"
     >
       <!-- Calendar header -->
       <div class="flex items-center justify-between mb-3">

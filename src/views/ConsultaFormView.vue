@@ -4,8 +4,9 @@ import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
-import SearchInput from "@/components/SearchInput.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import DateInput from "@/components/DateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import { type CreateConsultaClinicaRequest, createConsulta } from "@/services/clinicaService"
 import { getPatients, type Patient } from "@/services/patientService"
@@ -25,6 +26,23 @@ const isProfessional = computed(() => !!auth.user?.professionalId)
 const professionals = ref<Professional[]>([])
 const selectedProfessionalId = ref<number | null>(auth.user?.professionalId ?? null)
 
+// ── Pacientes ─────────────────────────────────────────────────────────────
+
+const patients = ref<Patient[]>([])
+const selectedPatientId = ref<number | null>(null)
+
+const selectedPatient = computed(() =>
+  patients.value.find(p => p.id === selectedPatientId.value) ?? null,
+)
+
+const patientOptions = computed(() =>
+  patients.value.map(p => ({
+    value: p.id,
+    label: `${p.firstName} ${p.lastName}`,
+    code: p.ci,
+  })),
+)
+
 onMounted(async () => {
   const tasks: Promise<unknown>[] = []
 
@@ -36,17 +54,15 @@ onMounted(async () => {
     )
   }
 
-  const prePatientId = route.query.patientId ? Number(route.query.patientId) : null
-  if (prePatientId) {
-    tasks.push(
-      getPatients({ pageSize: 500 })
-        .then((res) => {
-          const found = res.items.find((p) => p.id === prePatientId)
-          if (found) selectPatient(found)
-        })
-        .catch(() => {}),
-    )
-  }
+  tasks.push(
+    getPatients({ pageSize: 500, status: "active" })
+      .then((res) => {
+        patients.value = res.items
+        const prePatientId = route.query.patientId ? Number(route.query.patientId) : null
+        if (prePatientId) selectedPatientId.value = prePatientId
+      })
+      .catch(() => {}),
+  )
 
   await Promise.all(tasks)
 
@@ -55,56 +71,6 @@ onMounted(async () => {
   }
 })
 
-// ── Búsqueda de paciente ──────────────────────────────────────────────────
-
-const patientSearch = ref("")
-const patientResults = ref<Patient[]>([])
-const selectedPatient = ref<Patient | null>(null)
-const showPatientDrop = ref(false)
-let patientDebounce: ReturnType<typeof setTimeout> | null = null
-
-async function onPatientInput() {
-  selectedPatient.value = null
-  if (patientDebounce) clearTimeout(patientDebounce)
-  if (patientSearch.value.trim().length < 2) {
-    patientResults.value = []
-    showPatientDrop.value = false
-    return
-  }
-  patientDebounce = setTimeout(async () => {
-    try {
-      const result = await getPatients({
-        search: patientSearch.value,
-        pageSize: 8,
-        status: "active",
-      })
-      patientResults.value = result.items
-      showPatientDrop.value = patientResults.value.length > 0
-    } catch {
-      patientResults.value = []
-    }
-  }, 300)
-}
-
-function selectPatient(p: Patient) {
-  selectedPatient.value = p
-  patientSearch.value = `${p.firstName} ${p.lastName} — ${p.ci}`
-  showPatientDrop.value = false
-  patientResults.value = []
-}
-
-function clearPatient() {
-  selectedPatient.value = null
-  patientSearch.value = ""
-  patientResults.value = []
-  showPatientDrop.value = false
-}
-
-function onPatientInputBlur() {
-  setTimeout(() => {
-    showPatientDrop.value = false
-  }, 150)
-}
 
 // ── Formulario ────────────────────────────────────────────────────────────
 
@@ -234,10 +200,15 @@ function initials(fn: string, ln: string) {
   return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
 }
 
+const professionalOptions = computed(() =>
+  professionals.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })),
+)
+
 function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 const recetaColumns = [
@@ -294,57 +265,19 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             "
           >
             <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">Paciente</h3>
-            <div class="flex flex-col gap-1.5 relative">
-              <label
-                class="text-xs font-bold uppercase tracking-wider"
-                style="color: var(--color-outline)"
-                >Buscar paciente *</label
-              >
-              <SearchInput
-                v-model="patientSearch"
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+                Paciente *
+              </label>
+              <SearchableSelect
+                :model-value="selectedPatientId"
+                :options="patientOptions"
                 placeholder="Buscar por nombre o CI..."
-                :error="!!createErrors.patient"
-                @update:modelValue="onPatientInput"
-                @blur="onPatientInputBlur"
+                @update:model-value="selectedPatientId = $event as number | null"
               />
-              <p
-                v-if="createErrors.patient"
-                class="text-xs font-medium"
-                style="color: var(--color-error)"
-              >
+              <p v-if="createErrors.patient" class="text-xs font-medium" style="color: var(--color-error)">
                 {{ createErrors.patient }}
               </p>
-              <div
-                v-if="showPatientDrop"
-                class="absolute top-full mt-1 w-full rounded-xl shadow-lg z-10 overflow-hidden"
-                style="
-                  background-color: var(--color-surface-container-lowest);
-                  border: 1px solid rgba(196, 197, 213, 0.4);
-                "
-              >
-                <button
-                  v-for="p in patientResults"
-                  :key="p.id"
-                  type="button"
-                  @mousedown.prevent="selectPatient(p)"
-                  class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-                  onmouseout="this.style.backgroundColor = 'transparent'"
-                >
-                  <div
-                    class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                    :style="`background-color: ${avatarStyle(p.id).bg}; color: ${avatarStyle(p.id).color};`"
-                  >
-                    {{ initials(p.firstName, p.lastName) }}
-                  </div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--color-on-surface)">
-                      {{ p.firstName }} {{ p.lastName }}
-                    </div>
-                    <div class="text-xs" style="color: var(--color-outline)">CI {{ p.ci }}</div>
-                  </div>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -371,8 +304,9 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               <!-- Profesional logueado: solo lectura -->
               <div
                 v-if="isProfessional"
-                class="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+                class="flex items-center gap-2 px-4 h-12 text-sm appearance-none shadow-none"
                 style="
+                  border-radius: 12px;
                   border: 1px solid var(--color-outline-variant);
                   background-color: var(--color-surface-container-low);
                   color: var(--color-on-surface-variant);
@@ -383,22 +317,13 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               </div>
 
               <!-- Admin: selector -->
-              <div v-else class="relative">
-                <span
-                  class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
-                  style="color: var(--color-outline); font-size: 16px"
-                  >person</span
-                >
-                <select
-                  v-model="selectedProfessionalId"
-                  class="w-full pl-9 pr-8 py-3 rounded-xl text-sm outline-none appearance-none"
-                  :style="inputStyle(!!createErrors.professional)"
-                >
-                  <option :value="null" disabled>Seleccioná un profesional...</option>
-                  <option v-for="pr in professionals" :key="pr.id" :value="pr.id">
-                    {{ pr.firstName }} {{ pr.lastName }}
-                  </option>
-                </select>
+              <div v-else>
+                <SearchableSelect
+                  :model-value="selectedProfessionalId"
+                  :options="professionalOptions"
+                  placeholder="Buscar profesional..."
+                  @update:model-value="selectedProfessionalId = $event as number | null"
+                />
               </div>
 
               <p
@@ -416,12 +341,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 style="color: var(--color-outline)"
                 >Fecha *</label
               >
-              <input
-                v-model="createForm.fechaConsulta"
-                type="date"
-                class="px-4 py-3 rounded-xl text-sm outline-none"
-                :style="inputStyle(!!createErrors.fechaConsulta)"
-              />
+              <DateInput v-model="createForm.fechaConsulta" :has-error="!!createErrors.fechaConsulta" />
               <p
                 v-if="createErrors.fechaConsulta"
                 class="text-xs font-medium"
@@ -440,7 +360,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               <input
                 v-model="createForm.motivo"
                 type="text"
-                class="px-4 py-3 rounded-xl text-sm outline-none"
+                class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                 :style="inputStyle(!!createErrors.motivo)"
               />
               <p
@@ -462,7 +382,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <textarea
                   v-model="createForm.anamnesis"
                   rows="4"
-                  class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
                 ></textarea>
               </div>
@@ -475,7 +395,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <textarea
                   v-model="createForm.examenFisico"
                   rows="4"
-                  class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
                 ></textarea>
               </div>
@@ -491,7 +411,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <input
                   v-model="createForm.diagnosticoPrincipal"
                   type="text"
-                  class="px-4 py-3 rounded-xl text-sm outline-none"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(!!createErrors.diagnosticoPrincipal)"
                 />
                 <p
@@ -511,7 +431,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <input
                   v-model="createForm.diagnosticoSecundario"
                   type="text"
-                  class="px-4 py-3 rounded-xl text-sm outline-none"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(false)"
                 />
               </div>
@@ -527,7 +447,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <textarea
                   v-model="createForm.planTratamiento"
                   rows="4"
-                  class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
                 ></textarea>
               </div>
@@ -540,7 +460,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 <textarea
                   v-model="createForm.observaciones"
                   rows="4"
-                  class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
                 ></textarea>
               </div>
@@ -608,12 +528,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 style="color: var(--color-outline)"
                 >Fecha de Emisión</label
               >
-              <input
-                v-model="recetaForm.fechaEmision"
-                type="date"
-                class="px-4 py-2.5 rounded-xl text-sm outline-none w-48"
-                :style="inputStyle(false)"
-              />
+              <DateInput v-model="recetaForm.fechaEmision" />
             </div>
 
             <div class="overflow-x-auto">
@@ -629,7 +544,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.odEsferico"
                     type="text"
                     placeholder="+0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                   <input
@@ -637,7 +552,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.oiEsferico"
                     type="text"
                     placeholder="+0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </template>
@@ -647,7 +562,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.odCilindro"
                     type="text"
                     placeholder="-0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                   <input
@@ -655,7 +570,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.oiCilindro"
                     type="text"
                     placeholder="-0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </template>
@@ -665,7 +580,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.odEje"
                     type="text"
                     placeholder="0"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                   <input
@@ -673,7 +588,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.oiEje"
                     type="text"
                     placeholder="0"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </template>
@@ -683,7 +598,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.odAdicion"
                     type="text"
                     placeholder="+0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                   <input
@@ -691,7 +606,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                     v-model="recetaForm.oiAdicion"
                     type="text"
                     placeholder="+0.00"
-                    class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </template>
@@ -709,7 +624,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   v-model="recetaForm.distanciaInterpupilar"
                   type="text"
                   placeholder="mm"
-                  class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(false)"
                 />
               </div>
@@ -723,7 +638,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   v-model="recetaForm.avSinCorreccion"
                   type="text"
                   placeholder="20/20"
-                  class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(false)"
                 />
               </div>
@@ -737,7 +652,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   v-model="recetaForm.avConCorreccion"
                   type="text"
                   placeholder="20/20"
-                  class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                  class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(false)"
                 />
               </div>
@@ -752,7 +667,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               <textarea
                 v-model="recetaForm.observaciones"
                 rows="2"
-                class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                 :style="inputStyle(false)"
               ></textarea>
             </div>
@@ -791,3 +706,13 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
     </main>
   </div>
 </template>
+
+<style scoped>
+:deep(.ss-trigger) {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  border-color: var(--color-outline-variant);
+}
+</style>

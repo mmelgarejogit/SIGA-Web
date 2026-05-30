@@ -8,6 +8,8 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import { useAuthStore } from "@/stores/auth"
 import { getTurnos, updateTurnoEstado, cancelTurno, type Turno } from "@/services/turnoService"
+import { createConsulta } from "@/services/clinicaService"
+import { getEstadosByEntidad } from "@/services/estadoConfigService"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
 const auth = useAuthStore()
@@ -90,22 +92,25 @@ async function confirmCancel() {
 // Menú contextual de fila
 
 function menuItems(t: Turno): ContextMenuItem[] {
+  const canConsulta = auth.hasPermission("registrar_consulta")
+  const canCancelar = auth.hasPermission("gestionar_agenda")
+
   return [
     {
       type: "item",
       label: "Iniciar consulta",
       icon: "stethoscope",
       action: () => iniciarConsulta(t),
-      hidden: !auth.hasPermission("registrar_consulta"),
+      hidden: !canConsulta,
     },
-    { type: "separator" },
+    ...(canConsulta && canCancelar ? [{ type: "separator" as const }] : []),
     {
       type: "item",
       label: "Cancelar turno",
       icon: "close",
       action: () => openCancelModal(t),
       danger: true,
-      hidden: !auth.hasPermission("gestionar_agenda"),
+      hidden: !canCancelar,
     },
   ]
 }
@@ -117,16 +122,46 @@ const isStartingConsulta = ref<number | null>(null)
 async function iniciarConsulta(t: Turno) {
   isStartingConsulta.value = t.id
   try {
-    await updateTurnoEstado(t.id, "Completado")
+    // Obtener el estado "Pendiente" de consulta
+    const estados = await getEstadosByEntidad("Consulta")
+    const estadoPendiente = estados.find(e => e.codigoInterno === "Pendiente")
+
+    // Registrar la consulta con estado Pendiente
+    const consulta = await createConsulta({
+      patientId:    t.patientId,
+      professionalId: t.professionalId,
+      citaId:       t.id,
+      fechaConsulta: today + "T00:00:00",
+      motivo:       t.motivo ?? "Consulta de recepción",
+      estadoConfigId: estadoPendiente?.id,
+    })
+
+    // Marcar el turno como Completado (no bloquea si falla)
+    updateTurnoEstado(t.id, "Completado").catch(() => {})
+
+    // Navegar al formulario para completar los datos clínicos
+    router.push({
+      path: "/clinica/consultas/nueva",
+      query: {
+        patientId: String(t.patientId),
+        turnoId:   String(t.id),
+        consultaId: String(consulta.id),
+        ...(t.motivo ? { motivo: t.motivo } : {}),
+      },
+    })
   } catch {
-    /* no bloquear la navegacion si el cambio de estado falla */
+    // Si falla la creación, navegar al formulario manual
+    router.push({
+      path: "/clinica/consultas/nueva",
+      query: {
+        patientId: String(t.patientId),
+        turnoId:   String(t.id),
+        ...(t.motivo ? { motivo: t.motivo } : {}),
+      },
+    })
+  } finally {
+    isStartingConsulta.value = null
   }
-  const query: Record<string, string> = {
-    patientId: String(t.patientId),
-    turnoId: String(t.id),
-  }
-  if (t.motivo) query.motivo = t.motivo
-  router.push({ path: "/clinica/consultas/nueva", query })
 }
 </script>
 

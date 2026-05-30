@@ -4,6 +4,8 @@ import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseModal from "@/components/BaseModal.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   getFacturasDisponiblesRecepcion,
   getComprasPedidoById,
@@ -52,6 +54,45 @@ const totalRecibir = computed(() => lineas.value.reduce((s, l) => s + l.cantidad
 
 // ── Historial OC ─────────────────────────────────────────────────────────────
 const historial = computed(() => pedido.value?.recepciones ?? [])
+
+// ── Modal selección de factura ────────────────────────────────────────────────
+const showFacturaModal = ref(false)
+const modalSearchNro = ref("")
+const modalProveedorId = ref<number | null>(null)
+
+const proveedoresModal = computed(() => {
+  const seen = new Set<number>()
+  return facturas.value
+    .filter(f => { if (seen.has(f.proveedorId)) return false; seen.add(f.proveedorId); return true })
+    .map(f => ({ value: f.proveedorId, label: f.proveedorNombre }))
+})
+
+const facturasFiltradas = computed(() => {
+  const nro = modalSearchNro.value.toLowerCase().trim()
+  return facturas.value.filter(f => {
+    if (modalProveedorId.value !== null && f.proveedorId !== modalProveedorId.value) return false
+    if (nro && !f.nroFactura.toLowerCase().includes(nro)) return false
+    return true
+  })
+})
+
+function openFacturaModal() {
+  modalSearchNro.value = ""
+  modalProveedorId.value = null
+  showFacturaModal.value = true
+}
+
+function selectFactura(f: FacturaDisponibleRecepcion) {
+  selectedFacturaId.value = f.id
+  showFacturaModal.value = false
+  onFacturaChange()
+}
+
+function clearFactura() {
+  selectedFacturaId.value = null
+  pedido.value = null
+  lineas.value = []
+}
 
 onMounted(async () => {
   try {
@@ -219,14 +260,28 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Factura de Compra *
                 </label>
-                <select v-model="selectedFacturaId" @change="onFacturaChange"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-                  :style="inputStyle">
-                  <option :value="null">Seleccionar factura…</option>
-                  <option v-for="f in facturas" :key="f.id" :value="f.id">
-                    {{ f.nroFactura }} — {{ f.proveedorNombre }} (OC #{{ f.pedidoProveedorId }})
-                  </option>
-                </select>
+                <div class="flex items-center gap-2">
+                  <button type="button" @click="openFacturaModal"
+                    class="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left transition-all"
+                    :style="selectedFactura
+                      ? 'border: 1.5px solid var(--color-primary); background-color: #EEF2FF; color: var(--color-primary);'
+                      : inputStyle">
+                    <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">receipt_long</span>
+                    <span class="flex-1 truncate">
+                      {{ selectedFactura
+                        ? `${selectedFactura.nroFactura} — ${selectedFactura.proveedorNombre}`
+                        : 'Buscar factura…' }}
+                    </span>
+                    <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px; opacity: 0.5">search</span>
+                  </button>
+                  <button v-if="selectedFactura" type="button"
+                    class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-105"
+                    style="background-color: var(--color-surface-container-high)"
+                    title="Limpiar selección"
+                    @click="clearFactura">
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">close</span>
+                  </button>
+                </div>
                 <p v-if="facturas.length === 0" class="text-xs mt-1" style="color: var(--color-on-surface-variant)">
                   No hay facturas con OC pendientes de recepción.
                 </p>
@@ -415,4 +470,74 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
       </div>
     </main>
   </div>
+
+  <!-- ── Modal selección de factura ─────────────────────────────────────────── -->
+  <BaseModal :show="showFacturaModal" title="Seleccionar Factura de Compra" size="lg" @close="showFacturaModal = false">
+
+    <!-- Filtros -->
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor</label>
+        <SearchableSelect
+          :model-value="modalProveedorId"
+          :options="proveedoresModal"
+          null-label="Todos los proveedores"
+          @update:model-value="modalProveedorId = $event as number | null"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nro. Factura</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style="font-size: 18px; color: var(--color-outline)">search</span>
+          <input v-model="modalSearchNro" type="text" placeholder="001-001-0000001…"
+            class="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="rounded-xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
+      <div v-if="facturasFiltradas.length === 0" class="py-12 flex flex-col items-center gap-2">
+        <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">receipt_long</span>
+        <p class="text-sm font-medium" style="color: var(--color-outline)">Sin resultados para los filtros aplicados.</p>
+      </div>
+
+      <table v-else class="w-full text-sm">
+        <thead style="background-color: var(--color-surface-container-low)">
+          <tr>
+            <th v-for="h in ['Nro. Factura', 'Proveedor', 'OC', 'Pend.', 'Emisión']" :key="h"
+              class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider"
+              style="color: var(--color-outline)">{{ h }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="f in facturasFiltradas" :key="f.id"
+            class="cursor-pointer transition-colors hover:bg-surface-container-low"
+            :style="f.id === selectedFacturaId
+              ? 'background-color: #EEF2FF;'
+              : 'border-top: 1px solid rgba(196,197,213,0.12)'"
+            @click="selectFactura(f)">
+            <td class="px-4 py-3">
+              <span class="font-mono font-semibold text-xs" style="color: var(--color-on-surface)">{{ f.nroFactura }}</span>
+              <span v-if="f.id === selectedFacturaId" class="ml-2 material-symbols-outlined align-middle" style="font-size: 14px; color: var(--color-primary)">check_circle</span>
+            </td>
+            <td class="px-4 py-3 font-medium" style="color: var(--color-on-surface)">{{ f.proveedorNombre }}</td>
+            <td class="px-4 py-3">
+              <span class="font-mono text-xs font-bold" style="color: var(--color-primary)">OC #{{ f.pedidoProveedorId }}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
+                style="background-color: #fef3c7; color: #92400e">{{ f.itemsPendientes }}</span>
+            </td>
+            <td class="px-4 py-3 text-xs" style="color: var(--color-on-surface-variant)">{{ formatDate(f.fechaEmision) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <template #footer>
+      <BaseButton variant="secondary" @click="showFacturaModal = false">Cerrar</BaseButton>
+    </template>
+  </BaseModal>
 </template>

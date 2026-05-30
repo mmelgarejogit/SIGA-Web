@@ -47,6 +47,9 @@ export interface ConsultaClinica {
   diagnosticoSecundario?: string
   planTratamiento?: string
   observaciones?: string
+  estadoId?: number
+  estadoNombre?: string
+  estadoColor?: string
   receta?: Receta
   createdAt: string
   updatedAt: string
@@ -76,10 +79,11 @@ export interface CreateConsultaClinicaRequest {
   motivo: string
   anamnesis?: string
   examenFisico?: string
-  diagnosticoPrincipal: string
+  diagnosticoPrincipal?: string
   diagnosticoSecundario?: string
   planTratamiento?: string
   observaciones?: string
+  estadoConfigId?: number
   receta?: CreateRecetaRequest
 }
 
@@ -188,4 +192,9 @@ export async function downloadRecetaPdf(consultaId: number, patientLastName: str
     }
     throw err
   }
+}
+
+export async function cambiarEstadoConsulta(id: number, estadoConfigId: number): Promise<ConsultaClinica> {
+  const { data } = await http.patch<ConsultaClinica>(`/api/consultas/${id}/estado`, { estadoConfigId })
+  return data
 }

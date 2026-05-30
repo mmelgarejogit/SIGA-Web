@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
@@ -27,7 +28,7 @@ const isLoading = ref(false)
 const filtroEstado = ref<string[]>([])
 const filtroCondicion = ref<string[]>([])
 const filtroOrigen = ref<string[]>([])
-const filtroProveedorId = ref<number | undefined>(undefined)
+const filtroProveedorId = ref<number | null>(null)
 const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
 const search = ref("")
@@ -46,6 +47,18 @@ const origenOpciones = [
 ]
 
 const proveedores = ref<Proveedor[]>([])
+const inputDesde = ref<HTMLInputElement | null>(null)
+const inputHasta = ref<HTMLInputElement | null>(null)
+
+function openPicker(input: HTMLInputElement | null) {
+  if (!input) return
+  if ("showPicker" in input) (input as any).showPicker()
+  else input.focus()
+}
+
+const proveedorOptions = computed(() =>
+  proveedores.value.map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
+)
 
 onMounted(async () => {
   await loadProveedores()
@@ -63,7 +76,7 @@ async function loadFacturas() {
   isLoading.value = true
   try {
     const r = await getFacturasCompra({
-      proveedorId: filtroProveedorId.value,
+      proveedorId: filtroProveedorId.value ?? undefined,
       condicionVenta: filtroCondicion.value[0],
       estado: filtroEstado.value[0],
       origen: filtroOrigen.value[0],
@@ -91,6 +104,12 @@ function clearFiltroFechas() {
   filtroFechaDesde.value = ""
   filtroFechaHasta.value = ""
   applyFilters()
+}
+
+function formatFilterDate(dateStr: string) {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("es-PY", {
+    day: "2-digit", month: "short",
+  })
 }
 
 function openNuevaFactura() {
@@ -225,42 +244,44 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
             />
 
             <!-- Proveedor -->
-            <select
-              v-model="filtroProveedorId"
-              class="px-3 py-2 rounded-xl text-sm font-medium outline-none transition-all"
-              style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface); min-width: 150px;"
-              @change="applyFilters"
-            >
-              <option :value="undefined">Todos los proveedores</option>
-              <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-            </select>
+            <div class="fc-prov-filter">
+              <SearchableSelect
+                :model-value="filtroProveedorId"
+                :options="proveedorOptions"
+                null-label="Todos los proveedores"
+                @update:model-value="filtroProveedorId = $event as number | null; applyFilters()"
+              />
+            </div>
 
             <!-- Fecha desde / hasta -->
-            <div class="flex items-center gap-2">
-              <input
-                v-model="filtroFechaDesde"
-                type="date"
-                class="px-3 py-2 rounded-xl text-sm outline-none transition-all"
-                style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface);"
-                @change="applyFilters"
-              />
-              <span class="text-sm font-medium" style="color: var(--color-on-surface-variant)">—</span>
-              <input
-                v-model="filtroFechaHasta"
-                type="date"
-                class="px-3 py-2 rounded-xl text-sm outline-none transition-all"
-                style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface);"
-                @change="applyFilters"
-              />
-              <button
-                v-if="filtroFechaDesde || filtroFechaHasta"
-                class="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-105"
-                style="background-color: var(--color-surface-container-high)"
-                title="Limpiar fechas"
-                @click="clearFiltroFechas"
-              >
-                <span class="material-symbols-outlined" style="font-size: 14px; color: var(--color-on-surface-variant)">close</span>
-              </button>
+            <div class="flex items-center gap-1.5">
+              <!-- Desde -->
+              <div class="flex items-center gap-1">
+                <div class="fc-date-wrap">
+                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaDesde }" @click="openPicker(inputDesde)">
+                    <span class="material-symbols-outlined" style="font-size: 15px">calendar_today</span>
+                    <span>{{ filtroFechaDesde ? formatFilterDate(filtroFechaDesde) : 'Desde' }}</span>
+                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
+                  </button>
+                  <input ref="inputDesde" type="date" v-model="filtroFechaDesde" class="date-hidden" @change="applyFilters" />
+                </div>
+                <button v-if="filtroFechaDesde" class="fc-date-clear" title="Limpiar" @click="filtroFechaDesde = ''; applyFilters()">×</button>
+              </div>
+
+              <span style="color: var(--color-outline); font-size: 13px; font-weight: 500">—</span>
+
+              <!-- Hasta -->
+              <div class="flex items-center gap-1">
+                <div class="fc-date-wrap">
+                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaHasta }" @click="openPicker(inputHasta)">
+                    <span class="material-symbols-outlined" style="font-size: 15px">event</span>
+                    <span>{{ filtroFechaHasta ? formatFilterDate(filtroFechaHasta) : 'Hasta' }}</span>
+                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
+                  </button>
+                  <input ref="inputHasta" type="date" v-model="filtroFechaHasta" class="date-hidden" @change="applyFilters" />
+                </div>
+                <button v-if="filtroFechaHasta" class="fc-date-clear" title="Limpiar" @click="filtroFechaHasta = ''; applyFilters()">×</button>
+              </div>
             </div>
           </div>
 
@@ -436,4 +457,84 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
 .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
+
+/* Proveedor filter — mismo alto que FilterChips trigger (36px) */
+.fc-prov-filter {
+  width: 240px;
+}
+.fc-prov-filter :deep(.ss-trigger) {
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+/* Date filter buttons */
+.fc-date-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  width: 140px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.fc-date-trigger:hover:not(.active) {
+  background: var(--color-surface-container-high);
+}
+.fc-date-trigger.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #EEF2FF;
+}
+
+/* Wrapper so the hidden input is anchored at the button position */
+.fc-date-wrap {
+  position: relative;
+}
+
+/* Hidden input — sits at bottom-left of the trigger so the picker opens below it */
+.date-hidden {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+}
+
+/* Clear (×) button next to each date trigger */
+.fc-date-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.fc-date-clear:hover {
+  background: var(--color-error-container);
+  color: var(--color-error);
+}
 </style>

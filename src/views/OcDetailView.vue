@@ -197,7 +197,7 @@ async function submitDevolucion() {
           <!-- Breadcrumb + Header -->
           <div class="mb-8">
             <button
-              @click="router.push('/inventario/pedidos')"
+              @click="router.push('/compras/oc')"
               class="flex items-center gap-1.5 text-sm font-semibold mb-4 transition-all hover:opacity-75"
               style="color: var(--color-primary)"
             >

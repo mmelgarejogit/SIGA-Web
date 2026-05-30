@@ -13,12 +13,17 @@ import {
   deleteConsulta,
   createOrUpdateReceta,
   downloadRecetaPdf,
+  cambiarEstadoConsulta,
 } from "@/services/clinicaService"
+import { getEstadosByEntidad, type EstadoConfig } from "@/services/estadoConfigService"
 import { http } from "@/api/http"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import DateInput from "@/components/DateInput.vue"
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -40,6 +45,10 @@ interface Professional {
 
 const professionals = ref<Professional[]>([])
 
+const professionalOptions = computed(() =>
+  professionals.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })),
+)
+
 async function loadProfessionals() {
   try {
     const { data } = await http.get<{ items: Professional[] }>("/api/professionals?pageSize=200")
@@ -57,7 +66,7 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
 const searchQuery = ref("")
-const filterProfessional = ref(0)
+const filterProfessional = ref<number | null>(null)
 const filterDateFrom = ref("")
 const filterDateTo = ref("")
 let searchDebounce: ReturnType<typeof setTimeout> | null = null
@@ -114,9 +123,38 @@ watch([searchQuery, filterProfessional, filterDateFrom, filterDateTo], () => {
   }, 350)
 })
 
+// ── Estados de consulta ───────────────────────────────────────────────────
+
+const estadosConsulta = ref<EstadoConfig[]>([])
+
+function estadoById(id: number | undefined) {
+  return estadosConsulta.value.find(e => e.id === id)
+}
+
+function estadoByCode(code: string) {
+  return estadosConsulta.value.find(e => e.codigoInterno === code)
+}
+
+// ── Cambio de estado ──────────────────────────────────────────────────────
+
+const isCambiandoEstado = ref(false)
+
+async function cambiarEstado(consulta: ConsultaClinica, codigoDestino: string) {
+  const destino = estadoByCode(codigoDestino)
+  if (!destino) return
+  isCambiandoEstado.value = true
+  try {
+    const updated = await cambiarEstadoConsulta(consulta.id, destino.id)
+    const idx = consultas.value.findIndex(c => c.id === consulta.id)
+    if (idx !== -1) consultas.value[idx] = updated
+  } catch { /* silencioso */ }
+  finally { isCambiandoEstado.value = false }
+}
+
 onMounted(() => {
   loadConsultas()
   if (showProfessionalFilter.value) loadProfessionals()
+  getEstadosByEntidad("Consulta").then(e => { estadosConsulta.value = e }).catch(() => {})
 })
 
 // ── Modal: Editar Consulta ────────────────────────────────────────────────
@@ -345,12 +383,11 @@ function formatDate(iso: string) {
 }
 
 function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
-
-const spinnerPath = "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
 
 const columns = [
   { key: "fecha", label: "Fecha" },
@@ -358,11 +395,64 @@ const columns = [
   { key: "profesional", label: "Profesional" },
   { key: "diagnostico", label: "Diagnóstico" },
   { key: "estado", label: "Estado" },
-  { key: "acciones", label: "" },
+  { key: "acciones", label: "", align: "right" as const },
 ]
 
-function handleRowClick(item: ConsultaClinica) {
-  // No navigation bound to row click
+function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
+  const canEdit   = auth.hasPermission("editar_consulta")
+  const canDelete = auth.hasPermission("eliminar_consulta")
+  const codigo    = estadoById(c.estadoId)?.codigoInterno
+
+  return [
+    {
+      type: "item",
+      label: c.receta ? "Ver / Editar receta" : "Agregar receta",
+      icon: "medical_services",
+      action: () => openRecetaModal(c),
+      hidden: !canEdit,
+    },
+    {
+      type: "item",
+      label: "Editar consulta",
+      icon: "edit",
+      action: () => openEditModal(c),
+      hidden: !canEdit,
+    },
+    // ── Transiciones de estado ──
+    ...(canEdit && codigo === "Pendiente" ? [{
+      type: "item" as const,
+      label: "Abrir consulta",
+      icon: "play_circle",
+      action: () => cambiarEstado(c, "Abierta"),
+    }] : []),
+    ...(canEdit && codigo === "Abierta" ? [{
+      type: "item" as const,
+      label: "Cerrar consulta",
+      icon: "check_circle",
+      action: () => cambiarEstado(c, "Cerrada"),
+    }] : []),
+    ...(canEdit && (codigo === "Pendiente" || codigo === "Abierta") ? [
+      { type: "separator" as const },
+      {
+        type: "item" as const,
+        label: "Cancelar consulta",
+        icon: "cancel",
+        danger: true,
+        action: () => cambiarEstado(c, "Cancelada"),
+      },
+    ] : []),
+    // ── Eliminar ──
+    ...(canDelete ? [
+      { type: "separator" as const },
+      {
+        type: "item" as const,
+        label: "Eliminar",
+        icon: "delete",
+        danger: true,
+        action: () => openDeleteModal(c),
+      },
+    ] : []),
+  ]
 }
 </script>
 
@@ -406,27 +496,13 @@ function handleRowClick(item: ConsultaClinica) {
             placeholder="Buscar por paciente, CI, diagnóstico..."
             class="flex-1 min-w-48"
           />
-          <div v-if="showProfessionalFilter" class="relative">
-            <span
-              class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2"
-              style="color: var(--color-outline); font-size: 16px"
-              >person</span
-            >
-            <select
-              v-model="filterProfessional"
-              class="pl-9 pr-8 py-2.5 rounded-xl text-sm outline-none appearance-none"
-              style="
-                border: 1px solid var(--color-outline-variant);
-                background-color: var(--color-surface-container-lowest);
-                color: var(--color-on-surface);
-                min-width: 200px;
-              "
-            >
-              <option :value="0">Todos los profesionales</option>
-              <option v-for="pr in professionals" :key="pr.id" :value="pr.id">
-                {{ pr.firstName }} {{ pr.lastName }}
-              </option>
-            </select>
+          <div v-if="showProfessionalFilter" class="prof-filter">
+            <SearchableSelect
+              :model-value="filterProfessional"
+              :options="professionalOptions"
+              null-label="Todos los profesionales"
+              @update:model-value="filterProfessional = $event as number | null"
+            />
           </div>
         </div>
 
@@ -444,7 +520,6 @@ function handleRowClick(item: ConsultaClinica) {
             :items="consultas"
             :loading="isLoading"
             emptyText="No hay consultas para mostrar."
-            @row-click="handleRowClick"
           >
             <template #fecha="{ item }">
               <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">{{
@@ -490,74 +565,28 @@ function handleRowClick(item: ConsultaClinica) {
             </template>
 
             <template #estado="{ item }">
-              <span
-                v-if="item.receta"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style="background-color: #d1fae5; color: #065f46"
-              >
-                <span class="material-symbols-outlined" style="font-size: 12px">check</span>
-                Con receta
-              </span>
-              <span v-else class="text-xs" style="color: var(--color-outline-variant)"
-                >Sin receta</span
-              >
+              <div class="flex flex-col gap-1.5">
+                <!-- Badge de estado -->
+                <span v-if="item.estadoNombre"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold w-fit"
+                  :style="`background-color: ${item.estadoColor}22; color: ${item.estadoColor}`">
+                  <span class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    :style="`background-color: ${item.estadoColor}`"></span>
+                  {{ item.estadoNombre }}
+                </span>
+                <!-- Badge de receta -->
+                <span v-if="item.receta"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold w-fit"
+                  style="background-color: #d1fae5; color: #065f46">
+                  <span class="material-symbols-outlined" style="font-size: 12px">clinical_notes</span>
+                  Con receta
+                </span>
+              </div>
             </template>
 
             <template #acciones="{ item }">
-              <div class="flex items-center justify-end gap-2">
-                <button
-                  v-if="auth.hasPermission('editar_consulta')"
-                  @click.stop="openRecetaModal(item)"
-                  class="p-1.5 rounded-lg transition-colors"
-                  :title="item.receta ? 'Editar receta' : 'Agregar receta'"
-                  style="color: var(--color-outline)"
-                  onmouseover="
-                    this.style.backgroundColor = 'rgba(0,103,128,0.08)'
-                    this.style.color = 'var(--color-secondary)'
-                  "
-                  onmouseout="
-                    this.style.backgroundColor = 'transparent'
-                    this.style.color = 'var(--color-outline)'
-                  "
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px"
-                    >medical_services</span
-                  >
-                </button>
-                <button
-                  v-if="auth.hasPermission('editar_consulta')"
-                  @click.stop="openEditModal(item)"
-                  class="p-1.5 rounded-lg transition-colors"
-                  title="Editar consulta"
-                  style="color: var(--color-outline)"
-                  onmouseover="
-                    this.style.backgroundColor = 'rgba(0,40,142,0.08)'
-                    this.style.color = 'var(--color-primary)'
-                  "
-                  onmouseout="
-                    this.style.backgroundColor = 'transparent'
-                    this.style.color = 'var(--color-outline)'
-                  "
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">edit</span>
-                </button>
-                <button
-                  v-if="auth.hasPermission('eliminar_consulta')"
-                  @click.stop="openDeleteModal(item)"
-                  class="p-1.5 rounded-lg transition-colors"
-                  title="Eliminar consulta"
-                  style="color: var(--color-outline)"
-                  onmouseover="
-                    this.style.backgroundColor = 'rgba(186,26,26,0.08)'
-                    this.style.color = 'var(--color-error)'
-                  "
-                  onmouseout="
-                    this.style.backgroundColor = 'transparent'
-                    this.style.color = 'var(--color-outline)'
-                  "
-                >
-                  <span class="material-symbols-outlined" style="font-size: 18px">delete</span>
-                </button>
+              <div class="flex justify-end">
+                <RowContextMenu :items="rowMenuItems(item)" />
               </div>
             </template>
           </BaseTable>
@@ -631,12 +660,7 @@ function handleRowClick(item: ConsultaClinica) {
             style="color: var(--color-outline)"
             >Fecha *</label
           >
-          <input
-            v-model="editForm.fechaConsulta"
-            type="date"
-            class="px-4 py-3 rounded-xl text-sm outline-none"
-            :style="inputStyle(!!editErrors.fechaConsulta)"
-          />
+          <DateInput v-model="editForm.fechaConsulta" :has-error="!!editErrors.fechaConsulta" />
           <p
             v-if="editErrors.fechaConsulta"
             class="text-xs font-medium"
@@ -655,7 +679,7 @@ function handleRowClick(item: ConsultaClinica) {
           <input
             v-model="editForm.motivo"
             type="text"
-            class="px-4 py-3 rounded-xl text-sm outline-none"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
             :style="inputStyle(!!editErrors.motivo)"
           />
           <p v-if="editErrors.motivo" class="text-xs font-medium" style="color: var(--color-error)">
@@ -673,7 +697,7 @@ function handleRowClick(item: ConsultaClinica) {
             <textarea
               v-model="editForm.anamnesis"
               rows="3"
-              class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
               :style="inputStyle(false)"
             ></textarea>
           </div>
@@ -686,7 +710,7 @@ function handleRowClick(item: ConsultaClinica) {
             <textarea
               v-model="editForm.examenFisico"
               rows="3"
-              class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
               :style="inputStyle(false)"
             ></textarea>
           </div>
@@ -702,7 +726,7 @@ function handleRowClick(item: ConsultaClinica) {
             <input
               v-model="editForm.diagnosticoPrincipal"
               type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
               :style="inputStyle(!!editErrors.diagnosticoPrincipal)"
             />
             <p
@@ -722,7 +746,7 @@ function handleRowClick(item: ConsultaClinica) {
             <input
               v-model="editForm.diagnosticoSecundario"
               type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
               :style="inputStyle(false)"
             />
           </div>
@@ -738,7 +762,7 @@ function handleRowClick(item: ConsultaClinica) {
             <textarea
               v-model="editForm.planTratamiento"
               rows="3"
-              class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
               :style="inputStyle(false)"
             ></textarea>
           </div>
@@ -751,7 +775,7 @@ function handleRowClick(item: ConsultaClinica) {
             <textarea
               v-model="editForm.observaciones"
               rows="3"
-              class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
               :style="inputStyle(false)"
             ></textarea>
           </div>
@@ -829,12 +853,7 @@ function handleRowClick(item: ConsultaClinica) {
                   style="color: var(--color-outline)"
                   >Fecha de Emisión</label
                 >
-                <input
-                  v-model="recetaEditForm.fechaEmision"
-                  type="date"
-                  class="px-4 py-2.5 rounded-xl text-sm outline-none w-48"
-                  :style="inputStyle(false)"
-                />
+                <DateInput v-model="recetaEditForm.fechaEmision" />
               </div>
 
               <div class="overflow-x-auto">
@@ -879,7 +898,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.odEsferico"
                           type="text"
                           placeholder="+0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -888,7 +907,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.odCilindro"
                           type="text"
                           placeholder="-0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -897,7 +916,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.odEje"
                           type="text"
                           placeholder="0"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -906,7 +925,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.odAdicion"
                           type="text"
                           placeholder="+0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -918,7 +937,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.oiEsferico"
                           type="text"
                           placeholder="+0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -927,7 +946,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.oiCilindro"
                           type="text"
                           placeholder="-0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -936,7 +955,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.oiEje"
                           type="text"
                           placeholder="0"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -945,7 +964,7 @@ function handleRowClick(item: ConsultaClinica) {
                           v-model="recetaEditForm.oiAdicion"
                           type="text"
                           placeholder="+0.00"
-                          class="w-20 px-2 py-2 rounded-lg text-sm outline-none"
+                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
                           :style="inputStyle(false)"
                         />
                       </td>
@@ -965,7 +984,7 @@ function handleRowClick(item: ConsultaClinica) {
                     v-model="recetaEditForm.distanciaInterpupilar"
                     type="text"
                     placeholder="mm"
-                    class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </div>
@@ -979,7 +998,7 @@ function handleRowClick(item: ConsultaClinica) {
                     v-model="recetaEditForm.avSinCorreccion"
                     type="text"
                     placeholder="20/20"
-                    class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </div>
@@ -993,7 +1012,7 @@ function handleRowClick(item: ConsultaClinica) {
                     v-model="recetaEditForm.avConCorreccion"
                     type="text"
                     placeholder="20/20"
-                    class="px-4 py-2.5 rounded-xl text-sm outline-none"
+                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                     :style="inputStyle(false)"
                   />
                 </div>
@@ -1008,7 +1027,7 @@ function handleRowClick(item: ConsultaClinica) {
                 <textarea
                   v-model="recetaEditForm.observaciones"
                   rows="2"
-                  class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
                 ></textarea>
               </div>
@@ -1143,3 +1162,16 @@ function handleRowClick(item: ConsultaClinica) {
     </BaseModal>
   </div>
 </template>
+
+<style scoped>
+.prof-filter {
+  width: 240px;
+}
+.prof-filter :deep(.ss-trigger) {
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+</style>

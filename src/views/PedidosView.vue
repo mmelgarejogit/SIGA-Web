@@ -147,6 +147,8 @@ function openEditPedido(pedido: PedidoCompras) {
 // ── Menú contextual de fila ────────────────────────────────────────────────────
 
 function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
+  const canGestionar = pedido.estado === "Borrador" && canManage.value
+
   return [
     {
       type: "item",
@@ -159,23 +161,23 @@ function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
       label: "Editar OC",
       icon: "edit",
       action: () => openEditPedido(pedido),
-      hidden: pedido.estado !== "Borrador" || !canManage.value,
+      hidden: !canGestionar,
     },
     {
       type: "item",
       label: "Confirmar OC",
       icon: "check_circle",
       action: () => openConfirmarModal(pedido),
-      hidden: pedido.estado !== "Borrador" || !canManage.value,
+      hidden: !canGestionar,
     },
-    { type: "separator" },
+    ...(canGestionar ? [{ type: "separator" as const }] : []),
     {
       type: "item",
       label: "Cancelar OC",
       icon: "cancel",
       action: () => openCancelarModal(pedido),
       danger: true,
-      hidden: pedido.estado !== "Borrador" || !canManage.value,
+      hidden: !canGestionar,
     },
   ]
 }

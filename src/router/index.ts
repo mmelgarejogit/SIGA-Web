@@ -206,10 +206,14 @@ const router = createRouter({
       redirect: "/stock/movimientos",
     },
     {
-      path: "/inventario/pedidos",
-      name: "inventario-pedidos",
+      path: "/compras/oc",
+      name: "compras-oc",
       component: () => import("@/views/PedidosView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Órdenes de Compra" },
+    },
+    {
+      path: "/inventario/pedidos",
+      redirect: "/compras/oc",
     },
     {
       path: "/compras/facturas",

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   getProveedores,
   getProductos,
@@ -27,6 +28,18 @@ const isEdit = computed(() => editId.value !== null)
 
 const proveedores = ref<Proveedor[]>([])
 const productos = ref<Producto[]>([])
+
+const proveedorOptions = computed(() =>
+  proveedores.value
+    .filter(p => p.isActive)
+    .map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
+)
+
+const productoOptions = computed(() =>
+  productos.value
+    .filter(p => p.isActive)
+    .map(p => ({ value: p.id, label: p.nombre, code: p.sku ?? undefined })),
+)
 const isLoading = ref(true)
 const isSaving = ref(false)
 const loadError = ref("")
@@ -77,7 +90,7 @@ onMounted(async () => {
         precioUnitario: i.precioUnitario,
       }))
     } else {
-      form.proveedorId = proveedores.value.find(p => p.isActive)?.id ?? null
+      form.proveedorId = null
     }
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar datos."
@@ -100,9 +113,8 @@ function removeItem(i: number) {
   items.value.splice(i, 1)
 }
 
-function onProductoChange(i: number, e: Event) {
-  const id = Number((e.target as HTMLSelectElement).value)
-  const prod = productos.value.find(p => p.id === id)
+function onProductoChange(i: number, val: number | string | null) {
+  const prod = productos.value.find(p => p.id === Number(val))
   if (prod) {
     items.value[i]!.productoId = prod.id
     items.value[i]!.precioUnitario = prod.precioCosto
@@ -137,7 +149,7 @@ async function submit() {
 
 function cancel() {
   if (isEdit.value) router.push(`/compras/oc/${editId.value}`)
-  else router.push("/inventario/pedidos")
+  else router.push("/compras/oc")
 }
 </script>
 
@@ -199,12 +211,12 @@ function cancel() {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor *</label>
-                <select v-model="form.proveedorId"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface-container-low)">
-                  <option :value="null" disabled>Seleccioná un proveedor</option>
-                  <option v-for="p in proveedores.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                </select>
+                <SearchableSelect
+                  :model-value="form.proveedorId"
+                  :options="proveedorOptions"
+                  placeholder="Buscar proveedor..."
+                  @update:model-value="form.proveedorId = $event as number | null"
+                />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
@@ -249,11 +261,11 @@ function cancel() {
               <tbody>
                 <tr v-for="(item, i) in items" :key="i" style="border-top: 1px solid rgba(196,197,213,0.12)">
                   <td class="px-6 py-3">
-                    <select :value="item.productoId" @change="onProductoChange(i, $event)"
-                      class="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)">
-                      <option v-for="p in productos.filter(p => p.isActive)" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                    </select>
+                    <SearchableSelect
+                      :model-value="item.productoId"
+                      :options="productoOptions"
+                      @update:model-value="onProductoChange(i, $event)"
+                    />
                   </td>
                   <td class="px-6 py-3">
                     <input v-model.number="item.cantidad" type="number" min="1"
