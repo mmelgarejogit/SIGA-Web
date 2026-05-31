@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue"
+import { ref, reactive, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import FilterChips from "@/components/FilterChips.vue"
+import SearchInput from "@/components/SearchInput.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type CargoEmpleado,
@@ -22,6 +24,24 @@ const canManage = auth.hasPermission("gestionar_empleados")
 const cargos = ref<CargoEmpleado[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
+const activeFilters = ref<string[]>([])
+const searchQuery = ref("")
+
+const statusOptions = [
+  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
+]
+
+const filteredCargos = computed(() => {
+  let list = cargos.value
+  const showActivo   = activeFilters.value.includes("activo")
+  const showInactivo = activeFilters.value.includes("inactivo")
+  if (showActivo && !showInactivo)      list = list.filter(c => c.activo)
+  else if (showInactivo && !showActivo) list = list.filter(c => !c.activo)
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) list = list.filter(c => c.nombre.toLowerCase().includes(q))
+  return list
+})
 
 const columns = [
   { key: "nombre", label: "Nombre" },
@@ -124,6 +144,13 @@ function openEdit(c: CargoEmpleado) {
   showEdit.value = true
 }
 
+function inputStyle(hasError = false) {
+  const base = 'border-radius: 12px; '
+  return hasError
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
+}
+
 async function submitEdit() {
   if (!editForm.nombre.trim()) {
     editError.value = "El nombre es obligatorio."
@@ -170,6 +197,12 @@ async function submitEdit() {
           </BaseButton>
         </div>
 
+        <!-- Filters + Search -->
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <FilterChips v-model="activeFilters" :options="statusOptions" placeholder="Estado" />
+          <SearchInput v-model="searchQuery" placeholder="Buscar cargo..." />
+        </div>
+
         <!-- Error -->
         <div v-if="loadError"
           class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
@@ -179,7 +212,7 @@ async function submitEdit() {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="cargos" :loading="isLoading" empty-text="No hay cargos registrados.">
+        <BaseTable :columns="columns" :items="filteredCargos" :loading="isLoading" empty-text="No hay cargos para mostrar.">
           <template #nombre="{ item }">
             <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
           </template>
@@ -210,55 +243,54 @@ async function submitEdit() {
     <!-- ── MODAL CREAR ──────────────────────────────────────────────────────────── -->
     <BaseModal :show="showCreate" title="Nuevo Cargo" size="sm" @close="showCreate = false">
       <div v-if="createError"
-        class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined" style="font-size: 18px">error</span>
         {{ createError }}
       </div>
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="createForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="createForm.nombre" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
-          <input v-model="createForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="createForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle(false)" />
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showCreate = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isSavingCreate" @click="submitCreate">
-          <svg v-if="isSavingCreate" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingCreate ? "Creando..." : "Crear Cargo" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showCreate = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingCreate" @click="submitCreate">
+            <span v-if="isSavingCreate" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingCreate ? "Creando..." : "Crear Cargo" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
     <!-- ── MODAL EDITAR ──────────────────────────────────────────────────────────── -->
     <BaseModal :show="showEdit" title="Editar Cargo" size="sm" @close="showEdit = false">
       <div v-if="editError"
-        class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined" style="font-size: 18px">error</span>
         {{ editError }}
       </div>
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="editForm.nombre" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
-          <input v-model="editForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="editForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle(false)" />
         </div>
-        <div class="flex items-center justify-between p-3 rounded-xl"
+        <div class="flex items-center justify-between p-3 rounded-2xl"
           style="background-color: var(--color-surface-container-low)">
           <div>
             <p class="text-sm font-semibold" style="color: var(--color-on-surface)">Estado</p>
@@ -276,14 +308,13 @@ async function submitEdit() {
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showEdit = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isSavingEdit" @click="submitEdit">
-          <svg v-if="isSavingEdit" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showEdit = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingEdit" @click="submitEdit">
+            <span v-if="isSavingEdit" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>

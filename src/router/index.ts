@@ -354,10 +354,22 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "aprobar_egresos", label: "Aprobación de Egresos" },
     },
     {
+      path: "/egresos/pagos",
+      name: "egresos-pagos",
+      component: () => import("@/views/PagosEgresosView.vue"),
+      meta: { requiresAuth: true, permission: "pagar_egresos", label: "Pagos Pendientes" },
+    },
+    {
       path: "/egresos/categorias",
       name: "egresos-categorias",
       component: () => import("@/views/CategoriasGastoView.vue"),
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Categorías de Gasto" },
+    },
+    {
+      path: "/egresos/pagos/:id",
+      name: "egresos-pago",
+      component: () => import("@/views/PagoEgresoView.vue"),
+      meta: { requiresAuth: true, permission: "pagar_egresos", label: "Registrar Pago" },
     },
     {
       path: "/personal/empleados",
@@ -370,6 +382,30 @@ const router = createRouter({
       name: "personal-empleados-cargos",
       component: () => import("@/views/CargosEmpleadoView.vue"),
       meta: { requiresAuth: true, permission: "ver_empleados", label: "Cargos de Empleados" },
+    },
+    {
+      path: "/personal/especialidades",
+      name: "personal-especialidades",
+      component: () => import("@/views/EspecialidadesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_especialidades", label: "Especialidades" },
+    },
+    {
+      path: "/roles",
+      name: "roles",
+      component: () => import("@/views/RolesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_roles", label: "Roles y Permisos" },
+    },
+    {
+      path: "/roles/nuevo",
+      name: "roles-nuevo",
+      component: () => import("@/views/RolFormView.vue"),
+      meta: { requiresAuth: true, permission: "crear_rol", label: "Nuevo Rol" },
+    },
+    {
+      path: "/roles/:id/editar",
+      name: "roles-editar",
+      component: () => import("@/views/RolFormView.vue"),
+      meta: { requiresAuth: true, permission: "editar_rol", label: "Editar Rol" },
     },
     {
       path: "/admin/auditoria",

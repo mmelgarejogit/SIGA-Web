@@ -1189,8 +1189,10 @@ min-width: 280px;
 - [ ] `inputStyle()` con `border-radius: 12px` presente para todos los inputs
 - [ ] Inputs con `h-12 appearance-none shadow-none` (ver §5)
 - [ ] Campos de fecha con `<DateInput>` — nunca `<input type="date">` directo
+- [ ] Fechas de nacimiento con `<BirthDateInput>` — nunca `<DateInput>` para este caso (ver §23)
 - [ ] Campos de solo lectura con estilo grisáceo (ver §5)
 - [ ] Selects de búsqueda con `<SearchableSelect>` — nunca `<select>` nativo en formularios
+- [ ] Multi-selección con `<MultiSelect>` — nunca chips manuales ni `<select multiple>` (ver §22)
 - [ ] Errores de campo con `text-xs font-medium color: --color-error`
 - [ ] Banners de error con `rounded-2xl` e ícono de 18px
 - [ ] Spinner: `<span class="material-symbols-outlined animate-spin">progress_activity</span>` mientras `isSaving`
@@ -1198,3 +1200,111 @@ min-width: 280px;
 - [ ] Debounce de 350ms en búsqueda
 - [ ] Acciones de fila con `<RowContextMenu>` (ver §17)
 - [ ] Cards de insight al final (opcional, según la página)
+
+---
+
+## 22. `MultiSelect` — Selector de múltiples valores
+
+Componente en `src/components/MultiSelect.vue`. Usar **siempre** que un campo de formulario requiera selección múltiple. Nunca usar chips manuales ni `<select multiple>`.
+
+### Props / Emits
+```ts
+defineProps<{
+  modelValue: (number | string)[]
+  options: MultiSelectOption[]   // { value: number | string; label: string }
+  placeholder?: string           // default: "Seleccioná opciones"
+  hasError?: boolean
+  disabled?: boolean
+}>()
+defineEmits<{ "update:modelValue": [v: (number | string)[]] }>()
+```
+
+### Uso
+```vue
+<script setup lang="ts">
+import MultiSelect, { type MultiSelectOption } from '@/components/MultiSelect.vue'
+
+const especialidadOptions = computed<MultiSelectOption[]>(() =>
+  especialidades.value.map(e => ({ value: e.id, label: e.nombre }))
+)
+</script>
+
+<template>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+      Especialidades
+    </label>
+    <MultiSelect
+      :model-value="form.especialidadIds"
+      :options="especialidadOptions"
+      placeholder="Seleccioná especialidades"
+      @update:model-value="form.especialidadIds = $event as number[]"
+    />
+  </div>
+</template>
+```
+
+### Comportamiento
+- Trigger muestra: placeholder (vacío) | nombre (1 seleccionado) | "N seleccionados" (N > 1) + badge azul con el conteo.
+- Dropdown con buscador — filtra opciones en tiempo real.
+- Cada opción tiene checkbox; el dropdown permanece abierto mientras se selecciona.
+- Botón "Limpiar selección" aparece al pie cuando hay al menos un valor seleccionado.
+- `hasError: true` aplica borde rojo y fondo `#FFF8F7` al trigger (mismo estilo que `inputStyle(true)`).
+
+### Aspecto visual
+- Trigger: mismo alto (48px), `border-radius: 12px`, borde y fondo idénticos a `SearchableSelect`.
+- Dropdown: `border-radius: 14px`, sombra `0 8px 24px rgba(0,40,142,0.12)`, lista scrolleable con `max-height: 220px`.
+- Checkboxes: `16×16px`, `border-radius: 4px`, fondo `--color-primary` cuando seleccionado.
+
+---
+
+## 23. `BirthDateInput` — Selector de fecha de nacimiento
+
+Componente en `src/components/BirthDateInput.vue`. Usar **siempre** para campos de fecha de nacimiento de pacientes. Reemplaza `<DateInput>` en este contexto — el calendario estándar es inutilizable para fechas históricas (navegar mes a mes desde 1985 requiere cientos de clics).
+
+### Diseño
+Tres campos en una fila:
+
+```
+[ Día ] [    Mes ▾    ] [ Año  ]
+  72px      flex:1       88px
+```
+
+- **Día**: input numérico (1–31), sin spinner nativo, centrado.
+- **Mes**: botón que abre un dropdown con los 12 meses en grilla 2 columnas. Dropdown teleportado al `<body>` con flip automático.
+- **Año**: input numérico (1900–año actual), se tipea directamente.
+
+### Props / Emits
+```ts
+defineProps<{
+  modelValue: string   // yyyy-mm-dd o ""
+  hasError?: boolean
+}>()
+defineEmits<{ "update:modelValue": [string] }>()
+```
+
+### Uso
+```vue
+<script setup lang="ts">
+import BirthDateInput from '@/components/BirthDateInput.vue'
+</script>
+
+<template>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+      Fecha de Nacimiento *
+    </label>
+    <BirthDateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
+    <p v-if="errors.birthDate" class="text-xs font-medium" style="color: var(--color-error)">
+      {{ errors.birthDate }}
+    </p>
+  </div>
+</template>
+```
+
+### Comportamiento
+- Emite `yyyy-mm-dd` cuando los tres campos tienen valores válidos simultáneamente.
+- Si cualquier campo queda vacío o fuera de rango, no emite (no borra el valor anterior).
+- El campo Año acepta tipeo libre — el usuario puede escribir "1985" directamente.
+- El dropdown de Mes usa `Teleport to="body"` + `position: fixed` con flip automático (mide altura real tras render).
+- `hasError: true` aplica borde rojo y fondo `#FFF8F7` a los tres campos simultáneamente.

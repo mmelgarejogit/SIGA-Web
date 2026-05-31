@@ -19,7 +19,14 @@ import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import PacienteEditModal from "@/components/PacienteEditModal.vue"
-import DateInput from "@/components/DateInput.vue"
+import BirthDateInput from "@/components/BirthDateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+
+const SEXO_OPTIONS = [
+  { value: "Masculino", label: "Masculino" },
+  { value: "Femenino",  label: "Femenino"  },
+  { value: "Otro",      label: "Otro"      },
+]
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -170,6 +177,7 @@ const createForm = ref<CreatePatientRequest>({
   firstName: "",
   lastName: "",
   birthDate: "",
+  sexo: "",
   phoneNumber: "",
   email: "",
 })
@@ -213,6 +221,7 @@ function openCreateModal() {
     firstName: "",
     lastName: "",
     birthDate: "",
+    sexo: "",
     phoneNumber: "",
     email: "",
   }
@@ -229,6 +238,7 @@ async function submitCreate() {
   try {
     await createPatient({
       ...createForm.value,
+      sexo: createForm.value.sexo || undefined,
       email: createForm.value.email || undefined,
       phoneNumber: createForm.value.phoneNumber || undefined,
     })
@@ -632,7 +642,7 @@ async function confirmDelete() {
             style="color: var(--color-outline)"
             >Fecha de Nacimiento *</label
           >
-          <DateInput v-model="createForm.birthDate" :has-error="!!createErrors.birthDate" />
+          <BirthDateInput v-model="createForm.birthDate" :has-error="!!createErrors.birthDate" />
           <p
             v-if="createErrors.birthDate"
             class="text-xs font-medium"
@@ -640,6 +650,17 @@ async function confirmDelete() {
           >
             {{ createErrors.birthDate }}
           </p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sexo</label>
+          <SearchableSelect
+            :model-value="createForm.sexo || null"
+            :options="SEXO_OPTIONS"
+            :searchable="false"
+            null-label="Sin especificar"
+            @update:model-value="createForm.sexo = ($event as string) ?? ''"
+          />
         </div>
 
         <!-- Banner contacto -->

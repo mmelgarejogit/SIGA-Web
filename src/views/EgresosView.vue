@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -11,11 +11,7 @@ import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMen
 import { useAuthStore } from "@/stores/auth"
 import {
   type Egreso,
-  type MetodoPago,
   getEgresos,
-  registrarPago,
-  aprobarEgreso,
-  rechazarEgreso,
   anularEgreso,
   getCategorias,
 } from "@/services/egresosService"
@@ -23,8 +19,6 @@ import {
 const router = useRouter()
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_egresos")
-const canAprobar = auth.hasPermission("aprobar_egresos")
-const canPagar = auth.hasPermission("pagar_egresos")
 
 // ── Formato ───────────────────────────────────────────────────────────────────
 
@@ -38,10 +32,27 @@ const formatDate = (s?: string) =>
 
 const egresos = ref<Egreso[]>([])
 const totalCount = ref(0)
+const totalPages = ref(1)
 const isLoading = ref(false)
 const loadError = ref("")
 const currentPage = ref(1)
 const pageSize = 10
+
+const rangeStart = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize + 1)
+const rangeEnd = computed(() =>
+  Math.min(currentPage.value * pageSize, totalCount.value))
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '...')[] = [1]
+  if (cur > 3) pages.push('...')
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
+})
 
 const tipoFiltros = ref<string[]>([])
 const estadoFiltros = ref<string[]>([])
@@ -93,6 +104,7 @@ async function load() {
     const res = await getEgresos(params as Parameters<typeof getEgresos>[0])
     egresos.value = res.items
     totalCount.value = res.totalCount
+    totalPages.value = res.totalPages
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar egresos."
   } finally {
@@ -106,14 +118,6 @@ function applyFilter() {
   currentPage.value = 1
   load()
 }
-
-// ── KPIs ──────────────────────────────────────────────────────────────────────
-
-const totalPendiente = computed(() =>
-  egresos.value.filter(e => e.estado === "Pendiente").reduce((s, e) => s + e.monto, 0))
-const totalAprobado = computed(() =>
-  egresos.value.filter(e => e.estado === "Aprobado").reduce((s, e) => s + e.monto, 0))
-const cantAprobados = computed(() => egresos.value.filter(e => e.estado === "Aprobado").length)
 
 // ── Helpers de UI ─────────────────────────────────────────────────────────────
 
@@ -173,110 +177,6 @@ function openDetalle(e: Egreso) {
   showDetalle.value = true
 }
 
-// ── Modal registrar pago ──────────────────────────────────────────────────────
-
-const showPago = ref(false)
-const isSavingPago = ref(false)
-const pagoError = ref("")
-const pagoEgresoId = ref(0)
-const pagoForm = reactive({
-  metodoPago: "Efectivo" as MetodoPago,
-  fechaPago: new Date().toISOString().slice(0, 10),
-  nroComprobante: "",
-  observaciones: "",
-})
-
-function openPago(e: Egreso) {
-  pagoEgresoId.value = e.id
-  Object.assign(pagoForm, {
-    metodoPago: "Efectivo",
-    fechaPago: new Date().toISOString().slice(0, 10),
-    nroComprobante: "",
-    observaciones: "",
-  })
-  pagoError.value = ""
-  showPago.value = true
-}
-
-async function submitPago() {
-  isSavingPago.value = true
-  pagoError.value = ""
-  try {
-    await registrarPago(pagoEgresoId.value, {
-      metodoPago: pagoForm.metodoPago,
-      fechaPago: pagoForm.fechaPago,
-      nroComprobante: pagoForm.nroComprobante.trim() || undefined,
-      observaciones: pagoForm.observaciones.trim() || undefined,
-    })
-    showPago.value = false
-    showDetalle.value = false
-    await load()
-  } catch (err: unknown) {
-    pagoError.value = err instanceof Error ? err.message : "Error al registrar pago."
-  } finally {
-    isSavingPago.value = false
-  }
-}
-
-// ── Modal aprobar ─────────────────────────────────────────────────────────────
-
-const showAprobar = ref(false)
-const isSavingAprobar = ref(false)
-const aprobarError = ref("")
-const aprobarEgresoId = ref(0)
-
-function openAprobar(e: Egreso) {
-  aprobarEgresoId.value = e.id
-  aprobarError.value = ""
-  showAprobar.value = true
-}
-
-async function submitAprobar() {
-  isSavingAprobar.value = true
-  aprobarError.value = ""
-  try {
-    await aprobarEgreso(aprobarEgresoId.value)
-    showAprobar.value = false
-    showDetalle.value = false
-    await load()
-  } catch (err: unknown) {
-    aprobarError.value = err instanceof Error ? err.message : "Error al aprobar egreso."
-  } finally {
-    isSavingAprobar.value = false
-  }
-}
-
-// ── Modal rechazar ────────────────────────────────────────────────────────────
-
-const showRechazar = ref(false)
-const isSavingRechazar = ref(false)
-const rechazarError = ref("")
-const rechazarEgresoId = ref(0)
-const rechazarMotivo = ref("")
-
-function openRechazar(e: Egreso) {
-  rechazarEgresoId.value = e.id
-  rechazarMotivo.value = ""
-  rechazarError.value = ""
-  showRechazar.value = true
-}
-
-async function submitRechazar() {
-  if (!rechazarMotivo.value.trim()) { rechazarError.value = "El motivo es obligatorio."; return }
-  isSavingRechazar.value = true
-  rechazarError.value = ""
-  try {
-    await rechazarEgreso(rechazarEgresoId.value, { motivo: rechazarMotivo.value.trim() })
-    showRechazar.value = false
-    showDetalle.value = false
-    await load()
-  } catch (err: unknown) {
-    rechazarError.value = err instanceof Error ? err.message : "Error al rechazar egreso."
-  } finally {
-    isSavingRechazar.value = false
-  }
-}
-
 // ── Modal anular ──────────────────────────────────────────────────────────────
 
 const showAnular = ref(false)
@@ -307,36 +207,22 @@ async function submitAnular() {
   }
 }
 
+function inputStyle(hasError = false) {
+  const base = 'border-radius: 12px; '
+  return hasError
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
+}
+
 // ── Menú contextual ───────────────────────────────────────────────────────────
 
 function menuItems(e: Egreso): ContextMenuItem[] {
-  const isPendiente = e.estado === "Pendiente"
-  const isAprobado = e.estado === "Aprobado"
-  const isFinalizado = e.estado === "Pagado" || e.estado === "Anulado" || e.estado === "Rechazado"
-
   return [
     { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(e) },
-    { type: "separator" },
-    {
-      type: "item", label: "Aprobar", icon: "check_circle",
-      action: () => openAprobar(e),
-      hidden: !canAprobar || !isPendiente,
-    },
-    {
-      type: "item", label: "Rechazar", icon: "cancel",
-      action: () => openRechazar(e),
-      hidden: !canAprobar || !isPendiente,
-      danger: true,
-    },
-    {
-      type: "item", label: "Registrar pago", icon: "payments",
-      action: () => openPago(e),
-      hidden: !canPagar || !isAprobado,
-    },
     {
       type: "item", label: "Anular egreso", icon: "block",
       action: () => openAnular(e),
-      hidden: !canManage || isFinalizado || isAprobado,
+      hidden: !canManage || e.estado !== "Pendiente",
       danger: true,
     },
   ]
@@ -365,22 +251,6 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           </BaseButton>
         </div>
 
-        <!-- KPIs -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
-          <div class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Pendiente de aprobación</p>
-            <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ formatPrice(totalPendiente) }}</p>
-          </div>
-          <div class="rounded-2xl p-5" style="background-color: #EFF6FF; border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #1D4ED8">Aprobados pendientes de pago</p>
-            <p class="text-2xl font-extrabold" style="color: #1D4ED8">{{ formatPrice(totalAprobado) }}</p>
-          </div>
-          <div class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Aprobados sin pagar</p>
-            <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ cantAprobados }}</p>
-          </div>
-        </div>
-
         <!-- Filtros -->
         <div class="flex items-center gap-3 mb-6 flex-wrap">
           <FilterChips :options="tipoOptions" :modelValue="tipoFiltros" placeholder="Tipo" @update:modelValue="setTipoFiltro" />
@@ -405,61 +275,87 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="egresos" :loading="isLoading" empty-text="No hay egresos registrados.">
+        <div class="rounded-2xl overflow-hidden"
+          style="background-color: var(--color-surface-container-lowest);
+                 box-shadow: 0 1px 3px rgba(196,197,213,0.25);
+                 outline: 1px solid rgba(196,197,213,0.15)">
+          <BaseTable :columns="columns" :items="egresos" :loading="isLoading" empty-text="No hay egresos registrados.">
 
-          <template #tipo="{ item }">
-            <div class="flex items-center gap-2">
-              <span class="w-9 h-9 rounded-full flex-shrink-0"
-                :style="`background-color: ${tipoColor(item.tipo).bg}; display: flex; align-items: center; justify-content: center`">
-                <span class="material-symbols-outlined" :style="`font-size: 18px; color: ${tipoColor(item.tipo).color}`">{{ tipoIcon(item.tipo) }}</span>
-              </span>
-              <span class="text-xs font-bold" :style="`color: ${tipoColor(item.tipo).color}`">{{ tipoLabel(item.tipo) }}</span>
+            <template #tipo="{ item }">
+              <div class="flex items-center gap-2">
+                <span class="w-9 h-9 rounded-full flex-shrink-0"
+                  :style="`background-color: ${tipoColor(item.tipo).bg}; display: flex; align-items: center; justify-content: center`">
+                  <span class="material-symbols-outlined" :style="`font-size: 18px; color: ${tipoColor(item.tipo).color}`">{{ tipoIcon(item.tipo) }}</span>
+                </span>
+                <span class="text-xs font-bold" :style="`color: ${tipoColor(item.tipo).color}`">{{ tipoLabel(item.tipo) }}</span>
+              </div>
+            </template>
+
+            <template #concepto="{ item }">
+              <div>
+                <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.concepto }}</p>
+                <p class="text-xs" style="color: var(--color-outline)">
+                  <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
+                  <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
+                  <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
+                </p>
+              </div>
+            </template>
+
+            <template #monto="{ item }">
+              <span class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(item.monto) }}</span>
+            </template>
+
+            <template #fechaEmision="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaEmision) }}</span>
+            </template>
+
+            <template #estado="{ item }">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                :style="estadoBadgeStyle(item.estado, item.estaVencido)">{{ estadoLabel(item) }}</span>
+            </template>
+
+            <template #acciones="{ item }">
+              <div class="flex items-center justify-end">
+                <RowContextMenu :items="menuItems(item)" />
+              </div>
+            </template>
+          </BaseTable>
+
+          <!-- Footer paginación -->
+          <div v-if="egresos.length > 0"
+            class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
+            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              Mostrando
+              <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
+              de
+              <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
+              registros
+            </span>
+            <div v-if="totalPages > 1" class="flex items-center gap-1">
+              <button @click="currentPage--; load()" :disabled="currentPage === 1"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)">
+                <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
+              </button>
+              <template v-for="p in visiblePages" :key="p">
+                <span v-if="p === '...'"
+                  class="w-9 h-9 flex items-center justify-center text-sm"
+                  style="color: var(--color-outline)">…</span>
+                <button v-else
+                  @click="currentPage = (p as number); load()"
+                  class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">
+                  {{ p }}
+                </button>
+              </template>
+              <button @click="currentPage++; load()" :disabled="currentPage === totalPages"
+                class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                style="color: var(--color-on-surface-variant)">
+                <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
+              </button>
             </div>
-          </template>
-
-          <template #concepto="{ item }">
-            <div>
-              <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.concepto }}</p>
-              <p class="text-xs" style="color: var(--color-outline)">
-                <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
-                <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
-                <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
-              </p>
-            </div>
-          </template>
-
-          <template #monto="{ item }">
-            <span class="text-sm font-bold" style="color: var(--color-on-surface)">{{ formatPrice(item.monto) }}</span>
-          </template>
-
-          <template #fechaEmision="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaEmision) }}</span>
-          </template>
-
-          <template #estado="{ item }">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="estadoBadgeStyle(item.estado, item.estaVencido)">{{ estadoLabel(item) }}</span>
-          </template>
-
-          <template #acciones="{ item }">
-            <div class="flex items-center justify-end">
-              <RowContextMenu :items="menuItems(item)" />
-            </div>
-          </template>
-        </BaseTable>
-
-        <!-- Paginación -->
-        <div v-if="totalCount > pageSize" class="flex items-center justify-between mt-4">
-          <p class="text-sm" style="color: var(--color-outline)">
-            Mostrando {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, totalCount) }} de {{ totalCount }}
-          </p>
-          <div class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage === 1" @click="currentPage--; load()">
-              <span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span>
-            </BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="currentPage * pageSize >= totalCount" @click="currentPage++; load()">
-              <span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span>
-            </BaseButton>
           </div>
         </div>
 
@@ -545,149 +441,34 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Motivo de rechazo -->
-        <div v-if="detalleEgreso.motivoRechazo" class="rounded-xl p-3" style="background-color: #FEF2F2">
+        <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: #FEF2F2">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #991B1B">Motivo de rechazo</p>
           <p class="text-sm" style="color: #991B1B">{{ detalleEgreso.motivoRechazo }}</p>
         </div>
 
-        <div v-if="detalleEgreso.observaciones" class="rounded-xl p-3" style="background-color: var(--color-surface-container-low)">
+        <div v-if="detalleEgreso.observaciones" class="rounded-2xl p-3" style="background-color: var(--color-surface-container-low)">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Observaciones</p>
           <p class="text-sm" style="color: var(--color-on-surface)">{{ detalleEgreso.observaciones }}</p>
         </div>
       </div>
 
       <template #footer>
-        <BaseButton
-          v-if="detalleEgreso && canAprobar && detalleEgreso.estado === 'Pendiente'"
-          variant="danger" size="default"
-          @click="openRechazar(detalleEgreso!)"
-        >Rechazar</BaseButton>
-        <BaseButton
-          v-if="detalleEgreso && canAprobar && detalleEgreso.estado === 'Pendiente'"
-          variant="primary" size="default"
-          @click="openAprobar(detalleEgreso!)"
-        >Aprobar</BaseButton>
-        <BaseButton
-          v-if="detalleEgreso && canPagar && detalleEgreso.estado === 'Aprobado'"
-          variant="primary" size="default"
-          @click="openPago(detalleEgreso!)"
-        >Registrar Pago</BaseButton>
-        <BaseButton
-          v-if="detalleEgreso && canManage && detalleEgreso.estado === 'Pendiente'"
-          variant="danger" size="default"
-          @click="openAnular(detalleEgreso!)"
-        >Anular</BaseButton>
-        <BaseButton
-          v-if="!detalleEgreso || (detalleEgreso.estado !== 'Pendiente' && detalleEgreso.estado !== 'Aprobado')"
-          variant="secondary" size="default"
-          @click="showDetalle = false"
-        >Cerrar</BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL APROBAR ─────────────────────────────────────────────────────── -->
-    <BaseModal :show="showAprobar" title="Aprobar Egreso" size="sm" @close="showAprobar = false">
-      <div v-if="aprobarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ aprobarError }}
-      </div>
-      <p class="text-sm" style="color: var(--color-on-surface-variant)">
-        ¿Confirmás la aprobación de este egreso? El responsable de caja podrá registrar el pago.
-      </p>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showAprobar = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isSavingAprobar" @click="submitAprobar">
-          <svg v-if="isSavingAprobar" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingAprobar ? "Aprobando..." : "Confirmar Aprobación" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL RECHAZAR ────────────────────────────────────────────────────── -->
-    <BaseModal :show="showRechazar" title="Rechazar Egreso" size="sm" @close="showRechazar = false">
-      <div v-if="rechazarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ rechazarError }}
-      </div>
-      <div class="space-y-3">
-        <p class="text-sm" style="color: var(--color-on-surface-variant)">
-          El egreso será rechazado y no podrá reactivarse. Un usuario podrá crear uno nuevo si es necesario.
-        </p>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo *</label>
-          <textarea v-model="rechazarMotivo" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
-            placeholder="Explicá el motivo del rechazo..." />
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showDetalle = false">Cerrar</BaseButton>
+          <BaseButton
+            v-if="detalleEgreso && canManage && detalleEgreso.estado === 'Pendiente'"
+            variant="danger"
+            @click="openAnular(detalleEgreso!)"
+          >Anular</BaseButton>
         </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showRechazar = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" class="flex-1" :disabled="isSavingRechazar" @click="submitRechazar">
-          <svg v-if="isSavingRechazar" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingRechazar ? "Rechazando..." : "Confirmar Rechazo" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- ── MODAL REGISTRAR PAGO ──────────────────────────────────────────────── -->
-    <BaseModal :show="showPago" title="Registrar Pago" size="sm" @close="showPago = false">
-      <div v-if="pagoError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ pagoError }}
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
-          <select v-model="pagoForm.metodoPago" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option value="Efectivo">Efectivo</option>
-            <option value="Tarjeta">Tarjeta</option>
-            <option value="Transferencia">Transferencia</option>
-            <option value="Cheque">Cheque</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha de pago *</label>
-          <input v-model="pagoForm.fechaPago" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Comprobante</label>
-          <input v-model="pagoForm.nroComprobante" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-          <textarea v-model="pagoForm.observaciones" rows="2" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showPago = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isSavingPago" @click="submitPago">
-          <svg v-if="isSavingPago" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingPago ? "Registrando..." : "Confirmar Pago" }}
-        </BaseButton>
       </template>
     </BaseModal>
 
     <!-- ── MODAL ANULAR ──────────────────────────────────────────────────────── -->
     <BaseModal :show="showAnular" title="Anular Egreso" size="sm" @close="showAnular = false">
-      <div v-if="anularError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="anularError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined" style="font-size: 18px">error</span>
         {{ anularError }}
       </div>
       <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
@@ -695,18 +476,17 @@ function menuItems(e: Egreso): ContextMenuItem[] {
       </p>
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo (opcional)</label>
-        <textarea v-model="anularMotivo" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        <textarea v-model="anularMotivo" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
+          :style="inputStyle(false)" />
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showAnular = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" class="flex-1" :disabled="isSavingAnular" @click="submitAnular">
-          <svg v-if="isSavingAnular" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingAnular ? "Anulando..." : "Confirmar Anulación" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showAnular = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" :disabled="isSavingAnular" @click="submitAnular">
+            <span v-if="isSavingAnular" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingAnular ? "Anulando..." : "Confirmar Anulación" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>

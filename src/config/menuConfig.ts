@@ -208,6 +208,12 @@ export const menuConfig: MenuItem[] = [
         permission: "aprobar_egresos",
       },
       {
+        label: "Pagos Pendientes",
+        icon: "payments",
+        route: "/egresos/pagos",
+        permission: "pagar_egresos",
+      },
+      {
         label: "Categorías de Gasto",
         icon: "label",
         route: "/egresos/categorias",
@@ -297,6 +303,12 @@ export const menuConfig: MenuItem[] = [
         route: "/personal/empleados/cargos",
         permission: "ver_empleados",
       },
+      {
+        label: "Especialidades",
+        icon: "medical_services",
+        route: "/personal/especialidades",
+        permission: "ver_especialidades",
+      },
     ],
   },
   {
@@ -306,10 +318,16 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_usuarios",
     children: [
       {
-        label: "Usuarios y Roles",
-        icon: "shield_person",
+        label: "Usuarios",
+        icon: "manage_accounts",
         route: "/usuarios",
         permission: "ver_usuarios",
+      },
+      {
+        label: "Roles y Permisos",
+        icon: "shield_person",
+        route: "/roles",
+        permission: "ver_roles",
       },
       {
         label: "Configuración",

@@ -5,6 +5,9 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import DateInput from "@/components/DateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import MonthPicker from "@/components/MonthPicker.vue"
 import {
   type CategoriaGasto,
   crearHonorario,
@@ -59,7 +62,7 @@ const form = reactive({
   metodoPago: "Efectivo",
   // Honorario
   professionalId: 0,
-  periodo: "",
+  periodo: null as string | null,
   // GastoGeneral
   categoriaGastoId: 0,
   // Salario
@@ -74,7 +77,7 @@ function selectTipo(t: TipoNuevo) {
     fechaEmision: new Date().toISOString().slice(0, 10),
     fechaVencimiento: "",
     metodoPago: "Efectivo",
-    professionalId: 0, periodo: "",
+    professionalId: 0, periodo: null,
     categoriaGastoId: 0,
     empleadoId: 0,
   })
@@ -95,7 +98,7 @@ async function submit() {
   if (!form.fechaEmision) { formError.value = "La fecha es obligatoria."; return }
   if (!form.metodoPago) { formError.value = "El método de pago es obligatorio."; return }
   if (selectedTipo.value === "Honorario" && !form.professionalId) { formError.value = "Seleccioná un profesional."; return }
-  if (selectedTipo.value === "Honorario" && !form.periodo.trim()) { formError.value = "El período es obligatorio."; return }
+  if (selectedTipo.value === "Honorario" && !form.periodo) { formError.value = "El período es obligatorio."; return }
   if (selectedTipo.value === "GastoGeneral" && !form.categoriaGastoId) { formError.value = "Seleccioná una categoría."; return }
   if (selectedTipo.value === "Salario" && !form.empleadoId) { formError.value = "Seleccioná un empleado."; return }
 
@@ -112,13 +115,13 @@ async function submit() {
       await crearHonorario({
         ...base,
         professionalId: form.professionalId,
-        periodo: form.periodo.trim(),
+        periodo: form.periodo ?? "",
       })
     } else if (selectedTipo.value === "Salario") {
       await crearSalario({
         ...base,
         empleadoId: form.empleadoId,
-        periodo: form.periodo.trim() || undefined,
+        periodo: form.periodo || undefined,
       })
     } else {
       await crearGastoGeneral({
@@ -163,7 +166,20 @@ async function submitCategoria() {
   }
 }
 
-const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+const profesionalOptions = computed(() =>
+  profesionales.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` }))
+)
+
+const empleadoOptions = computed(() =>
+  empleados.value.map(e => ({ value: e.id, label: `${e.firstName} ${e.lastName} — ${e.cargoNombre}` }))
+)
+
+function inputStyle(hasError = false) {
+  const base = 'border-radius: 12px; '
+  return hasError
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
+}
 </script>
 
 <template>
@@ -172,7 +188,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8 max-w-2xl">
+      <div class="p-8">
 
         <!-- Header -->
         <div class="flex items-center gap-3 mb-8">
@@ -199,7 +215,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
                 ? `background-color: ${tipoColor(t.key).bg}; border: 2px solid ${tipoColor(t.key).color}`
                 : 'background-color: var(--color-surface-container-lowest); border: 2px solid rgba(196,197,213,0.3)'"
             >
-              <span class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              <span class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                 :style="`background-color: ${selectedTipo === t.key ? tipoColor(t.key).color : 'var(--color-surface-container-high)'}`">
                 <span class="material-symbols-outlined"
                   :style="`font-size: 22px; color: ${selectedTipo === t.key ? '#fff' : 'var(--color-on-surface-variant)'}`">{{ t.icon }}</span>
@@ -219,52 +235,56 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
             style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
 
             <!-- Error -->
-            <div v-if="formError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
+            <div v-if="formError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
               style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-              <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+              <span class="material-symbols-outlined" style="font-size: 18px">error</span>
               {{ formError }}
             </div>
 
             <!-- Profesional (Honorario) -->
             <div v-if="selectedTipo === 'Honorario'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Profesional *</label>
-              <select v-model="form.professionalId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" :style="inputStyle">
-                <option :value="0" disabled>Seleccionar profesional</option>
-                <option v-for="p in profesionales" :key="p.id" :value="p.id">{{ p.firstName }} {{ p.lastName }}</option>
-              </select>
+              <SearchableSelect
+                v-model="form.professionalId"
+                :options="profesionalOptions"
+                placeholder="Seleccionar profesional"
+                null-label="Seleccionar profesional"
+              />
             </div>
 
             <!-- Período (Honorario) -->
-            <div v-if="selectedTipo === 'Honorario'">
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Período *</label>
-              <input v-model="form.periodo" type="month" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+            <div v-if="selectedTipo === 'Honorario'" class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Período *</label>
+              <MonthPicker v-model="form.periodo" placeholder="Seleccionar período" />
             </div>
 
             <!-- Empleado (Salario) -->
             <div v-if="selectedTipo === 'Salario'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Empleado *</label>
-              <select v-model="form.empleadoId" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" :style="inputStyle">
-                <option :value="0" disabled>Seleccionar empleado</option>
-                <option v-for="e in empleados" :key="e.id" :value="e.id">{{ e.firstName }} {{ e.lastName }} — {{ e.cargoNombre }}</option>
-              </select>
+              <SearchableSelect
+                v-model="form.empleadoId"
+                :options="empleadoOptions"
+                placeholder="Seleccionar empleado"
+                null-label="Seleccionar empleado"
+              />
             </div>
 
             <!-- Período (Salario) -->
-            <div v-if="selectedTipo === 'Salario'">
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Período</label>
-              <input v-model="form.periodo" type="month" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" placeholder="Opcional" />
+            <div v-if="selectedTipo === 'Salario'" class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Período</label>
+              <MonthPicker v-model="form.periodo" placeholder="Opcional" />
             </div>
 
             <!-- Categoría (GastoGeneral) -->
             <div v-if="selectedTipo === 'GastoGeneral'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
               <div class="flex gap-2">
-                <select v-model="form.categoriaGastoId" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none appearance-none" :style="inputStyle">
+                <select v-model="form.categoriaGastoId" class="flex-1 px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">
                   <option :value="0" disabled>Seleccionar categoría</option>
                   <option v-for="c in categorias.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                 </select>
                 <button type="button" @click="openCreateCategoria"
-                  class="flex-shrink-0 w-12 rounded-xl flex items-center justify-center transition-colors hover:opacity-80"
+                  class="flex-shrink-0 w-12 rounded-2xl flex items-center justify-center transition-colors hover:opacity-80"
                   style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)"
                   title="Nueva categoría">
                   <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-primary)">add</span>
@@ -275,18 +295,18 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
             <!-- Concepto -->
             <div>
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Concepto *</label>
-              <input v-model="form.concepto" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+              <input v-model="form.concepto" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
             </div>
 
             <!-- Monto y Fecha -->
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-                <input v-model.number="form.monto" type="number" step="1" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+                <input v-model.number="form.monto" type="number" step="1" min="0" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha *</label>
-                <input v-model="form.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+                <DateInput v-model="form.fechaEmision" />
               </div>
             </div>
 
@@ -294,7 +314,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
-                <select v-model="form.metodoPago" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" :style="inputStyle">
+                <select v-model="form.metodoPago" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">
                   <option value="Efectivo">Efectivo</option>
                   <option value="Tarjeta">Tarjeta</option>
                   <option value="Transferencia">Transferencia</option>
@@ -303,14 +323,14 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
-                <input v-model="form.fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+                <DateInput v-model="form.fechaVencimiento" placeholder="Opcional" />
               </div>
             </div>
 
             <!-- Observaciones -->
             <div>
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-              <textarea v-model="form.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" :style="inputStyle" />
+              <textarea v-model="form.observaciones" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle(false)" />
             </div>
           </div>
 
@@ -318,10 +338,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
           <div class="flex items-center justify-end gap-3 mt-6">
             <BaseButton variant="secondary" size="default" @click="router.push('/egresos')">Cancelar</BaseButton>
             <BaseButton variant="primary" size="lg" :disabled="isSaving" @click="submit">
-              <svg v-if="isSaving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <span v-if="isSaving" class="material-symbols-outlined animate-spin">progress_activity</span>
               {{ isSaving ? "Enviando..." : "Enviar Solicitud" }}
             </BaseButton>
           </div>
@@ -332,7 +349,7 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
 
     <!-- Modal nueva categoría -->
     <BaseModal :show="showCatModal" title="Nueva Categoría" size="sm" @close="showCatModal = false">
-      <div v-if="catError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="catError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
         {{ catError }}
@@ -340,19 +357,26 @@ const inputStyle = "border: 1px solid var(--color-outline-variant); color: var(-
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="catForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+          <input v-model="catForm.nombre" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
-          <input v-model="catForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle" />
+          <input v-model="catForm.descripcion" type="text" placeholder="Opcional" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showCatModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isCatSaving" @click="submitCategoria">
-          {{ isCatSaving ? "Creando..." : "Crear Categoría" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showCatModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isCatSaving" @click="submitCategoria">
+            <span v-if="isCatSaving" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isCatSaving ? "Creando..." : "Crear Categoría" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>
 </template>
+
+<style scoped>
+:deep(.ss-trigger) { height: 48px; border-radius: 12px; }
+</style>

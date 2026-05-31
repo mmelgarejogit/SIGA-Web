@@ -2,7 +2,7 @@
 import { ref, reactive, watch } from "vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
-import DateInput from "@/components/DateInput.vue"
+import BirthDateInput from "@/components/BirthDateInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   type Patient,
@@ -151,7 +151,7 @@ function inputStyle(hasError: boolean) {
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Nacimiento *</label>
-          <DateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
+          <BirthDateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
           <p v-if="errors.birthDate" class="text-xs font-medium" style="color: var(--color-error)">{{ errors.birthDate }}</p>
         </div>
         <div class="flex flex-col gap-1.5">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import { useAuthStore } from "@/stores/auth"
@@ -7,6 +8,9 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import DateInput from "@/components/DateInput.vue"
+import FilterChips from "@/components/FilterChips.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   type Empleado,
   type CargoEmpleado,
@@ -27,25 +31,32 @@ const empleados = ref<Empleado[]>([])
 const cargos = ref<CargoEmpleado[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
-const showInactive = ref(false)
+const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
+
+const statusOptions = [
+  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
+]
 
 // ── Datos derivados ─────────────────────────────────────────────────────────────
 
 const filtered = computed(() => {
-  let list = showInactive.value
-    ? empleados.value
-    : empleados.value.filter((e) => e.isActive)
+  let list = empleados.value
+
+  const showActivo   = activeFilters.value.includes("activo")
+  const showInactivo = activeFilters.value.includes("inactivo")
+  if (showActivo && !showInactivo)   list = list.filter(e => e.isActive)
+  else if (showInactivo && !showActivo) list = list.filter(e => !e.isActive)
 
   const q = searchQuery.value.trim().toLowerCase()
   if (q) {
-    list = list.filter(
-      (e) =>
-        e.firstName.toLowerCase().includes(q) ||
-        e.lastName.toLowerCase().includes(q) ||
-        e.ci.toLowerCase().includes(q) ||
-        e.cargoNombre.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q),
+    list = list.filter(e =>
+      e.firstName.toLowerCase().includes(q) ||
+      e.lastName.toLowerCase().includes(q) ||
+      e.ci.toLowerCase().includes(q) ||
+      e.cargoNombre.toLowerCase().includes(q) ||
+      e.email.toLowerCase().includes(q),
     )
   }
   return list
@@ -116,10 +127,27 @@ function statusStyle(isActive: boolean) {
       }
 }
 
+function menuItems(e: Empleado): ContextMenuItem[] {
+  return [
+    { type: "item", label: "Editar", icon: "edit", action: () => openEditModal(e), hidden: !canManage },
+    { type: "separator" },
+    { type: "item", label: "Desactivar", icon: "person_off", action: () => openDeleteModal(e), danger: true, hidden: !canManage || !e.isActive },
+  ]
+}
+
+const cargoOptions = computed(() =>
+  cargos.value.map(c => ({ value: c.id, label: c.nombre }))
+)
+
+const cargoOptionsActivos = computed(() =>
+  cargos.value.filter(c => c.activo).map(c => ({ value: c.id, label: c.nombre }))
+)
+
 function inputStyle(hasError: boolean) {
+  const base = 'border-radius: 12px; '
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
 // ── Validación ──────────────────────────────────────────────────────────────────
@@ -342,13 +370,7 @@ async function confirmDelete() {
 
         <!-- Filters + Search -->
         <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
-          <BaseButton :variant="showInactive ? 'primary' : 'secondary'" size="sm" @click="showInactive = !showInactive">
-            <span class="material-symbols-outlined" style="font-size: 16px; width: 16px; height: 16px">
-              {{ showInactive ? "visibility" : "visibility_off" }}
-            </span>
-            Mostrar inactivos
-          </BaseButton>
-
+          <FilterChips v-model="activeFilters" :options="statusOptions" placeholder="Estado" />
           <SearchInput v-model="searchQuery" placeholder="Nombre, C.I., cargo o email..." />
         </div>
 
@@ -402,19 +424,8 @@ async function confirmDelete() {
             </template>
 
             <template #acciones="{ item: e }">
-              <div class="flex justify-end gap-1">
-                <button v-if="canManage"
-                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                  style="background-color: var(--color-surface-container-high)"
-                  title="Editar empleado" @click.stop="openEditModal(e)">
-                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">edit</span>
-                </button>
-                <button v-if="canManage && e.isActive"
-                  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                  style="background-color: var(--color-error-container)"
-                  title="Desactivar empleado" @click.stop="openDeleteModal(e)">
-                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-error)">person_off</span>
-                </button>
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(e)" />
               </div>
             </template>
           </BaseTable>
@@ -473,13 +484,13 @@ async function confirmDelete() {
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="createForm.firstName" type="text" placeholder="Juan"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.firstName)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!createErrors.firstName)" />
             <p v-if="createErrors.firstName" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.firstName }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Apellido *</label>
             <input v-model="createForm.lastName" type="text" placeholder="Pérez"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.lastName)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!createErrors.lastName)" />
             <p v-if="createErrors.lastName" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.lastName }}</p>
           </div>
         </div>
@@ -488,13 +499,13 @@ async function confirmDelete() {
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nro. de Cédula *</label>
             <input v-model="createForm.ci" type="text" placeholder="12345678"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.ci)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!createErrors.ci)" />
             <p v-if="createErrors.ci" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.ci }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
             <input v-model="createForm.phoneNumber" type="tel" placeholder="0972123456"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(false)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
           </div>
         </div>
 
@@ -502,13 +513,13 @@ async function confirmDelete() {
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email *</label>
             <input v-model="createForm.email" type="email" placeholder="empleado@optica.com"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.email)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!createErrors.email)" />
             <p v-if="createErrors.email" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.email }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña *</label>
             <input v-model="createForm.password" type="password" placeholder="Mínimo 6 caracteres"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.password)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!createErrors.password)" />
             <p v-if="createErrors.password" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.password }}</p>
           </div>
         </div>
@@ -516,16 +527,18 @@ async function confirmDelete() {
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cargo *</label>
-            <select v-model="createForm.cargoId" class="px-4 py-3 rounded-xl text-sm outline-none appearance-none transition-all" :style="inputStyle(!!createErrors.cargoId)">
-              <option :value="0" disabled>Seleccionar cargo</option>
-              <option v-for="c in cargos.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="createForm.cargoId || null"
+              :options="cargoOptionsActivos"
+              null-label="Seleccionar cargo"
+              :has-error="!!createErrors.cargoId"
+              @update:model-value="createForm.cargoId = ($event as number) ?? 0"
+            />
             <p v-if="createErrors.cargoId" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.cargoId }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Ingreso *</label>
-            <input v-model="createForm.fechaIngreso" type="date"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!createErrors.fechaIngreso)" />
+            <DateInput v-model="createForm.fechaIngreso" :has-error="!!createErrors.fechaIngreso" />
             <p v-if="createErrors.fechaIngreso" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.fechaIngreso }}</p>
           </div>
         </div>
@@ -533,18 +546,17 @@ async function confirmDelete() {
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Salario Base (Gs.)</label>
           <input v-model.number="createForm.salarioBase" type="number" step="1" min="0" placeholder="Opcional"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(false)" />
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isSavingCreate" @click="submitCreate">
-          <svg v-if="isSavingCreate" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingCreate ? "Guardando..." : "Guardar Empleado" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingCreate" @click="submitCreate">
+            <span v-if="isSavingCreate" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingCreate ? "Guardando..." : "Guardar Empleado" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -562,13 +574,13 @@ async function confirmDelete() {
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="editForm.firstName" type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!editErrors.firstName)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!editErrors.firstName)" />
             <p v-if="editErrors.firstName" class="text-xs font-medium" style="color: var(--color-error)">{{ editErrors.firstName }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Apellido *</label>
             <input v-model="editForm.lastName" type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!editErrors.lastName)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(!!editErrors.lastName)" />
             <p v-if="editErrors.lastName" class="text-xs font-medium" style="color: var(--color-error)">{{ editErrors.lastName }}</p>
           </div>
         </div>
@@ -576,48 +588,48 @@ async function confirmDelete() {
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
           <input v-model="editForm.phoneNumber" type="tel" placeholder="0972123456"
-            class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(false)" />
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cargo *</label>
-            <select v-model="editForm.cargoId" class="px-4 py-3 rounded-xl text-sm outline-none appearance-none transition-all" :style="inputStyle(!!editErrors.cargoId)">
-              <option :value="0" disabled>Seleccionar cargo</option>
-              <option v-for="c in cargos" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="editForm.cargoId || null"
+              :options="cargoOptions"
+              null-label="Seleccionar cargo"
+              :has-error="!!editErrors.cargoId"
+              @update:model-value="editForm.cargoId = ($event as number) ?? 0"
+            />
             <p v-if="editErrors.cargoId" class="text-xs font-medium" style="color: var(--color-error)">{{ editErrors.cargoId }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Salario Base (Gs.)</label>
             <input v-model.number="editForm.salarioBase" type="number" step="1" min="0" placeholder="Opcional"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(false)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Ingreso *</label>
-            <input v-model="editForm.fechaIngreso" type="date"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(!!editErrors.fechaIngreso)" />
+            <DateInput v-model="editForm.fechaIngreso" :has-error="!!editErrors.fechaIngreso" />
             <p v-if="editErrors.fechaIngreso" class="text-xs font-medium" style="color: var(--color-error)">{{ editErrors.fechaIngreso }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Egreso</label>
-            <input v-model="editForm.fechaEgreso" type="date"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all" :style="inputStyle(false)" />
+            <DateInput v-model="editForm.fechaEgreso" />
           </div>
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isSavingEdit" @click="submitEdit">
-          <svg v-if="isSavingEdit" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingEdit" @click="submitEdit">
+            <span v-if="isSavingEdit" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -642,15 +654,18 @@ async function confirmDelete() {
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showDeleteModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" class="flex-1" :disabled="isDeleting" @click="confirmDelete">
-          <svg v-if="isDeleting" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {{ isDeleting ? "Desactivando..." : "Desactivar" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showDeleteModal = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" :disabled="isDeleting" @click="confirmDelete">
+            <span v-if="isDeleting" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isDeleting ? "Desactivando..." : "Desactivar" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>
 </template>
+
+<style scoped>
+:deep(.ss-trigger) { height: 48px; border-radius: 12px; font-size: 14px; }
+</style>

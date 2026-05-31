@@ -36,8 +36,8 @@ async function load() {
     const params: Record<string, unknown> = { estado: "Pendiente", page: currentPage.value, pageSize }
     if (tipoFiltros.value.length === 1) params.tipo = tipoFiltros.value[0]
     const res = await getEgresos(params as Parameters<typeof getEgresos>[0])
-    egresos.value = res.items
-    totalCount.value = res.totalCount
+    egresos.value = res.items.filter(e => e.estado === "Pendiente")
+    totalCount.value = egresos.value.length
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar egresos."
   } finally {
@@ -129,6 +129,13 @@ function openRechazar(e: Egreso) {
   rechazarMotivo.value = ""
   rechazarError.value = ""
   showRechazar.value = true
+}
+
+function inputStyle(hasError = false) {
+  const base = 'border-radius: 12px; '
+  return hasError
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
 async function submitRechazar() {
@@ -288,7 +295,7 @@ async function submitRechazar() {
           </template>
         </div>
 
-        <div v-if="detalleEgreso.observaciones" class="rounded-xl p-3" style="background-color: var(--color-surface-container-low)">
+        <div v-if="detalleEgreso.observaciones" class="rounded-2xl p-3" style="background-color: var(--color-surface-container-low)">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Observaciones</p>
           <p class="text-sm" style="color: var(--color-on-surface)">{{ detalleEgreso.observaciones }}</p>
         </div>
@@ -302,25 +309,30 @@ async function submitRechazar() {
 
     <!-- ── MODAL APROBAR ─────────────────────────────────────────────────────── -->
     <BaseModal :show="showAprobar" title="Aprobar Egreso" size="sm" @close="showAprobar = false">
-      <div v-if="aprobarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="aprobarError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined" style="font-size: 18px">error</span>
         {{ aprobarError }}
       </div>
       <p class="text-sm" style="color: var(--color-on-surface-variant)">
         ¿Confirmás la aprobación? El responsable de caja podrá registrar el pago.
       </p>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showAprobar = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isSavingAprobar" @click="submitAprobar">
-          {{ isSavingAprobar ? "Aprobando..." : "Confirmar Aprobación" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showAprobar = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingAprobar" @click="submitAprobar">
+            <span v-if="isSavingAprobar" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingAprobar ? "Aprobando..." : "Confirmar Aprobación" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
     <!-- ── MODAL RECHAZAR ────────────────────────────────────────────────────── -->
     <BaseModal :show="showRechazar" title="Rechazar Egreso" size="sm" @close="showRechazar = false">
-      <div v-if="rechazarError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="rechazarError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined" style="font-size: 18px">error</span>
         {{ rechazarError }}
       </div>
       <div class="space-y-3">
@@ -329,16 +341,19 @@ async function submitRechazar() {
         </p>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo *</label>
-          <textarea v-model="rechazarMotivo" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+          <textarea v-model="rechazarMotivo" rows="3" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
+            :style="inputStyle(false)"
             placeholder="Explicá el motivo del rechazo..." />
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showRechazar = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" class="flex-1" :disabled="isSavingRechazar" @click="submitRechazar">
-          {{ isSavingRechazar ? "Rechazando..." : "Confirmar Rechazo" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showRechazar = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" :disabled="isSavingRechazar" @click="submitRechazar">
+            <span v-if="isSavingRechazar" class="material-symbols-outlined animate-spin">progress_activity</span>
+            {{ isSavingRechazar ? "Rechazando..." : "Confirmar Rechazo" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>
