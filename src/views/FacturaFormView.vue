@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
+import DateInput from "@/components/DateInput.vue"
 import {
   registrarFacturaDirecta,
   registrarFactura,
@@ -263,9 +264,21 @@ function cancel() {
   router.push("/compras/facturas")
 }
 
-const inputStyle = (hasError = false) => hasError
-  ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-  : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+const ocOptions = computed(() =>
+  pedidosConfirmados.value.map(p => ({ value: p.id, label: `${p.nro} — ${p.proveedorNombre}` })),
+)
+
+const condicionOptions = [
+  { value: "Contado", label: "Contado" },
+  { value: "Credito", label: "Crédito" },
+]
+
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+}
 </script>
 
 <template>
@@ -346,14 +359,12 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Orden de Compra *
                 </label>
-                <select v-model="form.pedidoId"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-                  :style="inputStyle(false)" @change="onPedidoChange">
-                  <option :value="null">Seleccionar OC...</option>
-                  <option v-for="oc in pedidosConfirmados" :key="oc.id" :value="oc.id">
-                    {{ oc.nro }} — {{ oc.proveedorNombre }}
-                  </option>
-                </select>
+                <SearchableSelect
+                  :model-value="form.pedidoId"
+                  :options="ocOptions"
+                  null-label="Seleccionar OC..."
+                  @update:model-value="form.pedidoId = $event as number | null; onPedidoChange()"
+                />
               </div>
 
               <!-- Proveedor (Directa) -->
@@ -374,8 +385,8 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Proveedor
                 </label>
-                <div class="w-full px-4 py-3 rounded-xl text-sm font-medium"
-                  style="background-color: var(--color-surface-container); color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant);">
+                <div class="w-full px-4 h-12 flex items-center text-sm font-medium appearance-none shadow-none"
+                  style="border-radius: 12px; background-color: var(--color-surface-container); color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant);">
                   {{ ocProveedorNombre }}
                 </div>
               </div>
@@ -386,7 +397,7 @@ const inputStyle = (hasError = false) => hasError
                   Número de Factura *
                 </label>
                 <input v-model="form.nroFactura" type="text" placeholder="001-001-0000001" maxlength="15"
-                  class="w-full px-4 py-3 rounded-xl text-sm font-mono outline-none" :style="inputStyle(false)" />
+                  class="w-full px-4 h-12 text-sm font-mono outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
                 <p class="text-xs mt-1" style="color: var(--color-outline)">Formato: 001-001-0000001</p>
               </div>
             </div>
@@ -397,8 +408,7 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Fecha de Emisión *
                 </label>
-                <input v-model="form.fechaEmision" type="date"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none" :style="inputStyle(false)" />
+                <DateInput v-model="form.fechaEmision" />
               </div>
 
               <!-- Condición -->
@@ -406,11 +416,12 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Condición *
                 </label>
-                <select v-model="form.condicionVenta"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" :style="inputStyle(false)">
-                  <option value="Contado">Contado</option>
-                  <option value="Credito">Crédito</option>
-                </select>
+                <SearchableSelect
+                  :model-value="form.condicionVenta"
+                  :options="condicionOptions"
+                  :searchable="false"
+                  @update:model-value="form.condicionVenta = $event as string"
+                />
               </div>
 
               <!-- Fecha vencimiento -->
@@ -418,8 +429,7 @@ const inputStyle = (hasError = false) => hasError
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Vencimiento <span v-if="form.condicionVenta === 'Credito'" style="color: var(--color-error)">*</span>
                 </label>
-                <input v-model="form.fechaVencimiento" type="date" :disabled="form.condicionVenta !== 'Credito'"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none disabled:opacity-40" :style="inputStyle(false)" />
+                <DateInput v-model="form.fechaVencimiento" :disabled="form.condicionVenta !== 'Credito'" />
               </div>
             </div>
           </div>
@@ -462,8 +472,8 @@ const inputStyle = (hasError = false) => hasError
                   <td class="px-6 py-3 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatMonto(item.cantidad * item.precioUnitario) }}</td>
                   <td class="px-6 py-3">
                     <select v-model="item.tipoIva"
-                      class="w-full px-2 py-1.5 rounded-lg text-xs outline-none appearance-none"
-                      style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface);">
+                      class="w-full px-2 py-1.5 appearance-none shadow-none text-xs outline-none"
+                      :style="inputStyle(false)">
                       <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                     </select>
                   </td>
@@ -521,23 +531,23 @@ const inputStyle = (hasError = false) => hasError
                   </td>
                   <td class="px-3 py-3">
                     <input v-model="item.descripcion" type="text" placeholder="Descripción…"
-                      class="w-full px-3 py-2 rounded-xl text-sm outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm outline-none"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
                     <input v-model.number="item.cantidad" type="number" min="1"
-                      class="w-full px-3 py-2 rounded-xl text-sm text-center outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-center outline-none"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
                     <input v-model.number="item.precioUnitario" type="number" min="0" step="1"
-                      class="w-full px-3 py-2 rounded-xl text-sm text-right outline-none"
-                      style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
+                      :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
                     <select v-model="item.tipoIva"
-                      class="w-full px-2 py-2 rounded-xl text-xs outline-none appearance-none"
-                      style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface);">
+                      class="w-full px-2 py-2 appearance-none shadow-none text-xs outline-none"
+                      :style="inputStyle(false)">
                       <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                     </select>
                   </td>
@@ -622,7 +632,7 @@ const inputStyle = (hasError = false) => hasError
             style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
             <textarea v-model="form.observaciones" rows="2" placeholder="Notas opcionales…"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" :style="inputStyle(false)" />
+              class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle(false)" />
           </div>
 
           <!-- Footer acciones -->
@@ -639,3 +649,11 @@ const inputStyle = (hasError = false) => hasError
     </main>
   </div>
 </template>
+
+<style scoped>
+:deep(.ss-trigger) {
+  height: 48px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+</style>

@@ -12,219 +12,180 @@ export interface RoleRequest {
   permissions: string[]
 }
 
-// Lista canónica de todas las acciones del sistema (usada para mostrar labels en tabla)
+// Lista canónica de todos los permisos del sistema (para mostrar labels).
 // DEBE mantenerse sincronizada con DbSeeder.cs y Program.cs del backend.
 export const SYSTEM_PERMISSIONS = [
-  { id: "ver_pacientes", label: "Ver pacientes" },
-  { id: "crear_paciente", label: "Crear paciente" },
-  { id: "editar_paciente", label: "Editar paciente" },
-  { id: "desactivar_paciente", label: "Desactivar paciente" },
-
-  { id: "ver_profesionales", label: "Ver profesionales" },
-  { id: "crear_profesional", label: "Crear profesional" },
-  { id: "editar_profesional", label: "Editar profesional" },
-
-  { id: "ver_especialidades", label: "Ver especialidades" },
+  { id: "ver_pacientes",          label: "Ver pacientes" },
+  { id: "crear_paciente",         label: "Crear paciente" },
+  { id: "editar_paciente",        label: "Editar paciente" },
+  { id: "desactivar_paciente",    label: "Desactivar paciente" },
+  { id: "ver_profesionales",      label: "Ver profesionales" },
+  { id: "crear_profesional",      label: "Crear profesional" },
+  { id: "editar_profesional",     label: "Editar profesional" },
+  { id: "ver_especialidades",     label: "Ver especialidades" },
   { id: "gestionar_especialidades", label: "Gestionar especialidades" },
-
-  { id: "ver_agenda", label: "Ver agenda" },
-  { id: "gestionar_agenda", label: "Gestionar agenda" },
-  { id: "ver_recepcion", label: "Ver recepción" },
-  { id: "ver_mis_turnos", label: "Ver mis turnos" },
-
-  { id: "ver_calendario", label: "Ver calendario" },
-
-  { id: "ver_historia_clinica", label: "Ver historia clínica" },
-
-  { id: "ver_consultas", label: "Ver consultas" },
-  { id: "registrar_consulta", label: "Registrar consulta" },
-  { id: "editar_consulta", label: "Editar consulta" },
-  { id: "eliminar_consulta", label: "Eliminar consulta" },
-
-  { id: "ver_recetas", label: "Ver recetas" },
-
-  { id: "ver_inventario", label: "Ver inventario" },
-  { id: "gestionar_inventario", label: "Gestionar inventario" },
-  { id: "gestionar_pedidos", label: "Gestionar pedidos" },
-
-  { id: "ver_egresos", label: "Ver egresos" },
-  { id: "gestionar_egresos", label: "Gestionar egresos" },
-
-  { id: "ver_ventas", label: "Ver ventas" },
-  { id: "registrar_venta", label: "Registrar venta" },
-
-  { id: "ver_reportes", label: "Ver reportes" },
-
-  { id: "ver_dashboard", label: "Ver dashboard" },
-  { id: "ver_notificaciones", label: "Ver notificaciones" },
-
-  { id: "gestionar_configuracion", label: "Gestionar configuración" },
-
-  { id: "ver_usuarios", label: "Ver usuarios" },
-  { id: "editar_usuario", label: "Editar usuario" },
-
-  { id: "ver_roles", label: "Ver roles" },
-  { id: "crear_rol", label: "Crear rol" },
-  { id: "editar_rol", label: "Editar rol" },
-  { id: "eliminar_rol", label: "Eliminar rol" },
+  { id: "ver_agenda",             label: "Ver agenda" },
+  { id: "gestionar_agenda",       label: "Gestionar agenda" },
+  { id: "ver_recepcion",          label: "Ver recepción" },
+  { id: "ver_mis_turnos",         label: "Ver mis turnos" },
+  { id: "ver_calendario",         label: "Ver calendario" },
+  { id: "ver_historia_clinica",   label: "Ver historia clínica" },
+  { id: "ver_consultas",          label: "Ver consultas" },
+  { id: "registrar_consulta",     label: "Registrar consulta" },
+  { id: "editar_consulta",        label: "Editar consulta" },
+  { id: "eliminar_consulta",      label: "Eliminar consulta" },
+  { id: "ver_recetas",            label: "Ver recetas" },
+  { id: "ver_inventario",         label: "Ver inventario" },
+  { id: "gestionar_inventario",   label: "Gestionar inventario" },
+  { id: "gestionar_pedidos",      label: "Gestionar pedidos" },
+  { id: "aprobar_pedidos",        label: "Aprobar órdenes de compra" },
+  { id: "ver_egresos",            label: "Ver egresos" },
+  { id: "gestionar_egresos",      label: "Solicitar egresos" },
+  { id: "aprobar_egresos",        label: "Aprobar/rechazar egresos" },
+  { id: "pagar_egresos",          label: "Registrar pago de egresos" },
+  { id: "ver_ventas",             label: "Ver ventas" },
+  { id: "registrar_venta",        label: "Registrar venta" },
+  { id: "ver_reportes",           label: "Ver reportes" },
+  { id: "ver_dashboard",          label: "Ver dashboard" },
+  { id: "ver_notificaciones",     label: "Ver notificaciones" },
+  { id: "gestionar_configuracion",label: "Gestionar configuración" },
+  { id: "ver_empleados",          label: "Ver empleados" },
+  { id: "gestionar_empleados",    label: "Gestionar empleados" },
+  { id: "ver_usuarios",           label: "Ver usuarios" },
+  { id: "editar_usuario",         label: "Editar usuario" },
+  { id: "ver_roles",              label: "Ver roles" },
+  { id: "crear_rol",              label: "Crear rol" },
+  { id: "editar_rol",             label: "Editar rol" },
+  { id: "eliminar_rol",           label: "Eliminar rol" },
 ] as const
 
-// Columnas de la matriz de permisos
-export const MATRIX_COLUMNS = [
-  { id: "ver",       label: "Ver" },
-  { id: "crear",     label: "Crear" },
-  { id: "editar",    label: "Editar" },
-  { id: "gestionar", label: "Gestionar" },
-  { id: "desactivar", label: "Desactivar" },
-] as const
-
-export interface MatrixRow {
+// Grupos de permisos por módulo — usados en RolFormView (cards de permisos).
+export interface PermissionGroup {
   module: string
   icon: string
   description: string
-  // mapa colId → permissionId (si la celda aplica al módulo)
-  permissions: Partial<Record<string, string>>
+  permissions: Array<{ id: string; label: string }>
 }
 
-// Módulos del sistema con sus permisos mapeados a columnas
-// DEBE mantenerse sincronizado con los controllers del backend.
-export const PERMISSION_MATRIX: MatrixRow[] = [
+export const PERMISSION_GROUPS: PermissionGroup[] = [
   {
     module: "Pacientes",
     icon: "groups",
     description: "Historial clínico y datos personales",
-    permissions: {
-      ver: "ver_pacientes",
-      crear: "crear_paciente",
-      editar: "editar_paciente",
-      desactivar: "desactivar_paciente",
-    },
+    permissions: [
+      { id: "ver_pacientes",       label: "Ver pacientes" },
+      { id: "crear_paciente",      label: "Crear paciente" },
+      { id: "editar_paciente",     label: "Editar paciente" },
+      { id: "desactivar_paciente", label: "Desactivar paciente" },
+    ],
   },
   {
     module: "Profesionales",
     icon: "stethoscope",
     description: "Gestión del equipo profesional",
-    permissions: {
-      ver: "ver_profesionales",
-      crear: "crear_profesional",
-      editar: "editar_profesional",
-    },
-  },
-  {
-    module: "Especialidades",
-    icon: "medical_services",
-    description: "Especialidades del staff",
-    permissions: { ver: "ver_especialidades", gestionar: "gestionar_especialidades" },
+    permissions: [
+      { id: "ver_profesionales",  label: "Ver profesionales" },
+      { id: "crear_profesional",  label: "Crear profesional" },
+      { id: "editar_profesional", label: "Editar profesional" },
+    ],
   },
   {
     module: "Agenda",
     icon: "calendar_month",
-    description: "Gestión de citas y turnos",
-    permissions: { ver: "ver_agenda", gestionar: "gestionar_agenda" },
-  },
-  {
-    module: "Recepción",
-    icon: "meeting_room",
-    description: "Sala de espera y recepción de pacientes",
-    permissions: { ver: "ver_recepcion" },
-  },
-  {
-    module: "Mis Turnos",
-    icon: "event_available",
-    description: "Autogestión de turnos por pacientes",
-    permissions: { ver: "ver_mis_turnos" },
-  },
-  {
-    module: "Calendario",
-    icon: "event",
-    description: "Vista de calendario de turnos",
-    permissions: { ver: "ver_calendario" },
+    description: "Citas, turnos y recepción",
+    permissions: [
+      { id: "ver_agenda",       label: "Ver agenda" },
+      { id: "gestionar_agenda", label: "Gestionar agenda" },
+      { id: "ver_recepcion",    label: "Ver recepción" },
+      { id: "ver_mis_turnos",   label: "Ver mis turnos" },
+      { id: "ver_calendario",   label: "Ver calendario" },
+    ],
   },
   {
     module: "Clínica",
     icon: "clinical_notes",
-    description: "Consultas y recetas ópticas",
-    permissions: {
-      ver: "ver_consultas",
-      crear: "registrar_consulta",
-      editar: "editar_consulta",
-      desactivar: "eliminar_consulta",
-    },
-  },
-  {
-    module: "Historia Clínica",
-    icon: "folder_shared",
-    description: "Acceso al historial clínico global",
-    permissions: { ver: "ver_historia_clinica" },
-  },
-  {
-    module: "Recetas",
-    icon: "medication",
-    description: "Prescripciones y recetas médicas",
-    permissions: { ver: "ver_recetas" },
+    description: "Consultas, recetas e historia clínica",
+    permissions: [
+      { id: "ver_historia_clinica", label: "Ver historia clínica" },
+      { id: "ver_consultas",        label: "Ver consultas" },
+      { id: "registrar_consulta",   label: "Registrar consulta" },
+      { id: "editar_consulta",      label: "Editar consulta" },
+      { id: "eliminar_consulta",    label: "Eliminar consulta" },
+      { id: "ver_recetas",          label: "Ver recetas" },
+    ],
   },
   {
     module: "Inventario",
     icon: "inventory_2",
-    description: "Control de stock, productos y órdenes de compra",
-    permissions: {
-      ver: "ver_inventario",
-      crear: "gestionar_pedidos",
-      gestionar: "gestionar_inventario",
-    },
+    description: "Stock, productos y órdenes de compra",
+    permissions: [
+      { id: "ver_inventario",       label: "Ver inventario" },
+      { id: "gestionar_inventario", label: "Gestionar inventario" },
+      { id: "gestionar_pedidos",    label: "Gestionar pedidos" },
+      { id: "aprobar_pedidos",      label: "Aprobar órdenes de compra" },
+    ],
   },
   {
     module: "Egresos",
     icon: "account_balance_wallet",
     description: "Facturas, honorarios y gastos generales",
-    permissions: { ver: "ver_egresos", gestionar: "gestionar_egresos" },
+    permissions: [
+      { id: "ver_egresos",      label: "Ver egresos" },
+      { id: "gestionar_egresos", label: "Solicitar egresos" },
+      { id: "aprobar_egresos",  label: "Aprobar/rechazar egresos" },
+      { id: "pagar_egresos",    label: "Registrar pago de egresos" },
+    ],
   },
   {
-    module: "Ventas",
+    module: "Ventas y Caja",
     icon: "payments",
-    description: "Facturación y órdenes de trabajo",
-    permissions: { ver: "ver_ventas", crear: "registrar_venta" },
+    description: "Facturación y movimientos de caja",
+    permissions: [
+      { id: "ver_ventas",      label: "Ver ventas" },
+      { id: "registrar_venta", label: "Registrar venta" },
+    ],
+  },
+  {
+    module: "Empleados",
+    icon: "badge",
+    description: "Personal administrativo y cargos",
+    permissions: [
+      { id: "ver_empleados",       label: "Ver empleados" },
+      { id: "gestionar_empleados", label: "Gestionar empleados" },
+    ],
+  },
+  {
+    module: "Especialidades",
+    icon: "medical_services",
+    description: "Especialidades del staff médico",
+    permissions: [
+      { id: "ver_especialidades",      label: "Ver especialidades" },
+      { id: "gestionar_especialidades", label: "Gestionar especialidades" },
+    ],
   },
   {
     module: "Reportes",
     icon: "analytics",
     description: "Informes financieros y operativos",
-    permissions: { ver: "ver_reportes" },
+    permissions: [
+      { id: "ver_reportes", label: "Ver reportes" },
+    ],
   },
   {
-    module: "Dashboard",
-    icon: "dashboard",
-    description: "Panel de control principal",
-    permissions: { ver: "ver_dashboard" },
-  },
-  {
-    module: "Notificaciones",
-    icon: "notifications",
-    description: "Centro de notificaciones del sistema",
-    permissions: { ver: "ver_notificaciones" },
-  },
-  {
-    module: "Usuarios",
+    module: "Sistema",
     icon: "manage_accounts",
-    description: "Gestión de cuentas y accesos",
-    permissions: { ver: "ver_usuarios", editar: "editar_usuario" },
-  },
-  {
-    module: "Roles",
-    icon: "shield_person",
-    description: "Configuración de permisos del sistema",
-    permissions: {
-      ver: "ver_roles",
-      crear: "crear_rol",
-      editar: "editar_rol",
-      desactivar: "eliminar_rol",
-    },
-  },
-  {
-    module: "Configuración",
-    icon: "settings",
-    description: "Estados, especialidades y datos del negocio",
-    permissions: { gestionar: "gestionar_configuracion" },
+    description: "Usuarios, roles, configuración y notificaciones",
+    permissions: [
+      { id: "ver_dashboard",           label: "Ver dashboard" },
+      { id: "ver_notificaciones",      label: "Ver notificaciones" },
+      { id: "gestionar_configuracion", label: "Gestionar configuración" },
+      { id: "ver_usuarios",            label: "Ver usuarios" },
+      { id: "editar_usuario",          label: "Editar usuario" },
+      { id: "ver_roles",               label: "Ver roles" },
+      { id: "crear_rol",               label: "Crear rol" },
+      { id: "editar_rol",              label: "Editar rol" },
+      { id: "eliminar_rol",            label: "Eliminar rol" },
+    ],
   },
 ]
 

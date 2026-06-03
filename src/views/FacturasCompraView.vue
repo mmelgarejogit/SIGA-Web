@@ -169,9 +169,12 @@ async function confirmarAnulacion() {
   }
 }
 
-const inputStyle = (hasError = false) => hasError
-  ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-  : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+}
 
 // ── Context menu ─────────────────────────────────────────────────────────────
 function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
@@ -181,12 +184,19 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
   return [
     {
       type: "item",
+      label: "Ver detalle",
+      icon: "receipt_long",
+      action: () => router.push(`/compras/facturas/${f.id}`),
+    },
+    ...(hasOC ? [{ type: "separator" as const }] : []),
+    {
+      type: "item",
       label: "Ver Orden de Compra",
       icon: "open_in_new",
       hidden: !hasOC,
       action: () => router.push(`/compras/oc/${f.pedidoProveedorId}`),
     },
-    ...(hasOC && canAnular ? [{ type: "separator" as const }] : []),
+    ...((hasOC || true) && canAnular ? [{ type: "separator" as const }] : []),
     {
       type: "item",
       label: "Anular Factura",
@@ -328,9 +338,10 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
               <tr
                 v-for="f in facturas"
                 :key="f.id"
-                class="hover:bg-surface-container-low"
+                class="hover:bg-surface-container-low cursor-pointer"
                 :class="{ 'opacity-60': f.estado === 'Anulado' }"
                 style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                @click.self="router.push(`/compras/facturas/${f.id}`)"
               >
                 <td class="px-6 py-4">
                   <span class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
@@ -405,7 +416,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
             </div>
 
             <div class="px-8 py-6 space-y-4">
-              <div class="p-4 rounded-xl" style="background-color: var(--color-error-container)">
+              <div class="p-4 rounded-2xl" style="background-color: var(--color-error-container)">
                 <p class="text-sm font-semibold" style="color: var(--color-error)">
                   Vas a anular la factura
                   <strong>{{ anularTarget?.nroFactura ?? "sin número" }}</strong>
@@ -424,7 +435,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
                   v-model="motivoAnulacion"
                   rows="3"
                   placeholder="Indicá el motivo de la anulación…"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
+                  class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none transition-all resize-none"
                   :style="inputStyle(!!anularError)"
                   maxlength="500"
                 />
@@ -434,7 +445,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
               </div>
             </div>
 
-            <div class="px-8 py-6 flex justify-end gap-3"
+            <div class="px-8 py-6 flex justify-between"
               style="border-top: 1px solid rgba(196, 197, 213, 0.2)">
               <BaseButton variant="secondary" @click="showAnularModal = false" :disabled="isAnulando">
                 Cancelar

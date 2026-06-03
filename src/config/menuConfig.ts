@@ -158,6 +158,12 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Aprobación de OC",
+        icon: "task_alt",
+        route: "/compras/oc/aprobacion",
+        permission: "aprobar_pedidos",
+      },
+      {
         label: "Facturas de Compra",
         icon: "receipt",
         route: "/compras/facturas",
@@ -190,10 +196,28 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_egresos",
     children: [
       {
-        label: "Egresos",
+        label: "Lista de Egresos",
         icon: "receipt_long",
         route: "/egresos",
         permission: "ver_egresos",
+      },
+      {
+        label: "Nueva Solicitud",
+        icon: "add_circle",
+        route: "/egresos/nuevo",
+        permission: "gestionar_egresos",
+      },
+      {
+        label: "Aprobación",
+        icon: "task_alt",
+        route: "/egresos/aprobacion",
+        permission: "aprobar_egresos",
+      },
+      {
+        label: "Pagos Pendientes",
+        icon: "payments",
+        route: "/egresos/pagos",
+        permission: "pagar_egresos",
       },
       {
         label: "Categorías de Gasto",
@@ -262,22 +286,54 @@ export const menuConfig: MenuItem[] = [
     ],
   },
   {
+    id: "personal",
+    label: "Personal",
+    icon: "people",
+    permission: "ver_profesionales",
+    children: [
+      {
+        label: "Profesionales",
+        icon: "stethoscope",
+        route: "/profesionales",
+        permission: "ver_profesionales",
+      },
+      {
+        label: "Empleados",
+        icon: "badge",
+        route: "/personal/empleados",
+        permission: "ver_empleados",
+      },
+      {
+        label: "Cargos",
+        icon: "work",
+        route: "/personal/empleados/cargos",
+        permission: "ver_empleados",
+      },
+      {
+        label: "Especialidades",
+        icon: "medical_services",
+        route: "/personal/especialidades",
+        permission: "ver_especialidades",
+      },
+    ],
+  },
+  {
     id: "admin",
     label: "Administración",
     icon: "manage_accounts",
     permission: "ver_usuarios",
     children: [
       {
-        label: "Usuarios y Roles",
-        icon: "shield_person",
+        label: "Usuarios",
+        icon: "manage_accounts",
         route: "/usuarios",
         permission: "ver_usuarios",
       },
       {
-        label: "Profesionales",
-        icon: "stethoscope",
-        route: "/profesionales",
-        permission: "ver_profesionales",
+        label: "Roles y Permisos",
+        icon: "shield_person",
+        route: "/roles",
+        permission: "ver_roles",
       },
       {
         label: "Configuración",

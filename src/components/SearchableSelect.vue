@@ -7,13 +7,16 @@ export interface SelectOption {
   code?: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: number | string | null | undefined
   options: SelectOption[]
   placeholder?: string
   nullLabel?: string
   disabled?: boolean
-}>()
+  searchable?: boolean
+}>(), {
+  searchable: true,
+})
 
 const emit = defineEmits<{ "update:modelValue": [v: number | string | null] }>()
 
@@ -29,6 +32,7 @@ const selected = computed(() =>
 )
 
 const filtered = computed(() => {
+  if (!props.searchable) return props.options
   const q = search.value.toLowerCase().trim()
   if (!q) return props.options
   return props.options.filter(
@@ -43,8 +47,10 @@ async function toggle() {
   open.value = !open.value
   if (open.value) {
     search.value = ""
-    await nextTick()
-    inputRef.value?.focus()
+    if (props.searchable) {
+      await nextTick()
+      inputRef.value?.focus()
+    }
   }
 }
 
@@ -86,8 +92,8 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
 
     <!-- Dropdown -->
     <div v-if="open" class="ss-dropdown">
-      <!-- Search -->
-      <div class="ss-search-wrap">
+      <!-- Search (solo si searchable) -->
+      <div v-if="props.searchable" class="ss-search-wrap">
         <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">search</span>
         <input
           ref="inputRef"

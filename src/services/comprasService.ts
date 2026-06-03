@@ -356,6 +356,36 @@ export async function getRecepciones(params: {
   return data
 }
 
+export interface RecepcionDetalleItem {
+  pedidoItemId: number
+  productoNombre: string
+  cantidad: number
+  lote: string | null
+  fechaVencimiento: string | null
+  observaciones: string | null
+}
+
+export interface RecepcionDetalle {
+  id: number
+  fechaRecepcion: string
+  createdAt: string
+  pedidoProveedorId: number
+  estadoOC: EstadoPedido
+  proveedorId: number
+  proveedorNombre: string
+  facturaCompraId: number | null
+  nroFactura: string | null
+  usuarioId: number
+  usuarioNombre: string
+  observaciones: string | null
+  items: RecepcionDetalleItem[]
+}
+
+export async function getRecepcionById(id: number): Promise<RecepcionDetalle> {
+  const { data } = await http.get<RecepcionDetalle>(`/api/compras/recepciones/${id}`)
+  return data
+}
+
 export async function getFacturasDisponiblesRecepcion(): Promise<FacturaDisponibleRecepcion[]> {
   const { data } = await http.get<FacturaDisponibleRecepcion[]>(`/api/compras/recepciones/facturas-disponibles`)
   return data

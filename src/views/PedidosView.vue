@@ -16,7 +16,6 @@ import {
   type PedidoCompras,
   type EstadoPedido,
   getComprasPedidos,
-  confirmarPedido,
   cancelarPedido,
 } from "@/services/comprasService"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -147,7 +146,8 @@ function openEditPedido(pedido: PedidoCompras) {
 // ── Menú contextual de fila ────────────────────────────────────────────────────
 
 function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
-  const canGestionar = pedido.estado === "Borrador" && canManage.value
+  const esBorrador   = pedido.estado === "Borrador"
+  const canGestionar = esBorrador && canManage.value
 
   return [
     {
@@ -163,13 +163,6 @@ function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
       action: () => openEditPedido(pedido),
       hidden: !canGestionar,
     },
-    {
-      type: "item",
-      label: "Confirmar OC",
-      icon: "check_circle",
-      action: () => openConfirmarModal(pedido),
-      hidden: !canGestionar,
-    },
     ...(canGestionar ? [{ type: "separator" as const }] : []),
     {
       type: "item",
@@ -180,34 +173,6 @@ function rowMenuItems(pedido: PedidoCompras): ContextMenuItem[] {
       hidden: !canGestionar,
     },
   ]
-}
-
-// ── Modal Confirmar OC ─────────────────────────────────────────────────────────
-
-const showConfirmarModal = ref(false)
-const confirmarTarget = ref<PedidoCompras | null>(null)
-const isConfirmando = ref(false)
-const confirmarError = ref("")
-
-function openConfirmarModal(pedido: PedidoCompras) {
-  confirmarTarget.value = pedido
-  confirmarError.value = ""
-  showConfirmarModal.value = true
-}
-
-async function submitConfirmar() {
-  if (!confirmarTarget.value) return
-  isConfirmando.value = true
-  confirmarError.value = ""
-  try {
-    await confirmarPedido(confirmarTarget.value.id)
-    showConfirmarModal.value = false
-    await load()
-  } catch (err: unknown) {
-    confirmarError.value = err instanceof Error ? err.message : "Error al confirmar la orden."
-  } finally {
-    isConfirmando.value = false
-  }
 }
 
 // ── Modal Cancelar OC ──────────────────────────────────────────────────────────
@@ -263,6 +228,13 @@ function openCreateProveedor() {
   Object.assign(provForm, emptyProvForm())
   provError.value = ""
   showProveedorModal.value = true
+}
+
+function inputStyle(hasError = false) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
 async function submitProveedor() {
@@ -359,10 +331,17 @@ async function submitProveedor() {
             </template>
 
             <template #estado="{ item }">
-              <span
-                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="`background-color: ${estadoStyle(item.estado).bg}; color: ${estadoStyle(item.estado).text}`"
-              >{{ estadoLabel(item.estado) }}</span>
+              <div class="flex flex-col gap-1 items-start">
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                  :style="`background-color: ${estadoStyle(item.estado).bg}; color: ${estadoStyle(item.estado).text}`"
+                >{{ estadoLabel(item.estado) }}</span>
+                <span v-if="item.estado === 'Borrador'"
+                  class="text-xs font-medium"
+                  style="color: var(--color-outline)">
+                  Pendiente de aprobación
+                </span>
+              </div>
             </template>
 
             <template #acciones="{ item }">
@@ -414,34 +393,6 @@ async function submitProveedor() {
       </div>
     </main>
 
-    <!-- ── MODAL CONFIRMAR OC ───────────────────────────────────────────────── -->
-    <BaseModal :show="showConfirmarModal" title="Confirmar Orden de Compra" size="sm" @close="showConfirmarModal = false">
-      <div class="flex flex-col items-center text-center gap-4 py-2">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background-color: #dbeafe">
-          <span class="material-symbols-outlined" style="font-size: 28px; color: #1e40af">check_circle</span>
-        </div>
-        <div>
-          <p class="text-sm font-semibold mb-1" style="color: var(--color-on-surface)">
-            ¿Confirmar la OC <strong>#{{ confirmarTarget?.id }}</strong>?
-          </p>
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            La orden pasará a estado <strong>Confirmada</strong> y estará lista para ser facturada.
-          </p>
-        </div>
-        <div v-if="confirmarError" class="w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
-          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-          <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-          {{ confirmarError }}
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="showConfirmarModal = false" :disabled="isConfirmando">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isConfirmando" @click="submitConfirmar">
-          {{ isConfirmando ? "Confirmando…" : "Confirmar" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
-
     <!-- ── MODAL CANCELAR OC ─────────────────────────────────────────────────── -->
     <BaseModal :show="showCancelarModal" title="Cancelar Orden de Compra" size="sm" @close="showCancelarModal = false">
       <div class="flex flex-col items-center text-center gap-4 py-2">
@@ -472,17 +423,17 @@ async function submitProveedor() {
 
     <!-- ── MODAL NUEVO PROVEEDOR ──────────────────────────────────────────────── -->
     <BaseModal :show="showProveedorModal" title="Nuevo Proveedor" size="lg" @close="showProveedorModal = false">
-      <div v-if="provError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="provError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ provError }}
       </div>
 
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre comercial *</label>
-          <input v-model="provForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="provForm.nombre" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
         <p class="text-xs font-bold uppercase tracking-wider pt-2" style="color: var(--color-primary)">Datos fiscales</p>
@@ -491,14 +442,14 @@ async function submitProveedor() {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">RUC *</label>
             <input v-model="provForm.ruc" type="text" placeholder="80012345-6"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+              class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all font-mono"
+              :style="inputStyle(false)" />
           </div>
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Razón social</label>
             <input v-model="provForm.razonSocial" type="text"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+              class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
 
@@ -508,10 +459,12 @@ async function submitProveedor() {
       </div>
 
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showProveedorModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" size="default" :disabled="isProvSaving" @click="submitProveedor">
-          {{ isProvSaving ? "Creando…" : "Crear Proveedor" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" size="default" @click="showProveedorModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" size="default" :disabled="isProvSaving" @click="submitProveedor">
+            {{ isProvSaving ? "Creando…" : "Crear Proveedor" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 

@@ -4,7 +4,7 @@ import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
-import DateInput from "@/components/DateInput.vue"
+import BirthDateInput from "@/components/BirthDateInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import { createPatient, type CreatePatientRequest } from "@/services/patientService"
 
@@ -245,7 +245,7 @@ function cancel() {
               >
                 Fecha de Nacimiento <span style="color: var(--color-error)">*</span>
               </label>
-              <DateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
+              <BirthDateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
               <p
                 v-if="errors.birthDate"
                 class="text-xs font-medium"
@@ -266,6 +266,7 @@ function cancel() {
               <SearchableSelect
                 :model-value="form.sexo || null"
                 :options="SEXO_OPTIONS"
+                :searchable="false"
                 null-label="Sin especificar"
                 @update:model-value="form.sexo = ($event as string) ?? ''"
               />

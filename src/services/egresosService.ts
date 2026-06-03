@@ -2,8 +2,8 @@ import { useHttp } from "@/composables/useHttp"
 
 const { get, post, put } = useHttp()
 
-export type TipoEgreso = "FacturaCompra" | "Honorario" | "GastoGeneral"
-export type EstadoEgreso = "Borrador" | "Pendiente" | "Pagado" | "Anulado"
+export type TipoEgreso = "FacturaCompra" | "Honorario" | "GastoGeneral" | "Salario"
+export type EstadoEgreso = "Borrador" | "Pendiente" | "Aprobado" | "Rechazado" | "Pagado" | "Anulado"
 export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Cheque"
 export type CondicionVenta = "Contado" | "Credito"
 
@@ -19,6 +19,9 @@ export interface Egreso {
   fechaPago?: string
   metodoPago?: MetodoPago
   estaVencido: boolean
+  motivoRechazo?: string
+  fechaAprobacion?: string
+  nroComprobante?: string
   createdAt: string
 
   // FacturaCompra — referencia
@@ -44,6 +47,10 @@ export interface Egreso {
   // GastoGeneral
   categoriaGastoId?: number
   categoriaGastoNombre?: string
+
+  // Salario
+  empleadoId?: number
+  empleadoNombre?: string
 }
 
 export interface CategoriaGasto {
@@ -86,9 +93,27 @@ export interface CrearGastoGeneralRequest {
   fechaVencimiento?: string
 }
 
+export interface CrearSalarioRequest {
+  empleadoId: number
+  monto: number
+  concepto: string
+  periodo?: string
+  observaciones?: string
+  fechaEmision: string
+  fechaVencimiento?: string
+}
+
 export interface RegistrarPagoRequest {
   metodoPago: MetodoPago
   fechaPago: string
+  nroComprobante?: string
+  observaciones?: string
+}
+
+export interface AprobarEgresoRequest { }
+
+export interface RechazarEgresoRequest {
+  motivo: string
 }
 
 export interface AnularEgresoRequest {
@@ -135,8 +160,17 @@ export const crearHonorario = (data: CrearHonorarioRequest) =>
 export const crearGastoGeneral = (data: CrearGastoGeneralRequest) =>
   post<Egreso>("/api/egresos/gastos", data)
 
+export const crearSalario = (data: CrearSalarioRequest) =>
+  post<Egreso>("/api/egresos/salarios", data)
+
 export const registrarPago = (id: number, data: RegistrarPagoRequest) =>
   put<Egreso>(`/api/egresos/${id}/pago`, data)
+
+export const aprobarEgreso = (id: number) =>
+  put<Egreso>(`/api/egresos/${id}/aprobar`, {})
+
+export const rechazarEgreso = (id: number, data: RechazarEgresoRequest) =>
+  put<Egreso>(`/api/egresos/${id}/rechazar`, data)
 
 export const anularEgreso = (id: number, data: AnularEgresoRequest) =>
   put<Egreso>(`/api/egresos/${id}/anular`, data)

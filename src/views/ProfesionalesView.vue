@@ -7,6 +7,10 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import BirthDateInput from "@/components/BirthDateInput.vue"
+import FilterChips from "@/components/FilterChips.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import MultiSelect, { type MultiSelectOption } from "@/components/MultiSelect.vue"
 import {
   type Professional,
   type Especialidad,
@@ -31,30 +35,41 @@ const professionals = ref<Professional[]>([])
 const especialidades = ref<Especialidad[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
-const showInactive = ref(false)
+const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
+
+const statusOptions = [
+  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
+]
 
 // ── Datos derivados ───────────────────────────────────────────────────────────
 
 const filtered = computed(() => {
-  let list = showInactive.value
-    ? professionals.value
-    : professionals.value.filter((p) => p.isActive)
+  let list = professionals.value
+
+  const showActivo   = activeFilters.value.includes("activo")
+  const showInactivo = activeFilters.value.includes("inactivo")
+  if (showActivo && !showInactivo)   list = list.filter(p => p.isActive)
+  else if (showInactivo && !showActivo) list = list.filter(p => !p.isActive)
 
   const q = searchQuery.value.trim().toLowerCase()
   if (q) {
-    list = list.filter(
-      (p) =>
-        p.firstName.toLowerCase().includes(q) ||
-        p.lastName.toLowerCase().includes(q) ||
-        p.ci.toLowerCase().includes(q) ||
-        p.licenseNumber.toLowerCase().includes(q),
+    list = list.filter(p =>
+      p.firstName.toLowerCase().includes(q) ||
+      p.lastName.toLowerCase().includes(q) ||
+      p.ci.toLowerCase().includes(q) ||
+      p.licenseNumber.toLowerCase().includes(q),
     )
   }
   return list
 })
 
 const totalActive = computed(() => professionals.value.filter((p) => p.isActive).length)
+
+const especialidadOptions = computed<MultiSelectOption[]>(() =>
+  especialidades.value.map(e => ({ value: e.id, label: e.nombre }))
+)
 
 const columns = [
   { key: "profesional", label: "Profesional" },
@@ -119,10 +134,20 @@ function statusStyle(isActive: boolean) {
       }
 }
 
+function menuItems(p: Professional): ContextMenuItem[] {
+  return [
+    { type: "item", label: "Horario", icon: "schedule", action: () => openHorarioModal(p), hidden: !auth.hasPermission("ver_profesionales") },
+    { type: "item", label: "Editar",  icon: "edit",     action: () => openEditModal(p),    hidden: !auth.hasPermission("editar_profesional") },
+    { type: "separator" },
+    { type: "item", label: "Desactivar", icon: "person_off", action: () => openDeleteModal(p), danger: true, hidden: !auth.hasPermission("editar_profesional") || !p.isActive },
+  ]
+}
+
 function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
   return hasError
-    ? "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 // ── Validación compartida ─────────────────────────────────────────────────────
@@ -466,20 +491,7 @@ async function submitHorario() {
 
         <!-- Filters + Search -->
         <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
-          <BaseButton
-            :variant="showInactive ? 'primary' : 'secondary'"
-            size="sm"
-            @click="showInactive = !showInactive"
-          >
-            <span
-              class="material-symbols-outlined"
-              style="font-size: 16px; width: 16px; height: 16px"
-            >
-              {{ showInactive ? "visibility" : "visibility_off" }}
-            </span>
-            Mostrar inactivos
-          </BaseButton>
-
+          <FilterChips v-model="activeFilters" :options="statusOptions" placeholder="Estado" />
           <SearchInput v-model="searchQuery" placeholder="Nombre, C.I. o matrícula..." />
         </div>
 
@@ -570,46 +582,8 @@ async function submitHorario() {
               </span>
             </template>
             <template #acciones="{ item: p }">
-              <div class="flex justify-end gap-1">
-                <BaseButton
-                  v-if="auth.hasPermission('ver_profesionales')"
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="openHorarioModal(p)"
-                  title="Gestionar horario"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="width: 20px; height: 20px; font-size: 20px"
-                    >schedule</span
-                  >
-                </BaseButton>
-                <BaseButton
-                  v-if="auth.hasPermission('editar_profesional')"
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="openEditModal(p)"
-                  title="Editar profesional"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="width: 20px; height: 20px; font-size: 20px"
-                    >edit</span
-                  >
-                </BaseButton>
-                <BaseButton
-                  v-if="auth.hasPermission('editar_profesional') && p.isActive"
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="openDeleteModal(p)"
-                  title="Desactivar profesional"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="width: 20px; height: 20px; font-size: 20px"
-                    >person_off</span
-                  >
-                </BaseButton>
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(p)" />
               </div>
             </template>
           </BaseTable>
@@ -711,7 +685,7 @@ async function submitHorario() {
               v-model="createForm.firstName"
               type="text"
               placeholder="Juan"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.firstName)"
             />
             <p
@@ -732,7 +706,7 @@ async function submitHorario() {
               v-model="createForm.lastName"
               type="text"
               placeholder="Pérez"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.lastName)"
             />
             <p
@@ -756,7 +730,7 @@ async function submitHorario() {
               v-model="createForm.ci"
               type="text"
               placeholder="12345678"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.ci)"
             />
             <p v-if="createErrors.ci" class="text-xs font-medium" style="color: var(--color-error)">
@@ -769,12 +743,7 @@ async function submitHorario() {
               style="color: var(--color-outline)"
               >Fecha de Nacimiento *</label
             >
-            <input
-              v-model="createForm.birthDate"
-              type="date"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              :style="inputStyle(!!createErrors.birthDate)"
-            />
+            <BirthDateInput v-model="createForm.birthDate" :has-error="!!createErrors.birthDate" />
             <p
               v-if="createErrors.birthDate"
               class="text-xs font-medium"
@@ -796,7 +765,7 @@ async function submitHorario() {
               v-model="createForm.email"
               type="email"
               placeholder="prof@clinica.com"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.email)"
             />
             <p
@@ -817,7 +786,7 @@ async function submitHorario() {
               v-model="createForm.phoneNumber"
               type="tel"
               placeholder="0972123456"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -834,7 +803,7 @@ async function submitHorario() {
               v-model="createForm.password"
               type="password"
               placeholder="Mínimo 6 caracteres"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.password)"
             />
             <p
@@ -855,7 +824,7 @@ async function submitHorario() {
               v-model="createForm.licenseNumber"
               type="text"
               placeholder="MP-12345"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!createErrors.licenseNumber)"
             />
             <p
@@ -869,56 +838,24 @@ async function submitHorario() {
         </div>
 
         <!-- Especialidades -->
-        <div class="flex flex-col gap-2">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Especialidades</label
-          >
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="esp in especialidades"
-              :key="esp.id"
-              type="button"
-              @click="toggleCreateEspecialidad(esp.id)"
-              class="px-4 py-2 rounded-full text-sm font-semibold transition-all"
-              :style="
-                createEspecialidadIds.includes(esp.id)
-                  ? 'background-color: var(--color-primary); color: white;'
-                  : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);'
-              "
-            >
-              {{ esp.nombre }}
-            </button>
-          </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Especialidades</label>
+          <MultiSelect
+            :model-value="createEspecialidadIds"
+            :options="especialidadOptions"
+            placeholder="Seleccioná especialidades"
+            @update:model-value="createEspecialidadIds = $event as number[]"
+          />
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isSavingCreate" @click="submitCreate">
-          <svg
-            v-if="isSavingCreate"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isSavingCreate ? "Guardando..." : "Guardar Profesional" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingCreate" @click="submitCreate">
+            <span v-if="isSavingCreate" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSavingCreate ? "Guardando..." : "Guardar Profesional" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -951,7 +888,7 @@ async function submitHorario() {
             <input
               v-model="editForm.firstName"
               type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!editErrors.firstName)"
             />
             <p
@@ -971,7 +908,7 @@ async function submitHorario() {
             <input
               v-model="editForm.lastName"
               type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!editErrors.lastName)"
             />
             <p
@@ -995,7 +932,7 @@ async function submitHorario() {
               v-model="editForm.phoneNumber"
               type="tel"
               placeholder="0972123456"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)"
             />
           </div>
@@ -1008,7 +945,7 @@ async function submitHorario() {
             <input
               v-model="editForm.licenseNumber"
               type="text"
-              class="px-4 py-3 rounded-xl text-sm outline-none transition-all"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(!!editErrors.licenseNumber)"
             />
             <p
@@ -1022,81 +959,38 @@ async function submitHorario() {
         </div>
 
         <!-- Especialidades -->
-        <div class="flex flex-col gap-2">
-          <label
-            class="text-xs font-bold uppercase tracking-wider"
-            style="color: var(--color-outline)"
-            >Especialidades</label
-          >
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="esp in especialidades"
-              :key="esp.id"
-              type="button"
-              @click="toggleEditEspecialidad(esp.id)"
-              class="px-4 py-2 rounded-full text-sm font-semibold transition-all"
-              :style="
-                editEspecialidadIds.includes(esp.id)
-                  ? 'background-color: var(--color-primary); color: white;'
-                  : 'background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);'
-              "
-            >
-              {{ esp.nombre }}
-            </button>
-          </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Especialidades</label>
+          <MultiSelect
+            :model-value="editEspecialidadIds"
+            :options="especialidadOptions"
+            placeholder="Seleccioná especialidades"
+            @update:model-value="editEspecialidadIds = $event as number[]"
+          />
         </div>
 
-        <!-- Toggle activo -->
+        <!-- Cuenta activa -->
         <div
-          class="flex items-center justify-between px-4 py-3 rounded-xl"
-          style="background-color: var(--color-surface-container-low)"
-        >
-          <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)"
-            >Cuenta activa</span
-          >
-          <button
-            type="button"
-            @click="editForm.isActive = !editForm.isActive"
-            class="relative w-12 h-6 rounded-full transition-all"
-            :style="
-              editForm.isActive
-                ? 'background-color: var(--color-primary);'
-                : 'background-color: var(--color-outline-variant);'
-            "
-          >
-            <span
-              class="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-              :style="editForm.isActive ? 'left: calc(100% - 1.25rem);' : 'left: 0.25rem;'"
-            ></span>
-          </button>
+          class="flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-colors hover:bg-surface-container-low"
+          style="border: 1px solid var(--color-outline-variant)"
+          @click="editForm.isActive = !editForm.isActive">
+          <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all"
+            :style="editForm.isActive
+              ? 'border-color: var(--color-primary); background-color: var(--color-primary);'
+              : 'border-color: var(--color-outline-variant);'">
+            <span v-if="editForm.isActive" class="material-symbols-outlined text-white" style="font-size: 12px">check</span>
+          </div>
+          <span class="text-sm font-medium select-none" style="color: var(--color-on-surface)">Cuenta activa</span>
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isSavingEdit" @click="submitEdit">
-          <svg
-            v-if="isSavingEdit"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" :disabled="isSavingEdit" @click="submitEdit">
+            <span v-if="isSavingEdit" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSavingEdit ? "Guardando..." : "Guardar Cambios" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -1171,8 +1065,9 @@ async function submitHorario() {
                 <input
                   v-model="dia.horaInicio"
                   type="time"
-                  class="px-3 py-1.5 rounded-xl text-sm outline-none"
+                  class="px-3 py-1.5 text-sm outline-none appearance-none shadow-none"
                   style="
+                    border-radius: 12px;
                     border: 1px solid var(--color-outline-variant);
                     color: var(--color-on-surface);
                     background-color: var(--color-surface-container-lowest);
@@ -1182,8 +1077,9 @@ async function submitHorario() {
                 <input
                   v-model="dia.horaFin"
                   type="time"
-                  class="px-3 py-1.5 rounded-xl text-sm outline-none"
+                  class="px-3 py-1.5 text-sm outline-none appearance-none shadow-none"
                   style="
+                    border-radius: 12px;
                     border: 1px solid var(--color-outline-variant);
                     color: var(--color-on-surface);
                     background-color: var(--color-surface-container-lowest);
@@ -1219,7 +1115,7 @@ async function submitHorario() {
               <input
                 v-model="pausa.horaInicio"
                 type="time"
-                class="px-3 py-1.5 rounded-xl text-sm outline-none flex-1"
+                class="px-3 py-1.5 text-sm outline-none appearance-none shadow-none flex-1"
                 style="
                   border: 1px solid var(--color-outline-variant);
                   color: var(--color-on-surface);
@@ -1230,7 +1126,7 @@ async function submitHorario() {
               <input
                 v-model="pausa.horaFin"
                 type="time"
-                class="px-3 py-1.5 rounded-xl text-sm outline-none flex-1"
+                class="px-3 py-1.5 text-sm outline-none appearance-none shadow-none flex-1"
                 style="
                   border: 1px solid var(--color-outline-variant);
                   color: var(--color-on-surface);
@@ -1241,7 +1137,7 @@ async function submitHorario() {
                 v-model="pausa.descripcion"
                 type="text"
                 placeholder="Ej: Almuerzo"
-                class="px-3 py-1.5 rounded-xl text-sm outline-none flex-1"
+                class="px-3 py-1.5 text-sm outline-none appearance-none shadow-none flex-1"
                 style="
                   border: 1px solid var(--color-outline-variant);
                   color: var(--color-on-surface);
@@ -1288,36 +1184,18 @@ async function submitHorario() {
       </div>
 
       <template #footer>
-        <BaseButton variant="secondary" @click="showHorarioModal = false">Cancelar</BaseButton>
-        <BaseButton
-          v-if="auth.hasPermission('editar_profesional')"
-          variant="primary"
-          :disabled="isSavingHorario"
-          @click="submitHorario"
-        >
-          <svg
-            v-if="isSavingHorario"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showHorarioModal = false">Cancelar</BaseButton>
+          <BaseButton
+            v-if="auth.hasPermission('editar_profesional')"
+            variant="primary"
+            :disabled="isSavingHorario"
+            @click="submitHorario"
           >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isSavingHorario ? "Guardando..." : "Guardar Horario" }}
-        </BaseButton>
+            <span v-if="isSavingHorario" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isSavingHorario ? "Guardando..." : "Guardar Horario" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
 
@@ -1353,33 +1231,13 @@ async function submitHorario() {
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showDeleteModal = false"
-          >Cancelar</BaseButton
-        >
-        <BaseButton variant="danger" class="flex-1" :disabled="isDeleting" @click="confirmDelete">
-          <svg
-            v-if="isDeleting"
-            class="animate-spin w-4 h-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            />
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          {{ isDeleting ? "Desactivando..." : "Desactivar" }}
-        </BaseButton>
+        <div class="flex justify-between w-full">
+          <BaseButton variant="secondary" @click="showDeleteModal = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" :disabled="isDeleting" @click="confirmDelete">
+            <span v-if="isDeleting" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+            {{ isDeleting ? "Desactivando..." : "Desactivar" }}
+          </BaseButton>
+        </div>
       </template>
     </BaseModal>
   </div>

@@ -246,6 +246,18 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Nueva Factura" },
     },
     {
+      path: "/compras/facturas/:id",
+      name: "compras-facturas-detail",
+      component: () => import("@/views/FacturaDetailView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Detalle Factura" },
+    },
+    {
+      path: "/compras/oc/aprobacion",
+      name: "compras-oc-aprobacion",
+      component: () => import("@/views/OcAprobacionView.vue"),
+      meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobación de OC" },
+    },
+    {
       path: "/compras/oc/nueva",
       name: "compras-oc-nueva",
       component: () => import("@/views/OcFormView.vue"),
@@ -268,6 +280,12 @@ const router = createRouter({
       name: "compras-recepciones-nueva",
       component: () => import("@/views/RecepcionFormView.vue"),
       meta: { requiresAuth: true, permission: "gestionar_pedidos", label: "Nueva Recepción" },
+    },
+    {
+      path: "/compras/recepciones/:id",
+      name: "compras-recepciones-detail",
+      component: () => import("@/views/RecepcionDetailView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Detalle Recepción" },
     },
     {
       path: "/compras/oc/:id",
@@ -342,10 +360,70 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Egresos" },
     },
     {
+      path: "/egresos/nuevo",
+      name: "egresos-nuevo",
+      component: () => import("@/views/NuevoEgresoView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nueva Solicitud" },
+    },
+    {
+      path: "/egresos/aprobacion",
+      name: "egresos-aprobacion",
+      component: () => import("@/views/AprobacionEgresosView.vue"),
+      meta: { requiresAuth: true, permission: "aprobar_egresos", label: "Aprobación de Egresos" },
+    },
+    {
+      path: "/egresos/pagos",
+      name: "egresos-pagos",
+      component: () => import("@/views/PagosEgresosView.vue"),
+      meta: { requiresAuth: true, permission: "pagar_egresos", label: "Pagos Pendientes" },
+    },
+    {
       path: "/egresos/categorias",
       name: "egresos-categorias",
       component: () => import("@/views/CategoriasGastoView.vue"),
       meta: { requiresAuth: true, permission: "ver_egresos", label: "Categorías de Gasto" },
+    },
+    {
+      path: "/egresos/pagos/:id",
+      name: "egresos-pago",
+      component: () => import("@/views/PagoEgresoView.vue"),
+      meta: { requiresAuth: true, permission: "pagar_egresos", label: "Registrar Pago" },
+    },
+    {
+      path: "/personal/empleados",
+      name: "personal-empleados",
+      component: () => import("@/views/EmpleadosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_empleados", label: "Empleados" },
+    },
+    {
+      path: "/personal/empleados/cargos",
+      name: "personal-empleados-cargos",
+      component: () => import("@/views/CargosEmpleadoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_empleados", label: "Cargos de Empleados" },
+    },
+    {
+      path: "/personal/especialidades",
+      name: "personal-especialidades",
+      component: () => import("@/views/EspecialidadesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_especialidades", label: "Especialidades" },
+    },
+    {
+      path: "/roles",
+      name: "roles",
+      component: () => import("@/views/RolesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_roles", label: "Roles y Permisos" },
+    },
+    {
+      path: "/roles/nuevo",
+      name: "roles-nuevo",
+      component: () => import("@/views/RolFormView.vue"),
+      meta: { requiresAuth: true, permission: "crear_rol", label: "Nuevo Rol" },
+    },
+    {
+      path: "/roles/:id/editar",
+      name: "roles-editar",
+      component: () => import("@/views/RolFormView.vue"),
+      meta: { requiresAuth: true, permission: "editar_rol", label: "Editar Rol" },
     },
     {
       path: "/admin/auditoria",
