@@ -86,9 +86,9 @@ const referencia = computed(() => {
   const e = egreso.value
   if (!e) return ""
   if (e.tipo === "FacturaCompra") return e.proveedorNombre ?? ""
-  if (e.tipo === "Honorario") return [e.professionalNombre, e.periodo].filter(Boolean).join(" · ")
+  if (e.tipo === "Honorario") return [e.professionalNombre, e.periodoMes ? `${e.periodoMes}/${e.periodoAnio}` : null].filter(Boolean).join(" · ")
   if (e.tipo === "GastoGeneral") return e.categoriaGastoNombre ?? ""
-  if (e.tipo === "Salario") return [e.empleadoNombre, e.periodo].filter(Boolean).join(" · ")
+  if (e.tipo === "Salario") return [e.empleadoNombre, e.periodoMes ? `${e.periodoMes}/${e.periodoAnio}` : null].filter(Boolean).join(" · ")
   return ""
 })
 

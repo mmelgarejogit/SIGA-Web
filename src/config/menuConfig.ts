@@ -1,8 +1,9 @@
 export interface MenuChild {
   label: string
   icon: string
-  route: string
+  route?: string
   permission?: string
+  children?: MenuChild[]
 }
 
 export interface MenuItem {
@@ -76,33 +77,33 @@ export const menuConfig: MenuItem[] = [
     ],
   },
   {
-    id: "inventario",
-    label: "Inventario",
+    id: "productos",
+    label: "Productos",
     icon: "inventory_2",
     permission: "ver_inventario",
     children: [
       {
         label: "Productos",
         icon: "category",
-        route: "/inventario/productos",
+        route: "/productos",
         permission: "ver_inventario",
       },
       {
         label: "Categorías",
         icon: "label",
-        route: "/inventario/categorias",
+        route: "/productos/categorias",
         permission: "ver_inventario",
       },
       {
         label: "Marcas",
         icon: "verified",
-        route: "/inventario/marcas",
+        route: "/productos/marcas",
         permission: "ver_inventario",
       },
       {
         label: "Modelos",
         icon: "style",
-        route: "/inventario/modelos",
+        route: "/productos/modelos",
         permission: "ver_inventario",
       },
     ],
@@ -114,7 +115,7 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_inventario",
     children: [
       {
-        label: "Niveles de Stock",
+        label: "Por Sucursal",
         icon: "bar_chart",
         route: "/stock",
         permission: "ver_inventario",
@@ -126,16 +127,48 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
-        label: "Motivos",
-        icon: "list_alt",
-        route: "/stock/motivos",
+        label: "Ajustes Manuales",
+        icon: "tune",
+        route: "/stock/ajustes",
         permission: "ver_inventario",
       },
       {
-        label: "Aprobaciones",
-        icon: "task_alt",
-        route: "/stock/aprobaciones",
-        permission: "gestionar_inventario",
+        label: "Transferencias",
+        icon: "sync_alt",
+        route: "/stock/transferencias",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Inventario Físico",
+        icon: "fact_check",
+        route: "/stock/fisico",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Sucursales",
+        icon: "store",
+        route: "/stock/sucursales",
+        permission: "ver_inventario",
+      },
+    ],
+  },
+  {
+    id: "stock-config",
+    label: "Config. Stock",
+    icon: "settings",
+    permission: "gestionar_configuracion",
+    children: [
+      {
+        label: "Parámetros",
+        icon: "tune",
+        route: "/stock/config/parametros",
+        permission: "gestionar_configuracion",
+      },
+      {
+        label: "Tipos de Ajuste",
+        icon: "list_alt",
+        route: "/stock/config/tipos-ajuste",
+        permission: "gestionar_configuracion",
       },
     ],
   },
@@ -172,7 +205,7 @@ export const menuConfig: MenuItem[] = [
       {
         label: "Proveedores",
         icon: "storefront",
-        route: "/inventario/proveedores",
+        route: "/productos/proveedores",
         permission: "ver_inventario",
       },
       {
@@ -218,6 +251,36 @@ export const menuConfig: MenuItem[] = [
         icon: "label",
         route: "/egresos/categorias",
         permission: "ver_egresos",
+      },
+      {
+        label: "Reportes",
+        icon: "analytics",
+        children: [
+          {
+            label: "Por tipo y categoría",
+            icon: "category",
+            route: "/egresos/reportes/tipo-categoria",
+            permission: "ver_egresos",
+          },
+          {
+            label: "Por estado",
+            icon: "info",
+            route: "/egresos/reportes/estado",
+            permission: "ver_egresos",
+          },
+          {
+            label: "Por medio de pago",
+            icon: "payment",
+            route: "/egresos/reportes/medio-pago",
+            permission: "ver_egresos",
+          },
+          {
+            label: "Total por período",
+            icon: "calendar_month",
+            route: "/egresos/reportes/total-periodo",
+            permission: "ver_egresos",
+          },
+        ],
       },
     ],
   },

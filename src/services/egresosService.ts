@@ -9,6 +9,11 @@ export type CondicionVenta = "Contado" | "Credito"
 
 export interface Egreso {
   id: number
+  sucursalId: string
+  sucursalNombre?: string
+  creadoPorUserId: number
+  creadoPorUserNombre?: string
+  fechaCreacion: string
   tipo: TipoEgreso
   estado: EstadoEgreso
   monto: number
@@ -20,9 +25,20 @@ export interface Egreso {
   metodoPago?: MetodoPago
   estaVencido: boolean
   motivoRechazo?: string
+  aprobadoPorUserId?: number
+  aprobadoPorUserNombre?: string
   fechaAprobacion?: string
   nroComprobante?: string
   createdAt: string
+
+  // EgresoPago
+  egresoPagoId?: number
+  egresoPagoFechaPago?: string
+  egresoPagoMetodoPago?: MetodoPago
+  egresoPagoNumeroComprobante?: string
+  egresoPagoObservaciones?: string
+  egresoPagoRegistradoPorUserId?: number
+  egresoPagoRegistradoPorUserNombre?: string
 
   // FacturaCompra — referencia
   nroFactura?: string
@@ -42,7 +58,8 @@ export interface Egreso {
   // Honorario
   professionalId?: number
   professionalNombre?: string
-  periodo?: string
+  periodoMes?: number
+  periodoAnio?: number
 
   // GastoGeneral
   categoriaGastoId?: number
@@ -61,6 +78,7 @@ export interface CategoriaGasto {
 }
 
 export interface CrearFacturaCompraRequest {
+  sucursalId?: string
   proveedorId: number
   pedidoProveedorId?: number
   nroFactura?: string
@@ -75,16 +93,19 @@ export interface CrearFacturaCompraRequest {
 }
 
 export interface CrearHonorarioRequest {
+  sucursalId: string
   professionalId: number
   monto: number
   concepto: string
-  periodo?: string
+  periodoMes: number
+  periodoAnio: number
   observaciones?: string
   fechaEmision: string
   fechaVencimiento?: string
 }
 
 export interface CrearGastoGeneralRequest {
+  sucursalId: string
   categoriaGastoId: number
   monto: number
   concepto: string
@@ -94,10 +115,12 @@ export interface CrearGastoGeneralRequest {
 }
 
 export interface CrearSalarioRequest {
+  sucursalId: string
   empleadoId: number
   monto: number
   concepto: string
-  periodo?: string
+  periodoMes: number
+  periodoAnio: number
   observaciones?: string
   fechaEmision: string
   fechaVencimiento?: string
@@ -136,6 +159,7 @@ export const getEgresos = (params?: {
   soloVencidos?: boolean
   page?: number
   pageSize?: number
+  sucursalId?: string
 }) => {
   const q = new URLSearchParams()
   if (params?.tipo) q.set("tipo", params.tipo)
@@ -145,6 +169,7 @@ export const getEgresos = (params?: {
   if (params?.soloVencidos) q.set("soloVencidos", "true")
   if (params?.page) q.set("page", String(params.page))
   if (params?.pageSize) q.set("pageSize", String(params.pageSize))
+  if (params?.sucursalId) q.set("sucursalId", params.sucursalId)
   const qs = q.toString()
   return get<EgresosPagedResult>(`/api/egresos${qs ? "?" + qs : ""}`)
 }

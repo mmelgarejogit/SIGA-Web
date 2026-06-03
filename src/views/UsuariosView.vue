@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type AppUser, getAppUsers, deactivateUser } from "@/services/userService"
+import { type AppUser, getAppUsers, deactivateUser, assignSucursal } from "@/services/userService"
 import {
   type Role,
   getRoles,
@@ -14,9 +15,11 @@ import {
   assignRoleToUser,
   removeRoleFromUser,
 } from "@/services/roleService"
+import { getSucursales, type Sucursal } from "@/services/sucursalService"
 
 const PAGE_SIZE = 10
 const auth = useAuthStore()
+const router = useRouter()
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -187,6 +190,9 @@ async function openRolesModal(user: AppUser) {
   rolesModalError.value = ""
   selectedRolesToAdd.value = []
   userCurrentRoles.value = []
+  sucursalSelected.value = user.sucursalId ?? ""
+  sucursalError.value = ""
+  sucursalSuccess.value = false
   try {
     const [userRoles, fetchedRoles] = await Promise.all([
       getRolesByUser(user.userId),
@@ -237,14 +243,49 @@ async function handleRemoveRole(roleId: number) {
   }
 }
 
+// ── Sucursal ──────────────────────────────────────────────────────────────────
+
+const sucursales          = ref<Sucursal[]>([])
+const sucursalSelected    = ref<string>("")
+const isSavingSucursal    = ref(false)
+const sucursalError       = ref("")
+const sucursalSuccess     = ref(false)
+
+async function handleAssignSucursal() {
+  if (!managingUser.value) return
+  isSavingSucursal.value = true
+  sucursalError.value    = ""
+  sucursalSuccess.value  = false
+  try {
+    const updated = await assignSucursal(managingUser.value.userId, sucursalSelected.value || null)
+    const u = users.value.find(u => u.userId === managingUser.value!.userId)
+    if (u) {
+      u.sucursalId    = updated.sucursalId
+      u.sucursalNombre = updated.sucursalNombre
+    }
+    managingUser.value.sucursalId    = updated.sucursalId
+    managingUser.value.sucursalNombre = updated.sucursalNombre
+    sucursalSuccess.value = true
+    setTimeout(() => { sucursalSuccess.value = false }, 2000)
+  } catch (e: any) {
+    sucursalError.value = e?.response?.data?.message ?? "Error al asignar la sucursal."
+  } finally {
+    isSavingSucursal.value = false
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-onMounted(loadUsers)
+onMounted(async () => {
+  await loadUsers()
+  sucursales.value = await getSucursales(true)
+})
 
 const userColumns = [
   { key: "usuario",  label: "Usuario" },
   { key: "ci",       label: "C.I." },
   { key: "tipo",     label: "Tipo" },
+  { key: "sucursal", label: "Sucursal" },
   { key: "registro", label: "Registro" },
   { key: "estado",   label: "Estado" },
   { key: "acciones", label: "Acciones", align: "right" as const },
@@ -267,6 +308,10 @@ const userColumns = [
               Administrá los usuarios del sistema y sus roles de acceso.
             </p>
           </div>
+          <BaseButton v-if="auth.hasPermission('ver_usuarios')" variant="primary" size="lg" @click="router.push('/usuarios/nuevo')">
+            <span class="material-symbols-outlined" style="font-size:20px">person_add</span>
+            Nuevo Usuario
+          </BaseButton>
         </div>
 
         <!-- Filtro desplegable -->
@@ -358,6 +403,14 @@ const userColumns = [
                 :style="`background-color: ${userTypeStyle(item.type).bg}; color: ${userTypeStyle(item.type).color};`">
                 {{ item.type }}
               </span>
+            </template>
+
+            <template #sucursal="{ item }">
+              <span v-if="item.sucursalNombre" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color:var(--color-surface-container-high);color:var(--color-primary)">
+                <span class="material-symbols-outlined" style="font-size:13px">store</span>
+                {{ item.sucursalNombre }}
+              </span>
+              <span v-else class="text-xs" style="color:var(--color-outline)">—</span>
             </template>
 
             <template #registro="{ item }">
@@ -569,6 +622,27 @@ const userColumns = [
             class="flex items-center gap-2 text-sm py-2" style="color: var(--color-outline)">
             <span class="material-symbols-outlined" style="font-size: 16px">check_circle</span>
             Todos los roles disponibles están asignados.
+          </div>
+
+          <!-- ── Sucursal ────────────────────────────────────────────────────── -->
+          <div v-if="sucursales.length" class="pt-2" style="border-top:1px solid rgba(196,197,213,0.2)">
+            <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Sucursal asignada</p>
+
+            <div class="flex items-center gap-3">
+              <select v-model="sucursalSelected" class="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none appearance-none" style="border:1px solid var(--color-outline-variant);background-color:var(--color-surface-container-low);color:var(--color-on-surface)">
+                <option value="">Sin sucursal (Admin global)</option>
+                <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }} ({{ s.codigo }})</option>
+              </select>
+              <BaseButton variant="primary" size="sm" :disabled="isSavingSucursal" @click="handleAssignSucursal">
+                {{ isSavingSucursal ? "Guardando…" : "Guardar" }}
+              </BaseButton>
+            </div>
+
+            <p v-if="sucursalError" class="text-xs font-medium mt-2" style="color:var(--color-error)">{{ sucursalError }}</p>
+            <div v-if="sucursalSuccess" class="flex items-center gap-1.5 mt-2 text-xs font-semibold" style="color:#16a34a">
+              <span class="material-symbols-outlined" style="font-size:15px">check_circle</span>
+              Sucursal actualizada.
+            </div>
           </div>
         </template>
       </div>

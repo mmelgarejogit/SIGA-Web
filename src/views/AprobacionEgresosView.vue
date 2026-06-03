@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue"
+import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -7,6 +8,8 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import { type Egreso, getEgresos, aprobarEgreso, rechazarEgreso } from "@/services/egresosService"
+
+const router = useRouter()
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
@@ -186,7 +189,7 @@ async function submitRechazar() {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="egresos" :loading="isLoading" empty-text="No hay egresos pendientes de aprobación.">
+        <BaseTable :columns="columns" :items="egresos" :loading="isLoading" empty-text="No hay egresos pendientes de aprobación." @row-click="(item) => router.push(`/egresos/${item.id}`)">
 
           <template #tipo="{ item }">
             <div class="flex items-center gap-2">
@@ -202,7 +205,7 @@ async function submitRechazar() {
             <div>
               <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.concepto }}</p>
               <p class="text-xs" style="color: var(--color-outline)">
-                <span v-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
+                <span v-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodoMes ? `${item.periodoMes}/${item.periodoAnio}` : '' }}</span>
                 <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
               </p>
             </div>
@@ -282,9 +285,9 @@ async function submitRechazar() {
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Profesional</p>
               <p style="color: var(--color-on-surface)">{{ detalleEgreso.professionalNombre ?? '—' }}</p>
             </div>
-            <div v-if="detalleEgreso.periodo">
+            <div v-if="detalleEgreso.periodoMes">
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Período</p>
-              <p style="color: var(--color-on-surface)">{{ detalleEgreso.periodo }}</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.periodoMes }}/{{ detalleEgreso.periodoAnio }}</p>
             </div>
           </template>
           <template v-if="detalleEgreso.tipo === 'GastoGeneral'">

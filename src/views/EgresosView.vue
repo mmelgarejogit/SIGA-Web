@@ -218,7 +218,7 @@ function inputStyle(hasError = false) {
 
 function menuItems(e: Egreso): ContextMenuItem[] {
   return [
-    { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(e) },
+    { type: "item", label: "Ver detalle", icon: "visibility", action: () => router.push(`/egresos/${e.id}`) },
     {
       type: "item", label: "Anular egreso", icon: "block",
       action: () => openAnular(e),
@@ -296,7 +296,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                 <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.concepto }}</p>
                 <p class="text-xs" style="color: var(--color-outline)">
                   <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
-                  <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
+                  <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodoMes ? `${item.periodoMes}/${item.periodoAnio}` : '' }}</span>
                   <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
                 </p>
               </div>
@@ -415,9 +415,9 @@ function menuItems(e: Egreso): ContextMenuItem[] {
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Profesional</p>
               <p style="color: var(--color-on-surface)">{{ detalleEgreso.professionalNombre ?? '—' }}</p>
             </div>
-            <div v-if="detalleEgreso.periodo">
+            <div v-if="detalleEgreso.periodoMes">
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Período</p>
-              <p style="color: var(--color-on-surface)">{{ detalleEgreso.periodo }}</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.periodoMes }}/{{ detalleEgreso.periodoAnio }}</p>
             </div>
           </template>
 

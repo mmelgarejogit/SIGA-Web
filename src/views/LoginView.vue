@@ -76,6 +76,8 @@ async function handleSubmit() {
       lastName: response.lastName,
       specialty: response.specialty,
       professionalId: response.professionalId,
+      sucursalId: response.sucursalId,
+      sucursalNombre: response.sucursalNombre,
       roles: response.roleClaims,
       permissions: response.permissions ?? [],
     })

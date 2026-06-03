@@ -18,6 +18,7 @@ import {
 } from "@/services/egresosService"
 import { getProfessionals, type Professional } from "@/services/professionalService"
 import { getEmpleados, type Empleado } from "@/services/empleadosService"
+import { getSucursales, type Sucursal } from "@/services/sucursalService"
 
 const router = useRouter()
 
@@ -32,12 +33,19 @@ const tiposNuevo: { key: TipoNuevo; label: string; icon: string; desc: string }[
 // ── Catálogos ──────────────────────────────────────────────────────────────────
 
 const categorias = ref<CategoriaGasto[]>([])
+const sucursales = ref<Sucursal[]>([])
 const profesionales = ref<Professional[]>([])
 const empleados = ref<Empleado[]>([])
 
 onMounted(async () => {
-  const [cats, profs, emps] = await Promise.allSettled([getCategorias(), getProfessionals(), getEmpleados(true)])
+  const [cats, sucs, profs, emps] = await Promise.allSettled([
+    getCategorias(),
+    getSucursales(true),
+    getProfessionals(),
+    getEmpleados(true),
+  ])
   if (cats.status === "fulfilled") categorias.value = cats.value
+  if (sucs.status === "fulfilled") sucursales.value = sucs.value
   if (profs.status === "fulfilled") {
     const data = profs.value as unknown
     if (Array.isArray(data)) profesionales.value = data as Professional[]
@@ -54,6 +62,7 @@ const isSaving = ref(false)
 const formError = ref("")
 
 const form = reactive({
+  sucursalId: "",
   monto: 0,
   concepto: "",
   observaciones: "",
@@ -73,6 +82,7 @@ function selectTipo(t: TipoNuevo) {
   selectedTipo.value = t
   formError.value = ""
   Object.assign(form, {
+    sucursalId: "",
     monto: 0, concepto: "", observaciones: "",
     fechaEmision: new Date().toISOString().slice(0, 10),
     fechaVencimiento: "",
@@ -96,6 +106,7 @@ async function submit() {
   if (!form.concepto.trim()) { formError.value = "El concepto es obligatorio."; return }
   if (!form.monto || form.monto <= 0) { formError.value = "El monto debe ser mayor a 0."; return }
   if (!form.fechaEmision) { formError.value = "La fecha es obligatoria."; return }
+  if (!form.sucursalId) { formError.value = "La sucursal es obligatoria."; return }
   if (!form.metodoPago) { formError.value = "El método de pago es obligatorio."; return }
   if (selectedTipo.value === "Honorario" && !form.professionalId) { formError.value = "Seleccioná un profesional."; return }
   if (selectedTipo.value === "Honorario" && !form.periodo) { formError.value = "El período es obligatorio."; return }
@@ -105,23 +116,35 @@ async function submit() {
   isSaving.value = true
   try {
     const base = {
+      sucursalId: form.sucursalId,
       concepto: form.concepto.trim(),
       monto: form.monto,
       observaciones: form.observaciones.trim() || undefined,
       fechaEmision: form.fechaEmision,
       fechaVencimiento: form.fechaVencimiento || undefined,
     }
+
+    const parsePeriodo = (p: string | null) => {
+      if (!p) return { periodoMes: 0, periodoAnio: 0 }
+      const parts = p.split("-")
+      return { periodoMes: parseInt(parts[1] ?? "0"), periodoAnio: parseInt(parts[0] ?? "0") }
+    }
+
     if (selectedTipo.value === "Honorario") {
+      const p = parsePeriodo(form.periodo)
       await crearHonorario({
         ...base,
         professionalId: form.professionalId,
-        periodo: form.periodo ?? "",
+        periodoMes: p.periodoMes,
+        periodoAnio: p.periodoAnio,
       })
     } else if (selectedTipo.value === "Salario") {
+      const p = parsePeriodo(form.periodo)
       await crearSalario({
         ...base,
         empleadoId: form.empleadoId,
-        periodo: form.periodo || undefined,
+        periodoMes: p.periodoMes,
+        periodoAnio: p.periodoAnio,
       })
     } else {
       await crearGastoGeneral({
@@ -239,6 +262,15 @@ function inputStyle(hasError = false) {
               style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
               <span class="material-symbols-outlined" style="font-size: 18px">error</span>
               {{ formError }}
+            </div>
+
+            <!-- Sucursal -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
+              <select v-model="form.sucursalId" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">
+                <option value="" disabled>Seleccionar sucursal</option>
+                <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+              </select>
             </div>
 
             <!-- Profesional (Honorario) -->

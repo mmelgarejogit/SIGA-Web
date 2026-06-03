@@ -154,10 +154,10 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                 <p class="text-xs" style="color: var(--color-outline)">
                   <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
                   <span v-else-if="item.tipo === 'Honorario'">
-                    {{ item.professionalNombre ?? '—' }}{{ item.periodo ? ` · ${item.periodo}` : '' }}
+                    {{ item.professionalNombre ?? '—' }}{{ item.periodoMes ? ` · ${item.periodoMes}/${item.periodoAnio}` : '' }}
                   </span>
                   <span v-else-if="item.tipo === 'Salario'">
-                    {{ item.empleadoNombre ?? '—' }}{{ item.periodo ? ` · ${item.periodo}` : '' }}
+                    {{ item.empleadoNombre ?? '—' }}{{ item.periodoMes ? ` · ${item.periodoMes}/${item.periodoAnio}` : '' }}
                   </span>
                   <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
                 </p>

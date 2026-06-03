@@ -1,30 +1,86 @@
 import { http } from "@/api/http"
 
-// ── Tipos ──────────────────────────────────────────────────────────────────────
+// ── Tipos base ─────────────────────────────────────────────────────────────────
+
+export interface PagedResult<T> {
+  items: T[]
+  totalCount: number
+  totalActive?: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+// ── Producto ───────────────────────────────────────────────────────────────────
 
 export interface Producto {
   id: number
   nombre: string
-  categoria: string
-  sku: string | null
-  precioCosto: number
-  precioVenta: number
-  stockActual: number
-  stockMinimo: number
-  bajoStock: boolean
+  descripcion: string | null
   isActive: boolean
-  descuentoCategoria: number
   createdAt: string
   updatedAt: string
+  categoriaProductoId: number | null
+  categoriaNombre: string | null
+  descuentoCategoria: number
   marcaId: number | null
   marcaNombre: string | null
   modeloId: number | null
   modeloNombre: string | null
+  totalVariantes: number
+}
+
+export interface ProductoVariante {
+  id: string
+  productoId: number
+  productoNombre: string
+  sku: string | null
   color: string | null
   talle: string | null
-  descripcion: string | null
+  precioCosto: number
+  precioVenta: number
   imagenUrl: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
+
+export interface CreateProductoRequest {
+  nombre: string
+  descripcion?: string
+  categoriaProductoId?: number | null
+  marcaId?: number | null
+  modeloId?: number | null
+}
+
+export interface UpdateProductoRequest {
+  nombre: string
+  descripcion?: string
+  categoriaProductoId?: number | null
+  marcaId?: number | null
+  modeloId?: number | null
+  isActive: boolean
+}
+
+export interface CreateProductoVarianteRequest {
+  productoId: number
+  sku?: string
+  color?: string
+  talle?: string
+  precioCosto: number
+  precioVenta: number
+}
+
+export interface UpdateProductoVarianteRequest {
+  sku?: string
+  color?: string
+  talle?: string
+  precioCosto: number
+  precioVenta: number
+  isActive: boolean
+}
+
+// ── Marca / Modelo ─────────────────────────────────────────────────────────────
 
 export interface Marca {
   id: number
@@ -41,206 +97,55 @@ export interface Modelo {
   isActive: boolean
 }
 
-export interface MovimientoStock {
-  id: number
-  productoId: number
-  productoNombre: string
-  tipo: "Entrada" | "Salida"
-  cantidad: number
-  motivo: string | null
-  motivoMovimientoId: number | null
-  fechaMovimiento: string
-  creadoPorNombre: string | null
-  estado: "Pendiente" | "Aprobado" | "Rechazado"
-  aprobadoPorNombre: string | null
-  fechaAprobacion: string | null
-  observacionesAprobacion: string | null
-  createdAt: string
-}
+export interface CreateMarcaRequest { nombre: string }
+export interface UpdateMarcaRequest { nombre: string; isActive: boolean }
+export interface CreateModeloRequest { nombre: string; marcaId: number }
+export interface UpdateModeloRequest { nombre: string; marcaId: number; isActive: boolean }
 
-export interface MotivoMovimiento {
+// ── Categoría ──────────────────────────────────────────────────────────────────
+
+export interface CategoriaProducto {
   id: number
   nombre: string
-  tipo: "Entrada" | "Salida" | "Ambos"
+  descripcion: string | null
+  margen: number
+  descuento: number
   isActive: boolean
-  createdAt: string
+  totalProductos: number
 }
 
-export interface ProveedorContacto {
-  id: number
-  nombre: string
-  cargo: string | null
-  telefono: string | null
-  email: string | null
-}
+export interface CreateCategoriaProductoRequest { nombre: string; descripcion?: string; margen: number; descuento: number }
+export interface UpdateCategoriaProductoRequest { nombre: string; descripcion?: string; margen: number; descuento: number; isActive: boolean }
 
+// ── Proveedor ──────────────────────────────────────────────────────────────────
+
+export interface ProveedorContacto { id: number; nombre: string; cargo: string | null; telefono: string | null; email: string | null }
 export interface Proveedor {
-  id: number
-  nombre: string
-  razonSocial: string | null
-  ruc: string
-  direccion: string | null
-  ciudad: string | null
-  sitioWeb: string | null
-  facebook: string | null
-  instagram: string | null
-  whatsApp: string | null
-  isActive: boolean
-  createdAt: string
-  contactos: ProveedorContacto[]
+  id: number; nombre: string; razonSocial: string | null; ruc: string; direccion: string | null
+  ciudad: string | null; sitioWeb: string | null; facebook: string | null; instagram: string | null
+  whatsApp: string | null; isActive: boolean; createdAt: string; contactos: ProveedorContacto[]
 }
-
-export interface PedidoItem {
-  id: number
-  productoId: number
-  productoNombre: string
-  cantidad: number
-  precioUnitario: number
-}
-
-export interface Pedido {
-  id: number
-  proveedorId: number
-  proveedorNombre: string
-  estado: "Pendiente" | "Enviado" | "Recibido" | "Cancelado"
-  observaciones: string | null
-  createdAt: string
-  updatedAt: string
-  items: PedidoItem[]
-}
-
-export interface PagedResult<T> {
-  items: T[]
-  totalCount: number
-  totalActive: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
-
-// ── Requests ───────────────────────────────────────────────────────────────────
-
-export interface CreateProductoRequest {
-  nombre: string
-  categoria: string
-  sku?: string
-  precioCosto: number
-  precioVenta: number
-  stockActual: number
-  stockMinimo: number
-  marcaId?: number | null
-  modeloId?: number | null
-  color?: string
-  talle?: string
-  descripcion?: string
-}
-
-export interface UpdateProductoRequest {
-  nombre: string
-  categoria: string
-  sku?: string
-  precioCosto: number
-  precioVenta: number
-  stockMinimo: number
-  isActive: boolean
-  marcaId?: number | null
-  modeloId?: number | null
-  color?: string
-  talle?: string
-  descripcion?: string
-}
-
-export interface CreateMarcaRequest {
-  nombre: string
-}
-
-export interface UpdateMarcaRequest {
-  nombre: string
-  isActive: boolean
-}
-
-export interface CreateModeloRequest {
-  nombre: string
-  marcaId: number
-}
-
-export interface UpdateModeloRequest {
-  nombre: string
-  marcaId: number
-  isActive: boolean
-}
-
-export interface CreateMovimientoRequest {
-  tipo: "Entrada" | "Salida"
-  cantidad: number
-  motivoMovimientoId?: number
-  fechaMovimiento?: string
-}
-
-export interface AprobarRechazarMovimientoRequest {
-  estado: "Aprobado" | "Rechazado"
-  observaciones?: string
-}
-
-export interface CreateMotivoMovimientoRequest {
-  nombre: string
-  tipo: "Entrada" | "Salida" | "Ambos"
-}
-
-export interface UpdateMotivoMovimientoRequest {
-  nombre: string
-  tipo: "Entrada" | "Salida" | "Ambos"
-  isActive: boolean
-}
-
-export interface CreateProveedorContactoRequest {
-  nombre: string
-  cargo?: string
-  telefono?: string
-  email?: string
-}
-
 export interface CreateProveedorRequest {
-  nombre: string
-  razonSocial?: string
-  ruc: string
-  direccion?: string
-  ciudad?: string
-  sitioWeb?: string
-  facebook?: string
-  instagram?: string
-  whatsApp?: string
-  contactos: CreateProveedorContactoRequest[]
+  nombre: string; razonSocial?: string; ruc: string; direccion?: string; ciudad?: string
+  sitioWeb?: string; facebook?: string; instagram?: string; whatsApp?: string
+  contactos: { nombre: string; cargo?: string; telefono?: string; email?: string }[]
 }
 
-export interface CreatePedidoItemRequest {
-  productoId: number
-  cantidad: number
-  precioUnitario: number
-}
+// ── API — Productos ────────────────────────────────────────────────────────────
 
-export interface CreatePedidoRequest {
-  proveedorId: number
-  observaciones?: string
-  items: CreatePedidoItemRequest[]
-}
-
-// ── Productos ──────────────────────────────────────────────────────────────────
-
-export async function getProductos(params: {
-  page?: number
-  pageSize?: number
-  search?: string
-  categoria?: string
-  bajoStock?: boolean
-} = {}): Promise<PagedResult<Producto>> {
+export async function getProductos(params: { page?: number; pageSize?: number; search?: string; categoriaId?: number; isActive?: boolean } = {}): Promise<PagedResult<Producto>> {
   const q = new URLSearchParams()
-  if (params.page) q.set("page", String(params.page))
-  if (params.pageSize) q.set("pageSize", String(params.pageSize))
-  if (params.search) q.set("search", params.search)
-  if (params.categoria) q.set("categoria", params.categoria)
-  if (params.bajoStock != null) q.set("bajoStock", String(params.bajoStock))
+  if (params.page)      q.set("page", String(params.page))
+  if (params.pageSize)  q.set("pageSize", String(params.pageSize))
+  if (params.search)    q.set("search", params.search)
+  if (params.categoriaId != null) q.set("categoriaId", String(params.categoriaId))
+  if (params.isActive != null)    q.set("isActive", String(params.isActive))
   const { data } = await http.get<PagedResult<Producto>>(`/api/productos?${q}`)
+  return data
+}
+
+export async function getProductoById(id: number): Promise<Producto> {
+  const { data } = await http.get<Producto>(`/api/productos/${id}`)
   return data
 }
 
@@ -258,152 +163,37 @@ export async function deactivateProducto(id: number): Promise<void> {
   await http.delete(`/api/productos/${id}`)
 }
 
-export async function updateStockInfo(id: number, request: UpdateStockInfoRequest): Promise<Producto> {
-  const { data } = await http.put<Producto>(`/api/productos/${id}/stock`, request)
+// ── API — Variantes ────────────────────────────────────────────────────────────
+
+export async function getVariantes(productoId: number): Promise<ProductoVariante[]> {
+  const { data } = await http.get<ProductoVariante[]>(`/api/productos/${productoId}/variantes`)
   return data
 }
 
-export async function uploadProductoImagen(id: number, file: File): Promise<string> {
+export async function createVariante(request: CreateProductoVarianteRequest): Promise<ProductoVariante> {
+  const { data } = await http.post<ProductoVariante>("/api/productos/variantes", request)
+  return data
+}
+
+export async function updateVariante(id: string, request: UpdateProductoVarianteRequest): Promise<ProductoVariante> {
+  const { data } = await http.put<ProductoVariante>(`/api/productos/variantes/${id}`, request)
+  return data
+}
+
+export async function deactivateVariante(id: string): Promise<void> {
+  await http.delete(`/api/productos/variantes/${id}`)
+}
+
+export async function uploadVarianteImagen(id: string, file: File): Promise<string> {
   const form = new FormData()
   form.append("file", file)
-  const { data } = await http.post<string>(`/api/productos/${id}/imagen`, form, {
+  const { data } = await http.post<string>(`/api/productos/variantes/${id}/imagen`, form, {
     headers: { "Content-Type": "multipart/form-data" },
   })
   return data
 }
 
-export async function deleteProductoImagen(id: number): Promise<void> {
-  await http.delete(`/api/productos/${id}/imagen`)
-}
-
-// ── Movimientos ────────────────────────────────────────────────────────────────
-
-export async function registrarMovimiento(
-  productoId: number,
-  request: CreateMovimientoRequest,
-): Promise<MovimientoStock> {
-  const { data } = await http.post<MovimientoStock>(
-    `/api/productos/${productoId}/movimientos`,
-    request,
-  )
-  return data
-}
-
-export async function getMovimientos(params: {
-  page?: number
-  pageSize?: number
-  tipo?: string
-  estado?: string
-} = {}): Promise<PagedResult<MovimientoStock>> {
-  const q = new URLSearchParams()
-  if (params.page) q.set("page", String(params.page))
-  if (params.pageSize) q.set("pageSize", String(params.pageSize))
-  if (params.tipo) q.set("tipo", params.tipo)
-  if (params.estado) q.set("estado", params.estado)
-  const { data } = await http.get<PagedResult<MovimientoStock>>(`/api/productos/movimientos?${q}`)
-  return data
-}
-
-export async function aprobarRechazarMovimiento(
-  id: number,
-  request: AprobarRechazarMovimientoRequest,
-): Promise<MovimientoStock> {
-  const { data } = await http.patch<MovimientoStock>(`/api/productos/movimientos/${id}/estado`, request)
-  return data
-}
-
-// ── Proveedores ────────────────────────────────────────────────────────────────
-
-export async function getProveedores(params: {
-  page?: number
-  pageSize?: number
-  search?: string
-  isActive?: boolean
-} = {}): Promise<PagedResult<Proveedor>> {
-  const q = new URLSearchParams()
-  if (params.page)     q.set("page", String(params.page))
-  if (params.pageSize) q.set("pageSize", String(params.pageSize))
-  if (params.search)   q.set("search", params.search)
-  if (params.isActive != null) q.set("isActive", String(params.isActive))
-  const { data } = await http.get<PagedResult<Proveedor>>(`/api/proveedores?${q}`)
-  return data
-}
-
-export async function createProveedor(request: CreateProveedorRequest): Promise<Proveedor> {
-  const { data } = await http.post<Proveedor>("/api/proveedores", request)
-  return data
-}
-
-export async function updateProveedor(
-  id: number,
-  request: CreateProveedorRequest,
-): Promise<Proveedor> {
-  const { data } = await http.put<Proveedor>(`/api/proveedores/${id}`, request)
-  return data
-}
-
-export async function deactivateProveedor(id: number): Promise<void> {
-  await http.delete(`/api/proveedores/${id}`)
-}
-
-// ── Pedidos ────────────────────────────────────────────────────────────────────
-
-export async function getPedidos(params: {
-  proveedorId?: number
-  estado?: string
-} = {}): Promise<Pedido[]> {
-  const q = new URLSearchParams()
-  if (params.proveedorId) q.set("proveedorId", String(params.proveedorId))
-  if (params.estado) q.set("estado", params.estado)
-  const { data } = await http.get<Pedido[]>(`/api/proveedores/pedidos?${q}`)
-  return data
-}
-
-export async function createPedido(request: CreatePedidoRequest): Promise<Pedido> {
-  const { data } = await http.post<Pedido>("/api/proveedores/pedidos", request)
-  return data
-}
-
-export async function updatePedidoEstado(id: number, estado: string): Promise<Pedido> {
-  const { data } = await http.put<Pedido>(`/api/proveedores/pedidos/${id}/estado`, { estado })
-  return data
-}
-
-export async function cancelPedido(id: number): Promise<void> {
-  await http.delete(`/api/proveedores/pedidos/${id}`)
-}
-
-// ── Categorías de producto ─────────────────────────────────────────────────────
-
-export interface CategoriaProducto {
-  id: number
-  nombre: string
-  descripcion: string | null
-  margen: number
-  descuento: number
-  isActive: boolean
-  totalProductos: number
-}
-
-export interface CreateCategoriaProductoRequest {
-  nombre: string
-  descripcion?: string
-  margen: number
-  descuento: number
-}
-
-export interface UpdateCategoriaProductoRequest {
-  nombre: string
-  descripcion?: string
-  margen: number
-  descuento: number
-  isActive: boolean
-}
-
-export interface UpdateStockInfoRequest {
-  precioCosto: number
-  stockMinimo: number
-}
+// ── API — Categorías ───────────────────────────────────────────────────────────
 
 export async function getCategorias(): Promise<CategoriaProducto[]> {
   const { data } = await http.get<CategoriaProducto[]>("/api/productos/categorias")
@@ -424,7 +214,7 @@ export async function deactivateCategoria(id: number): Promise<void> {
   await http.delete(`/api/productos/categorias/${id}`)
 }
 
-// ── Marcas ─────────────────────────────────────────────────────────────────────
+// ── API — Marcas ───────────────────────────────────────────────────────────────
 
 export async function getMarcas(): Promise<Marca[]> {
   const { data } = await http.get<Marca[]>("/api/marcas")
@@ -445,7 +235,7 @@ export async function deactivateMarca(id: number): Promise<void> {
   await http.delete(`/api/marcas/${id}`)
 }
 
-// ── Modelos ────────────────────────────────────────────────────────────────────
+// ── API — Modelos ──────────────────────────────────────────────────────────────
 
 export async function getModelos(marcaId?: number): Promise<Modelo[]> {
   const q = marcaId != null ? `?marcaId=${marcaId}` : ""
@@ -467,24 +257,28 @@ export async function deactivateModelo(id: number): Promise<void> {
   await http.delete(`/api/marcas/modelos/${id}`)
 }
 
-// ── Motivos de Movimiento ──────────────────────────────────────────────────────
+// ── API — Proveedores ──────────────────────────────────────────────────────────
 
-export async function getMotivosMovimiento(tipo?: string): Promise<MotivoMovimiento[]> {
-  const q = tipo ? `?tipo=${tipo}` : ""
-  const { data } = await http.get<MotivoMovimiento[]>(`/api/motivos-movimiento${q}`)
+export async function getProveedores(params: { page?: number; pageSize?: number; search?: string; isActive?: boolean } = {}): Promise<PagedResult<Proveedor>> {
+  const q = new URLSearchParams()
+  if (params.page)     q.set("page", String(params.page))
+  if (params.pageSize) q.set("pageSize", String(params.pageSize))
+  if (params.search)   q.set("search", params.search)
+  if (params.isActive != null) q.set("isActive", String(params.isActive))
+  const { data } = await http.get<PagedResult<Proveedor>>(`/api/proveedores?${q}`)
   return data
 }
 
-export async function createMotivoMovimiento(request: CreateMotivoMovimientoRequest): Promise<MotivoMovimiento> {
-  const { data } = await http.post<MotivoMovimiento>("/api/motivos-movimiento", request)
+export async function createProveedor(request: CreateProveedorRequest): Promise<Proveedor> {
+  const { data } = await http.post<Proveedor>("/api/proveedores", request)
   return data
 }
 
-export async function updateMotivoMovimiento(id: number, request: UpdateMotivoMovimientoRequest): Promise<MotivoMovimiento> {
-  const { data } = await http.put<MotivoMovimiento>(`/api/motivos-movimiento/${id}`, request)
+export async function updateProveedor(id: number, request: CreateProveedorRequest): Promise<Proveedor> {
+  const { data } = await http.put<Proveedor>(`/api/proveedores/${id}`, request)
   return data
 }
 
-export async function deactivateMotivoMovimiento(id: number): Promise<void> {
-  await http.delete(`/api/motivos-movimiento/${id}`)
+export async function deactivateProveedor(id: number): Promise<void> {
+  await http.delete(`/api/proveedores/${id}`)
 }
