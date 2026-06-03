@@ -1,50 +1,52 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from "vue"
+import { ref, computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
-  type CategoriaProducto,
   getProductos,
-  getCategorias,
   updateStockInfo,
 } from "@/services/inventarioService"
 
+const router = useRouter()
+
 const auth = useAuthStore()
 const canManage = computed(() => auth.hasPermission("gestionar_inventario"))
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
-// ── Estado ────────────────────────────────────────────────────────────────────
+// ── Productos ─────────────────────────────────────────────────────────────────
 
 const productos = ref<Producto[]>([])
-const categoriasDisponibles = ref<CategoriaProducto[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
-const categoriaFilter = ref<string[]>([])
-const bajoStockFilter = ref(false)
-const page = ref(1)
-const totalPages = ref(1)
-const totalCount = ref(0)
 
-const categoriaOptions = computed(() =>
-  categoriasDisponibles.value
-    .filter((c) => c.isActive)
-    .map((c) => ({ value: c.nombre, label: c.nombre })),
-)
+const productosFiltrados = computed(() => {
+  if (!search.value.trim()) return productos.value
+  const q = search.value.toLowerCase()
+  return productos.value.filter(
+    (p) =>
+      p.nombre.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q) ||
+      p.categoria?.toLowerCase().includes(q),
+  )
+})
+
+const bajoStockCount = computed(() => productos.value.filter((p) => p.bajoStock).length)
 
 const columns = [
   { key: "producto", label: "Producto" },
-  { key: "precios", label: "Precios" },
-  { key: "stock", label: "Stock actual" },
+  { key: "categoria", label: "Categoría" },
   { key: "minimo", label: "Stock mín." },
+  { key: "maximo", label: "Stock máx." },
   { key: "estado", label: "Estado" },
   { key: "acciones", label: "", align: "right" as const },
 ]
@@ -53,89 +55,117 @@ async function load() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const result = await getProductos({
-      page: page.value,
-      pageSize: 20,
-      search: search.value || undefined,
-      categoria: categoriaFilter.value[0] || undefined,
-      bajoStock: bajoStockFilter.value || undefined,
-    })
+    const result = await getProductos({ pageSize: 500, isActive: true })
     productos.value = result.items
-    totalPages.value = result.totalPages
-    totalCount.value = result.totalCount
   } catch (err: unknown) {
-    loadError.value = err instanceof Error ? err.message : "Error al cargar stock."
+    loadError.value = err instanceof Error ? err.message : "Error al cargar productos."
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(async () => {
-  await Promise.all([
-    load(),
-    getCategorias().then((c) => (categoriasDisponibles.value = c)),
-  ])
-})
+onMounted(load)
 
-function onSearch(val: string) { search.value = val; page.value = 1; load() }
-function onCategoriaChange(val: string[]) { categoriaFilter.value = val; page.value = 1; load() }
-function toggleBajoStock() { bajoStockFilter.value = !bajoStockFilter.value; page.value = 1; load() }
+// ── PDF planilla en blanco ────────────────────────────────────────────────────
 
-// ── Modal Editar Precios/Stock ─────────────────────────────────────────────────
+function descargarPlanilla() {
+  const lista = productosFiltrados.value
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+  const PRIMARY: [number, number, number] = [0, 40, 142]
+  const WHITE: [number, number, number] = [255, 255, 255]
+  const GRAY: [number, number, number] = [107, 114, 128]
 
-const showEditModal = ref(false)
-const editingProducto = ref<Producto | null>(null)
-const isEditSaving = ref(false)
-const editError = ref("")
-const editForm = reactive({ precioCosto: 0, stockMinimo: 0 })
+  // Encabezado
+  doc.setFillColor(...PRIMARY)
+  doc.rect(0, 0, 210, 28, "F")
+  doc.setTextColor(...WHITE)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(14)
+  doc.text("PLANILLA DE INVENTARIO FÍSICO", 15, 12)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(9)
+  doc.text(`Fecha: ${new Date().toLocaleDateString("es-PY")}`, 15, 20)
+  doc.text(`Total de productos: ${lista.length}`, 210 - 15, 20, { align: "right" })
 
-const categoriaDelProducto = computed(() =>
-  categoriasDisponibles.value.find((c) => c.nombre === editingProducto.value?.categoria),
-)
+  autoTable(doc, {
+    startY: 34,
+    margin: { left: 15, right: 15 },
+    head: [["#", "Producto", "SKU", "Categoría", "Cantidad contada"]],
+    body: lista.map((p, i) => [
+      (i + 1).toString(),
+      p.nombre,
+      p.sku ?? "—",
+      p.categoria ?? "—",
+      "",
+    ]),
+    headStyles: { fillColor: PRIMARY, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 8.5, minCellHeight: 10 },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 32 },
+      4: { cellWidth: 36, halign: "center" },
+    },
+    alternateRowStyles: { fillColor: [248, 249, 254] },
+  })
 
-const precioVentaCalculado = computed(() => {
-  const margen = categoriaDelProducto.value?.margen ?? 0
-  if (margen <= 0) return null
-  return Math.round(editForm.precioCosto * (1 + margen / 100) * 100) / 100
-})
+  // @ts-expect-error — jspdf-autotable extiende el doc
+  const finalY: number = doc.lastAutoTable.finalY + 14
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8.5)
+  doc.setTextColor(...GRAY)
+  doc.text("Contado por: ___________________________", 15, finalY)
+  doc.text("Verificado por: ___________________________", 15, finalY + 8)
+  doc.text(`Fecha de conteo: _______________`, 210 - 15, finalY, { align: "right" })
 
-function openEdit(p: Producto) {
-  editingProducto.value = p
-  Object.assign(editForm, { precioCosto: p.precioCosto, stockMinimo: p.stockMinimo })
-  editError.value = ""
-  showEditModal.value = true
+  doc.save(`Planilla-Inventario-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
-async function submitEdit() {
+// ── Modal editar niveles ──────────────────────────────────────────────────────
+
+const showNivelesModal = ref(false)
+const editingProducto = ref<Producto | null>(null)
+const isNivelesSaving = ref(false)
+const nivelesError = ref("")
+const nivelesForm = ref({ stockMinimo: 0, stockMaximo: null as number | null })
+
+function openNiveles(p: Producto) {
+  editingProducto.value = p
+  nivelesForm.value = { stockMinimo: p.stockMinimo, stockMaximo: p.stockMaximo }
+  nivelesError.value = ""
+  showNivelesModal.value = true
+}
+
+async function submitNiveles() {
   if (!editingProducto.value) return
-  isEditSaving.value = true
-  editError.value = ""
+  if (nivelesForm.value.stockMaximo !== null && nivelesForm.value.stockMaximo < nivelesForm.value.stockMinimo) {
+    nivelesError.value = "El stock máximo no puede ser menor al mínimo."
+    return
+  }
+  isNivelesSaving.value = true
+  nivelesError.value = ""
   try {
-    await updateStockInfo(editingProducto.value.id, {
-      precioCosto: editForm.precioCosto,
-      stockMinimo: editForm.stockMinimo,
+    const updated = await updateStockInfo(editingProducto.value.id, {
+      precioCosto: editingProducto.value.precioCosto,
+      stockMinimo: nivelesForm.value.stockMinimo,
+      stockMaximo: nivelesForm.value.stockMaximo,
     })
-    showEditModal.value = false
-    await load()
+    const idx = productos.value.findIndex((p) => p.id === updated.id)
+    if (idx !== -1) productos.value[idx] = updated
+    showNivelesModal.value = false
   } catch (err: unknown) {
-    editError.value = err instanceof Error ? err.message : "Error al actualizar."
+    nivelesError.value = err instanceof Error ? err.message : "Error al guardar."
   } finally {
-    isEditSaving.value = false
+    isNivelesSaving.value = false
   }
 }
 
-// ── Context menu ──────────────────────────────────────────────────────────────
-
 function menuItems(p: Producto): ContextMenuItem[] {
   if (!canManage.value) return []
-  return [
-    { type: "item", label: "Editar precios", icon: "edit", action: () => openEdit(p) },
-  ]
+  return [{ type: "item", label: "Editar niveles de stock", icon: "tune", action: () => openNiveles(p) }]
 }
 
-function formatGs(n: number) {
-  return n.toLocaleString("es-PY")
-}
 </script>
 
 <template>
@@ -149,38 +179,35 @@ function formatGs(n: number) {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Stock</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Control de Stock</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
-              {{ totalCount }} producto{{ totalCount !== 1 ? "s" : "" }} en inventario
+              {{ productos.length }} producto{{ productos.length !== 1 ? "s" : "" }}
+              <span v-if="bajoStockCount > 0" class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                style="background-color: #FEF3C7; color: #92400E">
+                <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
+                {{ bajoStockCount }} bajo stock
+              </span>
             </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <BaseButton variant="secondary" size="lg" @click="descargarPlanilla">
+              <span class="material-symbols-outlined" style="font-size: 20px">download</span>
+              Descargar planilla
+            </BaseButton>
+            <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/stock/conteo/nuevo')">
+              <span class="material-symbols-outlined" style="font-size: 20px">fact_check</span>
+              Registrar conteo
+            </BaseButton>
           </div>
         </div>
 
-        <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <div class="flex items-center gap-3 flex-wrap">
-            <FilterChips
-              :model-value="categoriaFilter"
-              :options="categoriaOptions"
-              placeholder="Categoría"
-              @update:model-value="onCategoriaChange"
-            />
-            <button
-              @click="toggleBajoStock"
-              class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-              :style="bajoStockFilter
-                ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
-                : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'"
-            >
-              <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
-              Bajo stock
-            </button>
-          </div>
+        <!-- Filtro -->
+        <div class="flex items-center justify-end mb-6">
           <SearchInput
             :model-value="search"
-            placeholder="Buscar por nombre o SKU..."
-            class="w-72"
-            @update:model-value="onSearch"
+            placeholder="Buscar por nombre, SKU o categoría..."
+            class="w-80"
+            @update:model-value="search = $event"
           />
         </div>
 
@@ -192,43 +219,27 @@ function formatGs(n: number) {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="productos" :loading="isLoading" empty-text="No hay productos.">
+        <BaseTable :columns="columns" :items="productosFiltrados" :loading="isLoading" empty-text="No hay productos activos.">
 
           <template #producto="{ item }">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
-                style="background-color: var(--color-surface-container-low)">
-                <img v-if="item.imagenUrl" :src="API_BASE + item.imagenUrl" :alt="item.nombre"
-                  class="w-full h-full object-cover" />
-                <span v-else class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">inventory_2</span>
-              </div>
-              <div>
-                <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
-                <p class="text-xs" style="color: var(--color-outline)">{{ item.categoria }}</p>
-              </div>
+            <div>
+              <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</p>
+              <p v-if="item.sku" class="text-xs" style="color: var(--color-outline)">SKU {{ item.sku }}</p>
             </div>
           </template>
 
-          <template #precios="{ item }">
-            <div class="space-y-0.5">
-              <p class="text-xs" style="color: var(--color-outline)">
-                Costo: <span class="font-semibold" style="color: var(--color-on-surface)">{{ formatGs(item.precioCosto) }}</span>
-              </p>
-              <p class="text-xs" style="color: var(--color-outline)">
-                Venta: <span class="font-semibold" style="color: var(--color-primary)">{{ formatGs(item.precioVenta) }}</span>
-              </p>
-            </div>
-          </template>
-
-          <template #stock="{ item }">
-            <span class="text-sm font-bold"
-              :style="item.bajoStock ? 'color: #92400E' : 'color: var(--color-on-surface)'">
-              {{ item.stockActual }}
-            </span>
+          <template #categoria="{ item }">
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.categoria || "—" }}</span>
           </template>
 
           <template #minimo="{ item }">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.stockMinimo }}</span>
+          </template>
+
+          <template #maximo="{ item }">
+            <span class="text-sm" style="color: var(--color-on-surface-variant)">
+              {{ item.stockMaximo != null ? item.stockMaximo : "—" }}
+            </span>
           </template>
 
           <template #estado="{ item }">
@@ -237,6 +248,12 @@ function formatGs(n: number) {
               style="background-color: #FEF3C7; color: #92400E">
               <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
               Bajo stock
+            </span>
+            <span v-else-if="item.stockMaximo != null && item.stockActual >= item.stockMaximo"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+              style="background-color: #dbeafe; color: #1e40af">
+              <span class="material-symbols-outlined" style="font-size: 13px">arrow_upward</span>
+              Sobre stock
             </span>
             <span v-else
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
@@ -251,85 +268,52 @@ function formatGs(n: number) {
               <RowContextMenu :items="menuItems(item)" />
             </div>
           </template>
-        </BaseTable>
 
-        <!-- Paginación -->
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ productos.length }} de {{ totalCount }} productos
-          </p>
-          <div v-if="totalPages > 1" class="flex gap-2">
-            <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--; load()">Anterior</BaseButton>
-            <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++; load()">Siguiente</BaseButton>
-          </div>
-        </div>
+        </BaseTable>
 
       </div>
     </main>
 
-    <!-- MODAL EDITAR PRECIOS -->
-    <BaseModal :show="showEditModal" title="Editar Precio y Stock Mínimo" size="lg" @close="showEditModal = false">
-      <div v-if="editError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+    <!-- MODAL NIVELES -->
+    <BaseModal :show="showNivelesModal" title="Niveles de Stock" size="sm" @close="showNivelesModal = false">
+      <div v-if="editingProducto" class="flex items-center gap-3 mb-5 p-3 rounded-xl"
+        style="background-color: var(--color-surface-container-low)">
+        <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-primary)">inventory_2</span>
+        <div>
+          <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ editingProducto.nombre }}</p>
+          <p class="text-xs" style="color: var(--color-outline)">Stock actual: <strong>{{ editingProducto.stockActual }}</strong></p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock mínimo</label>
+          <input v-model.number="nivelesForm.stockMinimo" type="number" min="0" step="1"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <p class="text-xs mt-1" style="color: var(--color-outline)">Alerta de bajo stock cuando el stock llegue a este valor.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
+            Stock máximo <span style="font-weight: normal">(opcional)</span>
+          </label>
+          <input
+            :value="nivelesForm.stockMaximo ?? ''"
+            @input="nivelesForm.stockMaximo = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
+            type="number" min="0" step="1" placeholder="Sin límite"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <p class="text-xs mt-1" style="color: var(--color-outline)">Alerta de sobre stock cuando el stock llegue a este valor.</p>
+        </div>
+      </div>
+      <div v-if="nivelesError" class="mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-        {{ editError }}
+        {{ nivelesError }}
       </div>
-
-      <div class="space-y-4">
-        <!-- Info del producto -->
-        <div class="flex items-center gap-3 p-3 rounded-xl" style="background-color: var(--color-surface-container-low)">
-          <div class="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
-            style="background-color: var(--color-surface-container-high)">
-            <img v-if="editingProducto?.imagenUrl" :src="API_BASE + editingProducto.imagenUrl"
-              class="w-full h-full object-cover" />
-            <span v-else class="material-symbols-outlined" style="font-size: 18px; color: var(--color-outline)">inventory_2</span>
-          </div>
-          <div>
-            <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ editingProducto?.nombre }}</p>
-            <p class="text-xs" style="color: var(--color-outline)">{{ editingProducto?.categoria }}</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio de Costo</label>
-            <input v-model.number="editForm.precioCosto" type="number" min="0" step="1"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock Mínimo</label>
-            <input v-model.number="editForm.stockMinimo" type="number" min="0" step="1"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
-          </div>
-        </div>
-
-        <!-- Precio de venta calculado -->
-        <div v-if="categoriaDelProducto" class="rounded-xl p-4"
-          style="background-color: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.2)">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
-                Precio de venta calculado
-              </p>
-              <p class="text-xs" style="color: var(--color-outline)">
-                Categoría <strong style="color: var(--color-on-surface)">{{ categoriaDelProducto.nombre }}</strong>
-                — margen {{ categoriaDelProducto.margen }}%
-              </p>
-            </div>
-            <p v-if="precioVentaCalculado !== null" class="text-xl font-extrabold" style="color: var(--color-primary)">
-              {{ formatGs(precioVentaCalculado) }}
-            </p>
-            <p v-else class="text-sm" style="color: var(--color-outline)">Sin margen definido</p>
-          </div>
-        </div>
-      </div>
-
       <template #footer>
-        <BaseButton variant="secondary" @click="showEditModal = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" :disabled="isEditSaving" @click="submitEdit">
-          {{ isEditSaving ? "Guardando…" : "Guardar" }}
+        <BaseButton variant="secondary" @click="showNivelesModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isNivelesSaving" @click="submitNiveles">
+          {{ isNivelesSaving ? "Guardando…" : "Guardar" }}
         </BaseButton>
       </template>
     </BaseModal>

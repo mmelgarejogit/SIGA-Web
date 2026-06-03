@@ -109,12 +109,12 @@ export const menuConfig: MenuItem[] = [
   },
   {
     id: "stock",
-    label: "Stock",
+    label: "Control de Stock",
     icon: "warehouse",
     permission: "ver_inventario",
     children: [
       {
-        label: "Niveles de Stock",
+        label: "Control de Stock",
         icon: "bar_chart",
         route: "/stock",
         permission: "ver_inventario",
@@ -135,6 +135,12 @@ export const menuConfig: MenuItem[] = [
         label: "Aprobaciones",
         icon: "task_alt",
         route: "/stock/aprobaciones",
+        permission: "gestionar_inventario",
+      },
+      {
+        label: "Historial Inv.",
+        icon: "history",
+        route: "/stock/conteos",
         permission: "gestionar_inventario",
       },
     ],

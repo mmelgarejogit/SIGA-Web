@@ -83,6 +83,7 @@ const montoExento   = computed(() => sumByTipoIva("Exento"))
 const montoGravado5 = computed(() => sumByTipoIva("Iva5"))
 const montoGravado10 = computed(() => sumByTipoIva("Iva10"))
 const montoTotal    = computed(() => montoExento.value + montoGravado5.value + montoGravado10.value)
+const totalDesdeItems = computed(() => ocItems.value.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0))
 const iva5          = computed(() => Math.round(montoGravado5.value / 21))
 const iva10         = computed(() => Math.round(montoGravado10.value / 11))
 

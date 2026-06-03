@@ -175,7 +175,7 @@ const router = createRouter({
       path: "/stock",
       name: "stock",
       component: () => import("@/views/StockView.vue"),
-      meta: { requiresAuth: true, permission: "ver_inventario", label: "Stock" },
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Control de Stock" },
     },
     {
       path: "/stock/movimientos",
@@ -200,6 +200,24 @@ const router = createRouter({
       name: "stock-aprobaciones",
       component: () => import("@/views/AprobacionesView.vue"),
       meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Aprobaciones" },
+    },
+    {
+      path: "/stock/conteos",
+      name: "stock-conteos",
+      component: () => import("@/views/ConteoAprobacionView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Historial de Inventarios" },
+    },
+    {
+      path: "/stock/conteos/:id",
+      name: "stock-conteo-revisar",
+      component: () => import("@/views/ConteoRevisarView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Revisión de Inventario" },
+    },
+    {
+      path: "/stock/conteo/nuevo",
+      name: "stock-conteo-nuevo",
+      component: () => import("@/views/ConteoFormView.vue"),
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Nuevo Inventario" },
     },
     {
       path: "/inventario/movimientos",

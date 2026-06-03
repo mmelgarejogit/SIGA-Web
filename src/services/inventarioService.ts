@@ -11,6 +11,7 @@ export interface Producto {
   precioVenta: number
   stockActual: number
   stockMinimo: number
+  stockMaximo: number | null
   bajoStock: boolean
   isActive: boolean
   descuentoCategoria: number
@@ -403,6 +404,7 @@ export interface UpdateCategoriaProductoRequest {
 export interface UpdateStockInfoRequest {
   precioCosto: number
   stockMinimo: number
+  stockMaximo?: number | null
 }
 
 export async function getCategorias(): Promise<CategoriaProducto[]> {
@@ -465,6 +467,94 @@ export async function updateModelo(id: number, request: UpdateModeloRequest): Pr
 
 export async function deactivateModelo(id: number): Promise<void> {
   await http.delete(`/api/marcas/modelos/${id}`)
+}
+
+// ── Stock Lotes ────────────────────────────────────────────────────────────────
+
+export interface StockLote {
+  id: number
+  productoId: number
+  productoNombre: string
+  productoSku?: string
+  marcaNombre?: string
+  modeloNombre?: string
+  lote: string
+  fechaVencimiento?: string
+  cantidadInicial: number
+  fechaIngreso: string
+  recepcionItemId: number
+}
+
+export interface ConteoItemRequest {
+  loteId: number
+  cantidadFisica: number
+}
+
+export interface RegistrarConteoRequest {
+  items: ConteoItemRequest[]
+  observaciones?: string
+}
+
+export interface ConteoInventarioDto {
+  id: number
+  creadoPorNombre: string
+  fechaConteo: string
+  estado: string
+  observaciones?: string
+  aprobadoPorNombre?: string
+  fechaAprobacion?: string
+  observacionesAprobacion?: string
+  totalLineas: number
+  lineasConDiferencia: number
+}
+
+export interface ConteoLineaDto {
+  id: number
+  productoId: number
+  productoNombre: string
+  productoSku?: string
+  productoCategoria?: string
+  cantidadSistema: number
+  cantidadFisica: number
+  diferencia: number
+}
+
+export interface ConteoInventarioDetalleDto extends ConteoInventarioDto {
+  lineas: ConteoLineaDto[]
+}
+
+export interface GestionarConteoRequest {
+  accion: string
+  observaciones?: string
+}
+
+export async function getStockLotes(params?: { productoId?: number; vencidos?: boolean }): Promise<StockLote[]> {
+  const q = new URLSearchParams()
+  if (params?.productoId != null) q.set("productoId", String(params.productoId))
+  if (params?.vencidos != null) q.set("vencidos", String(params.vencidos))
+  const { data } = await http.get<StockLote[]>(`/api/stock/lotes${q.toString() ? "?" + q : ""}`)
+  return data
+}
+
+export async function registrarConteo(request: RegistrarConteoRequest): Promise<ConteoInventarioDto> {
+  const { data } = await http.post<ConteoInventarioDto>("/api/stock/lotes/conteo", request)
+  return data
+}
+
+export async function getConteos(estado?: string): Promise<ConteoInventarioDto[]> {
+  const q = estado ? `?estado=${estado}` : ""
+  const { data } = await http.get<ConteoInventarioDto[]>(`/api/stock/lotes/conteos${q}`)
+  return data
+}
+
+export async function getConteoById(id: number): Promise<ConteoInventarioDetalleDto> {
+  const { data } = await http.get<ConteoInventarioDetalleDto>(`/api/stock/lotes/conteos/${id}`)
+  return data
+}
+
+export async function gestionarConteo(id: number, request: GestionarConteoRequest): Promise<ConteoInventarioDto> {
+  const { data } = await http.post<ConteoInventarioDto>(`/api/stock/lotes/conteos/${id}/gestionar`, request)
+  return data
 }
 
 // ── Motivos de Movimiento ──────────────────────────────────────────────────────
