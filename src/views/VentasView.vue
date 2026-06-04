@@ -9,6 +9,7 @@ import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import { useAuthStore } from "@/stores/auth"
 import {
   type Venta,
   type MetodoPago,
@@ -17,8 +18,11 @@ import {
   confirmarVenta,
   registrarCobro,
   emitirFactura,
-  anularVenta,
+  solicitarAnulacion,
 } from "@/services/ventasService"
+
+const auth = useAuthStore()
+const canManage = computed(() => auth.hasPermission("gestionar_ventas"))
 
 const router = useRouter()
 
@@ -64,7 +68,8 @@ const estadoOptions = [
   { value: "PendienteDePago",  label: "Pendiente de Pago", dot: "#92400E" },
   { value: "Pagada",           label: "Pagada",            dot: "#166534" },
   { value: "Cobrada",          label: "Cobrada",           dot: "#065F46" },
-  { value: "Anulada",          label: "Anulada",           dot: "#9CA3AF" },
+  { value: "Anulada",             label: "Anulada",              dot: "#9CA3AF" },
+  { value: "AnulacionPendiente", label: "Anulación pendiente",  dot: "#92400E" },
 ]
 
 async function loadVentas() {
@@ -106,7 +111,8 @@ function estadoBadge(estado: string) {
     PendienteDePago: { bg: "#FEF3C7", text: "#92400E", label: "Pend. Pago" },
     Pagada:          { bg: "#DCFCE7", text: "#166534", label: "Pagada" },
     Cobrada:         { bg: "#D1FAE5", text: "#065F46", label: "Cobrada" },
-    Anulada:         { bg: "#F3F4F6", text: "#9CA3AF", label: "Anulada" },
+    Anulada:              { bg: "#F3F4F6", text: "#9CA3AF", label: "Anulada" },
+    AnulacionPendiente:   { bg: "#FEF3C7", text: "#92400E", label: "Anulación pend." },
   }
   return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
 }
@@ -249,7 +255,7 @@ async function submitConfirmar() {
   }
 }
 
-// ── Anular modal ──────────────────────────────────────────────────────────────
+// ── Solicitar anulación ───────────────────────────────────────────────────────
 
 const showAnular = ref(false)
 const isAnulando = ref(false)
@@ -270,11 +276,11 @@ async function submitAnular() {
   isAnulando.value = true
   anularError.value = ""
   try {
-    await anularVenta(anularVentaObj.value.id, { motivo: motivoAnulacion.value })
+    await solicitarAnulacion(anularVentaObj.value.id, { motivo: motivoAnulacion.value })
     showAnular.value = false
     await loadVentas()
   } catch (e: any) {
-    anularError.value = e?.response?.data?.message ?? "Error al anular"
+    anularError.value = e?.response?.data?.message ?? "Error al solicitar la anulación"
   } finally {
     isAnulando.value = false
   }
@@ -282,22 +288,25 @@ async function submitAnular() {
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 
-function canConfirm(v: Venta)  { return v.estado === "Abierta" }
-function canCobrar(v: Venta)   { return ["Confirmada", "PendienteDePago"].includes(v.estado) && v.saldoPendiente > 0 }
-function canFactura(v: Venta)  { return v.estado !== "Anulada" && !v.factura }
-function canAnular(v: Venta)   { return !["Pagada", "Cobrada", "Anulada"].includes(v.estado) }
+function canConfirm(v: Venta)          { return v.estado === "Abierta" }
+function canCobrar(v: Venta)           { return ["Confirmada", "PendienteDePago"].includes(v.estado) && v.saldoPendiente > 0 }
+function canFactura(v: Venta)          { return v.estado !== "Anulada" && v.estado !== "AnulacionPendiente" && !v.factura }
+function canSolicitarAnulacion(v: Venta) {
+  return !["Pagada", "Cobrada", "Anulada", "AnulacionPendiente"].includes(v.estado)
+}
 
 function menuItems(v: Venta): ContextMenuItem[] {
   const hasGrupo = canConfirm(v) || canCobrar(v) || canFactura(v)
+  const puedeAnular = canSolicitarAnulacion(v)
 
   return [
-    { type: "item", label: "Ver detalle", icon: "visibility", action: () => openDetalle(v) },
-    ...(hasGrupo || canAnular(v) ? [{ type: "separator" as const }] : []),
+    { type: "item", label: "Ver detalle",      icon: "visibility",   action: () => openDetalle(v) },
+    ...(hasGrupo || puedeAnular ? [{ type: "separator" as const }] : []),
     { type: "item", label: "Confirmar",        icon: "check_circle", action: () => openConfirmar(v), hidden: !canConfirm(v) },
     { type: "item", label: "Registrar cobro",  icon: "payments",     action: () => openCobro(v),     hidden: !canCobrar(v) },
     { type: "item", label: "Emitir factura",   icon: "receipt",      action: () => openFactura(v),   hidden: !canFactura(v) },
-    ...(hasGrupo && canAnular(v) ? [{ type: "separator" as const }] : []),
-    { type: "item", label: "Anular", icon: "cancel", action: () => openAnular(v), hidden: !canAnular(v), danger: true },
+    ...(hasGrupo && puedeAnular ? [{ type: "separator" as const }] : []),
+    { type: "item", label: "Solicitar anulación", icon: "cancel", action: () => openAnular(v), hidden: !puedeAnular, danger: true },
   ]
 }
 </script>
@@ -662,12 +671,12 @@ function menuItems(v: Venta): ContextMenuItem[] {
     </template>
   </BaseModal>
 
-  <!-- ── Modal Anular ──────────────────────────────────────────────────────── -->
-  <BaseModal :open="showAnular" size="sm" title="Anular Venta" @close="showAnular = false">
+  <!-- ── Modal Solicitar Anulación ───────────────────────────────────────── -->
+  <BaseModal :open="showAnular" size="sm" title="Solicitar Anulación" @close="showAnular = false">
     <template #body>
       <div class="space-y-4">
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
-          Esta acción no se puede deshacer. Ingresá el motivo de la anulación.
+          La solicitud quedará pendiente de aprobación por un supervisor. Ingresá el motivo.
         </p>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Motivo *</label>
@@ -679,7 +688,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
     <template #footer>
       <BaseButton variant="secondary" class="flex-1" @click="showAnular = false">Cancelar</BaseButton>
       <BaseButton variant="danger" class="flex-1" :disabled="isAnulando" @click="submitAnular">
-        {{ isAnulando ? "Anulando…" : "Anular venta" }}
+        {{ isAnulando ? "Enviando…" : "Enviar solicitud" }}
       </BaseButton>
     </template>
   </BaseModal>

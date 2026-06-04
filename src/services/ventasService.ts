@@ -4,7 +4,7 @@ const { get, post, put } = useHttp()
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
-export type EstadoVenta = "Abierta" | "Confirmada" | "PendienteDePago" | "Pagada" | "Cobrada" | "Anulada"
+export type EstadoVenta = "Abierta" | "Confirmada" | "PendienteDePago" | "Pagada" | "Cobrada" | "Anulada" | "AnulacionPendiente"
 export type CondicionVenta = "Contado" | "Credito"
 export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Cheque"
 export type CategoriaFiscal = "Exento" | "Gravado5" | "Gravado10"
@@ -162,8 +162,29 @@ export interface EmitirFacturaRequest {
   observaciones?: string
 }
 
-export interface AnularVentaRequest {
+export interface SolicitarAnulacionRequest {
   motivo: string
+}
+
+export interface SolicitudAnulacionVentaDto {
+  id: number
+  ventaId: number
+  numeroComprobante: string
+  pacienteNombre: string
+  totalVenta: number
+  estadoVenta: string
+  motivo: string
+  estado: string
+  solicitadoPorNombre: string
+  revisadoPorNombre?: string
+  observacionesRevision?: string
+  fechaRevision?: string
+  createdAt: string
+}
+
+export interface GestionarAnulacionVentaRequest {
+  accion: string
+  observacionesRevision?: string
 }
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -199,8 +220,16 @@ export const registrarCobro = (data: RegistrarCobroRequest) =>
 export const emitirFactura = (data: EmitirFacturaRequest) =>
   post<Venta>("/api/ventas/facturas", data)
 
-export const anularVenta = (id: number, data: AnularVentaRequest) =>
-  put<Venta>(`/api/ventas/${id}/anular`, data)
+export const solicitarAnulacion = (id: number, data: SolicitarAnulacionRequest) =>
+  post<SolicitudAnulacionVentaDto>(`/api/ventas/${id}/solicitar-anulacion`, data)
+
+export const getSolicitudesAnulacion = (estado?: string) => {
+  const q = estado ? `?estado=${estado}` : ""
+  return get<SolicitudAnulacionVentaDto[]>(`/api/ventas/anulaciones${q}`)
+}
+
+export const gestionarAnulacion = (solicitudId: number, data: GestionarAnulacionVentaRequest) =>
+  post<SolicitudAnulacionVentaDto>(`/api/ventas/anulaciones/${solicitudId}/gestionar`, data)
 
 export const getResumenCaja = (fecha: string) =>
   get<ResumenCaja>(`/api/caja/resumen?fecha=${fecha}`)

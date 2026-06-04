@@ -77,7 +77,7 @@ export const menuConfig: MenuItem[] = [
   },
   {
     id: "inventario",
-    label: "Inventario",
+    label: "Catálogo",
     icon: "inventory_2",
     permission: "ver_inventario",
     children: [
@@ -109,12 +109,12 @@ export const menuConfig: MenuItem[] = [
   },
   {
     id: "stock",
-    label: "Control de Stock",
+    label: "Inventario",
     icon: "warehouse",
     permission: "ver_inventario",
     children: [
       {
-        label: "Control de Stock",
+        label: "Niveles de Stock",
         icon: "bar_chart",
         route: "/stock",
         permission: "ver_inventario",
@@ -132,13 +132,13 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
-        label: "Aprobaciones",
+        label: "Aprobaciones Mov.",
         icon: "task_alt",
         route: "/stock/aprobaciones",
         permission: "gestionar_inventario",
       },
       {
-        label: "Historial Inv.",
+        label: "Historial",
         icon: "history",
         route: "/stock/conteos",
         permission: "gestionar_inventario",
@@ -229,27 +229,53 @@ export const menuConfig: MenuItem[] = [
   },
   {
     id: "ventas",
-    label: "Ventas y Caja",
-    icon: "payments",
+    label: "Ventas",
+    icon: "point_of_sale",
     permission: "ver_ventas",
     children: [
       {
         label: "Nueva Venta",
-        icon: "point_of_sale",
+        icon: "add_shopping_cart",
         route: "/ventas/nueva",
         permission: "registrar_venta",
       },
       {
-        label: "Historial de Ventas",
+        label: "Historial",
         icon: "receipt_long",
         route: "/ventas",
         permission: "ver_ventas",
       },
       {
+        label: "Emitir Factura",
+        icon: "post_add",
+        route: "/ventas/facturacion",
+        permission: "registrar_venta",
+      },
+      {
+        label: "Historial Facturas",
+        icon: "folder_open",
+        route: "/ventas/facturas",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Aprobaciones",
+        icon: "task_alt",
+        route: "/ventas/aprobaciones",
+        permission: "gestionar_ventas",
+      },
+    ],
+  },
+  {
+    id: "caja",
+    label: "Caja",
+    icon: "payments",
+    permission: "ver_ventas",
+    children: [
+      {
         label: "Cierre de Caja",
         icon: "lock_clock",
         route: "/ventas/cierre",
-        permission: "ver_ventas",
+        permission: "gestionar_ventas",
       },
       {
         label: "Devoluciones",

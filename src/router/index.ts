@@ -175,7 +175,7 @@ const router = createRouter({
       path: "/stock",
       name: "stock",
       component: () => import("@/views/StockView.vue"),
-      meta: { requiresAuth: true, permission: "ver_inventario", label: "Control de Stock" },
+      meta: { requiresAuth: true, permission: "ver_inventario", label: "Niveles de Stock" },
     },
     {
       path: "/stock/movimientos",
@@ -205,7 +205,7 @@ const router = createRouter({
       path: "/stock/conteos",
       name: "stock-conteos",
       component: () => import("@/views/ConteoAprobacionView.vue"),
-      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Historial de Inventarios" },
+      meta: { requiresAuth: true, permission: "gestionar_inventario", label: "Historial" },
     },
     {
       path: "/stock/conteos/:id",
@@ -318,10 +318,28 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "registrar_venta", label: "Nueva Venta" },
     },
     {
+      path: "/ventas/aprobaciones",
+      name: "ventas-aprobaciones",
+      component: () => import("@/views/VentasAprobacionesView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_ventas", label: "Aprobaciones de Ventas" },
+    },
+    {
+      path: "/ventas/facturacion",
+      name: "ventas-facturacion",
+      component: () => import("@/views/FacturacionView.vue"),
+      meta: { requiresAuth: true, permission: "registrar_venta", label: "Emitir Factura" },
+    },
+    {
+      path: "/ventas/facturas",
+      name: "ventas-facturas",
+      component: () => import("@/views/FacturasVentaView.vue"),
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Facturas" },
+    },
+    {
       path: "/ventas/cierre",
       name: "ventas-cierre",
       component: () => import("@/views/VentasCierreView.vue"),
-      meta: { requiresAuth: true, permission: "ver_ventas", label: "Cierre de Caja" },
+      meta: { requiresAuth: true, permission: "gestionar_ventas", label: "Cierre de Caja" },
     },
     {
       path: "/ventas/devoluciones",

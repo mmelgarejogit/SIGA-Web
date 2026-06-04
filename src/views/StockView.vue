@@ -179,7 +179,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Control de Stock</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Niveles de Stock</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ productos.length }} producto{{ productos.length !== 1 ? "s" : "" }}
               <span v-if="bajoStockCount > 0" class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"

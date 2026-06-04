@@ -183,7 +183,7 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
 
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Inventarios</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Inventario</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ conteos.length }} inventario{{ conteos.length !== 1 ? "s" : "" }}
               <span v-if="pendientesCount > 0"

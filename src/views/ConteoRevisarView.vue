@@ -197,7 +197,7 @@ function descargarPdf() {
               style="color: var(--color-primary)"
             >
               <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
-              Historial de Inventarios
+              Historial de Inventario
             </button>
 
             <div class="flex items-start justify-between">
