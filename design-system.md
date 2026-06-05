@@ -97,12 +97,15 @@ Toda la app usa variables CSS con naming de Material Design 3. **Nunca usar colo
 | Elemento | Valor |
 |---|---|
 | Tabla, cards, modales | `rounded-2xl` |
-| Inputs de formulario (text, select, date, textarea) | `border-radius: 12px` vía `inputStyle()` — **no usar** `rounded-xl` (en este proyecto vale 3rem) |
-| Dropdowns (SearchableSelect, DateRangeBar, RowContextMenu) | `border-radius: 12px` |
+| Inputs de formulario (text, select, date, textarea) | `border-radius: 12px` inline vía `inputStyle()` |
+| Contenedores de campo (toggle row, status display) | `border-radius: 12px` inline |
+| Dropdowns (SearchableSelect, DateRangeBar, RowContextMenu) | `border-radius: 12px` inline |
 | Filtros de barra (FilterChips, SearchableSelect en toolbar) | `border-radius: 8px` |
-| Avatares, badges de estado, botones de paginación | `rounded-full` |
+| Avatares, botones de paginación | `rounded-full` |
+| Badges de tabla (pill) | `rounded-full` |
+| Badges de modal (rectangular) | `border-radius: 6px` inline |
 
-> **Importante:** `--radius-xl` está definido como `3rem` en este proyecto. Usar siempre `border-radius: 12px` inline o vía `inputStyle()` para campos de formulario — **nunca** `rounded-xl`.
+> **⚠ `rounded-xl` está prohibido en formularios y componentes de formulario.** En este proyecto `--radius-xl = 3rem`, lo que convierte cualquier elemento de ~48px de alto en un óvalo. Usar siempre `border-radius: 12px` inline para todos los contenedores de campo, filas de toggle y status display. La única excepción válida de `rounded-xl` es dentro de componentes que no son de formulario (cards de insight, wrappers de tabla).
 
 ---
 
@@ -258,24 +261,58 @@ function inputStyle(hasError: boolean) {
 />
 ```
 
-### Toggle de estado
-```vue
-<div class="flex items-center justify-between px-4 py-3 rounded-xl"
-     style="background-color: var(--color-surface-container-low)">
-  <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
-    Etiqueta
-  </span>
-  <button type="button" @click="form.isActive = !form.isActive"
-          class="relative w-12 h-6 rounded-full transition-all"
-          :style="form.isActive
-            ? 'background-color: var(--color-primary);'
-            : 'background-color: var(--color-outline-variant);'">
-    <span class="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-          :style="form.isActive ? 'left: calc(100% - 1.25rem);' : 'left: 0.25rem;'">
-    </span>
-  </button>
-</div>
+### Toggle de estado — `<ToggleSwitch>`
+
+Componente en `src/components/ToggleSwitch.vue`.
+
+#### Cuándo usar
+
+| Caso | Patrón |
+|---|---|
+| El cambio de estado es una edición más dentro del mismo formulario | `<ToggleSwitch>` |
+| Activar/desactivar es una acción de gestión separada de la edición de datos | Menú contextual + badge de solo lectura (ver §7) |
+
+#### Props
+
+```ts
+defineProps<{
+  modelValue: boolean
+  label: string
+  confirmMessage?: string  // default: "¿Confirmar activación?" / "¿Confirmar desactivación?"
+}>()
 ```
+
+#### Uso
+
+```vue
+<ToggleSwitch
+  :model-value="form.isActive"
+  label="Etiqueta del campo"
+  @update:model-value="form.isActive = $event"
+/>
+```
+
+#### Comportamiento
+
+- Click **no** cambia el valor directamente — despliega un panel de confirmación inline debajo del toggle.
+- El panel muestra ícono `info`, mensaje de confirmación y botones Cancelar / Confirmar (`size="sm"`).
+- Si el `modelValue` cambia externamente (ej: el padre resetea el form), el panel se cierra automáticamente.
+
+#### Anatomía visual
+
+```
+┌─────────────────────────────────────────────┐  ← border-radius: 12px
+│  Etiqueta           [ ▬▬  ]                 │  ← px-4 py-3, bg surface-container-low
+├─────────────────────────────────────────────┤  ← border-top rgba(196,197,213,0.2)
+│  ⓘ ¿Confirmar desactivación?               │
+│                    [Cancelar] [Confirmar]   │  ← BaseButton sm
+└─────────────────────────────────────────────┘
+```
+
+- **Contenedor:** `border-radius: 12px` inline, `overflow: hidden`, fondo `var(--color-surface-container-low)`
+- **Track:** `44×24px`, `border-radius: 6px` — activo: `var(--color-primary)` / inactivo: `var(--color-outline-variant)`
+- **Thumb:** `16×16px`, `border-radius: 3px`, blanco — `left: 4px` (off) → `left: 24px` (on)
+- **Panel:** aparece con transición `opacity + translateY(-6px)`, se descarta al confirmar, cancelar o cambio externo de `modelValue`
 
 ### Grid de 2 columnas (formularios)
 ```vue
@@ -313,23 +350,54 @@ function inputStyle(hasError: boolean) {
 
 ## 7. Badges de Estado
 
+Existen dos variantes según el contexto. Ambas usan la misma función `statusStyle`.
+
+```ts
+function statusStyle(isActive: boolean) {
+  return isActive
+    ? { bg: '#dcfce7', dot: '#16a34a', text: '#166534' }
+    : { bg: 'var(--color-surface-container-highest)', dot: 'var(--color-outline)',
+        text: 'var(--color-on-surface-variant)' }
+}
+```
+
+### Variante pill — filas de tabla
+
+`rounded-full` en badge y dot. Usar en columnas de estado de `BaseTable`.
+
 ```vue
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
       :style="`background-color: ${statusStyle(item.isActive).bg}; color: ${statusStyle(item.isActive).text};`">
   <span class="w-1.5 h-1.5 rounded-full"
         :style="`background-color: ${statusStyle(item.isActive).dot};`"></span>
-  {{ statusStyle(item.isActive).label }}
+  {{ item.isActive ? 'Activo' : 'Inactivo' }}
 </span>
 ```
 
-```ts
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: '#dcfce7', dot: '#16a34a', text: '#166534', label: 'Activo' }
-    : { bg: 'var(--color-surface-container-highest)', dot: 'var(--color-outline)',
-        text: 'var(--color-on-surface-variant)', label: 'Inactivo' }
-}
+### Variante rectangular — display de solo lectura en modales
+
+`border-radius: 6px` en badge, `border-radius: 2px` en dot. Usar dentro del campo "Estado" de los modales de edición, donde el estado es informativo (no editable). El contenedor usa el mismo `px-4 py-3` con `border-radius: 12px` inline que el `ToggleSwitch`.
+
+```vue
+<!-- Fila contenedora — mismo estilo que ToggleSwitch -->
+<!-- IMPORTANTE: usar border-radius: 12px inline, NUNCA rounded-xl (= 3rem en este proyecto) -->
+<div class="flex items-center justify-between px-4 py-3"
+     style="border-radius: 12px; background-color: var(--color-surface-container-low)">
+  <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">Estado</span>
+  <span
+    class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider"
+    :style="`border-radius: 6px; background-color: ${statusStyle(item.isActive).bg}; color: ${statusStyle(item.isActive).text};`"
+  >
+    <span class="w-1.5 h-1.5"
+          :style="`border-radius: 2px; background-color: ${statusStyle(item.isActive).dot};`"></span>
+    {{ item.isActive ? 'Activo' : 'Inactivo' }}
+  </span>
+</div>
 ```
+
+> **Cuándo usar cada variante:**
+> - **Pill** → filas de tabla (lectura rápida en listados)
+> - **Rectangular** → campo de estado en modal de edición cuando el estado se gestiona desde el menú contextual y no es editable inline
 
 ---
 
