@@ -86,6 +86,7 @@ export interface Proveedor {
   facebook: string | null
   instagram: string | null
   whatsApp: string | null
+  esLaboratorio: boolean
   isActive: boolean
   createdAt: string
   contactos: ProveedorContacto[]
@@ -211,6 +212,7 @@ export interface CreateProveedorRequest {
   facebook?: string
   instagram?: string
   whatsApp?: string
+  esLaboratorio?: boolean
   contactos: CreateProveedorContactoRequest[]
 }
 
@@ -577,4 +579,66 @@ export async function updateMotivoMovimiento(id: number, request: UpdateMotivoMo
 
 export async function deactivateMotivoMovimiento(id: number): Promise<void> {
   await http.delete(`/api/motivos-movimiento/${id}`)
+}
+
+// ── Tipos de Lente ─────────────────────────────────────────────────────────────
+
+export interface TipoLente {
+  id: number
+  nombre: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateTipoLenteRequest { nombre: string }
+export interface UpdateTipoLenteRequest { nombre: string; isActive: boolean }
+
+export async function getTiposLente(): Promise<TipoLente[]> {
+  const { data } = await http.get<TipoLente[]>("/api/tipos-lente")
+  return data
+}
+
+export async function createTipoLente(request: CreateTipoLenteRequest): Promise<TipoLente> {
+  const { data } = await http.post<TipoLente>("/api/tipos-lente", request)
+  return data
+}
+
+export async function updateTipoLente(id: number, request: UpdateTipoLenteRequest): Promise<TipoLente> {
+  const { data } = await http.put<TipoLente>(`/api/tipos-lente/${id}`, request)
+  return data
+}
+
+export async function deactivateTipoLente(id: number): Promise<void> {
+  await http.delete(`/api/tipos-lente/${id}`)
+}
+
+// ── Tratamientos ───────────────────────────────────────────────────────────────
+
+export interface Tratamiento {
+  id: number
+  nombre: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateTratamientoRequest { nombre: string }
+export interface UpdateTratamientoRequest { nombre: string; isActive: boolean }
+
+export async function getTratamientos(): Promise<Tratamiento[]> {
+  const { data } = await http.get<Tratamiento[]>("/api/tratamientos")
+  return data
+}
+
+export async function createTratamiento(request: CreateTratamientoRequest): Promise<Tratamiento> {
+  const { data } = await http.post<Tratamiento>("/api/tratamientos", request)
+  return data
+}
+
+export async function updateTratamiento(id: number, request: UpdateTratamientoRequest): Promise<Tratamiento> {
+  const { data } = await http.put<Tratamiento>(`/api/tratamientos/${id}`, request)
+  return data
+}
+
+export async function deactivateTratamiento(id: number): Promise<void> {
+  await http.delete(`/api/tratamientos/${id}`)
 }

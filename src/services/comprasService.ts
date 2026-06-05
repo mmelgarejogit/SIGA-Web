@@ -124,7 +124,19 @@ export interface RegistrarFacturaRequest {
   items?: FacturaItemLineaRequest[]
 }
 
+export interface ProveedorSimple {
+  id: number
+  nombre: string
+  ruc: string
+  esLaboratorio: boolean
+}
+
 // ── Funciones ──────────────────────────────────────────────────────────────────
+
+export async function getLaboratorios(): Promise<ProveedorSimple[]> {
+  const res = await http.get<ProveedorSimple[]>("/api/proveedores/laboratorios")
+  return res.data
+}
 
 export async function getComprasPedidos(params: {
   proveedorId?: number

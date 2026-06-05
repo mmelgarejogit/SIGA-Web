@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue"
+import { ref, reactive, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -10,10 +10,8 @@ import {
   type AgregarLineaRequest,
   type CategoriaFiscal,
   type CondicionVenta,
-  type MetodoPago,
-  type Servicio,
+  type TipoVenta,
   crearVenta,
-  registrarCobro,
 } from "@/services/ventasService"
 import { getPatients, type Patient } from "@/services/patientService"
 import { getProductos, type Producto } from "@/services/inventarioService"
@@ -27,39 +25,44 @@ const formatPrice = (n: number) =>
 
 // ── Paciente ──────────────────────────────────────────────────────────────────
 
-const pacienteSearch = ref("")
-const pacientes = ref<Patient[]>([])
+const pacienteSearch   = ref("")
+const allPacientes     = ref<Patient[]>([])
 const selectedPaciente = ref<Patient | null>(null)
 const showPacienteDrop = ref(false)
-const isSearchingPaciente = ref(false)
 
-let pacienteTimer: ReturnType<typeof setTimeout>
-watch(pacienteSearch, (val) => {
-  if (selectedPaciente.value) return
-  clearTimeout(pacienteTimer)
-  if (!val.trim()) { pacientes.value = []; showPacienteDrop.value = false; return }
-  pacienteTimer = setTimeout(async () => {
-    isSearchingPaciente.value = true
-    try {
-      const res = await getPatients({ search: val, pageSize: 8 })
-      pacientes.value = res.items
-      showPacienteDrop.value = true
-    } finally {
-      isSearchingPaciente.value = false
-    }
-  }, 300)
+onMounted(async () => {
+  const [ptsRes, prodsRes] = await Promise.allSettled([
+    getPatients({ pageSize: 500, isActive: true }),
+    getProductos({ pageSize: 200 }),
+  ])
+  if (ptsRes.status === "fulfilled")   allPacientes.value = ptsRes.value.items
+  if (prodsRes.status === "fulfilled") productos.value    = prodsRes.value.items.filter(p => p.isActive)
+})
+
+const filteredPacientes = computed(() => {
+  const q = pacienteSearch.value.trim().toLowerCase()
+  if (!q) return allPacientes.value.slice(0, 8)
+  return allPacientes.value
+    .filter(p =>
+      `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
+      p.ci.toLowerCase().includes(q),
+    )
+    .slice(0, 8)
 })
 
 function selectPaciente(p: Patient) {
   selectedPaciente.value = p
-  pacienteSearch.value = `${p.firstName} ${p.lastName}`
+  pacienteSearch.value   = `${p.firstName} ${p.lastName}`
   showPacienteDrop.value = false
+}
+
+function onPacienteBlur() {
+  setTimeout(() => { showPacienteDrop.value = false }, 150)
 }
 
 function clearPaciente() {
   selectedPaciente.value = null
-  pacienteSearch.value = ""
-  pacientes.value = []
+  pacienteSearch.value   = ""
 }
 
 // ── Productos ─────────────────────────────────────────────────────────────────
@@ -68,12 +71,6 @@ const productos = ref<Producto[]>([])
 const productoSearch = ref("")
 const showProductoDrop = ref(false)
 
-onMounted(async () => {
-  try {
-    const res = await getProductos({ pageSize: 200 })
-    productos.value = res.items.filter((p) => p.isActive)
-  } catch {}
-})
 
 const filteredProductos = computed(() =>
   productoSearch.value.trim()
@@ -160,65 +157,43 @@ const total = computed(() => montoExento.value + montoGravado5.value + montoGrav
 
 // ── Formulario de venta ───────────────────────────────────────────────────────
 
+const tipoVenta      = ref<TipoVenta>("Directa")
 const condicionVenta = ref<CondicionVenta>("Contado")
-const fechaVenta = ref(new Date().toISOString().slice(0, 10))
-const fechaVencimiento = ref("")
-const observaciones = ref("")
-
-// ── Cobro inmediato ───────────────────────────────────────────────────────────
-
-const cobrarAhora = ref(true)
-const metodoPago = ref<MetodoPago>("Efectivo")
-const montoCobro = computed(() => total.value)
-const referenciaCobro = ref("")
+const fechaVenta     = ref(new Date().toISOString().slice(0, 10))
+const observaciones  = ref("")
 
 // ── Guardar ───────────────────────────────────────────────────────────────────
 
-const isSaving = ref(false)
+const isSaving  = ref(false)
 const saveError = ref("")
 
-const canSave = computed(
-  () =>
-    selectedPaciente.value &&
-    lineas.value.length > 0 &&
-    total.value > 0 &&
-    (condicionVenta.value !== "Credito" || fechaVencimiento.value),
+const canSave = computed(() =>
+  !!selectedPaciente.value && lineas.value.length > 0 && total.value > 0,
 )
 
 async function guardar() {
   if (!canSave.value || !selectedPaciente.value) return
-  isSaving.value = true
+  isSaving.value  = true
   saveError.value = ""
   try {
     const venta = await crearVenta({
-      patientId: selectedPaciente.value.id,
+      patientId:      selectedPaciente.value.id,
+      tipo:           tipoVenta.value,
       condicionVenta: condicionVenta.value,
-      fechaVenta: fechaVenta.value,
-      fechaVencimiento: fechaVencimiento.value || undefined,
-      observaciones: observaciones.value || undefined,
+      fechaVenta:     fechaVenta.value,
+      observaciones:  observaciones.value || undefined,
       lineas: lineas.value.map((l) => ({
-        tipo: l.tipo,
-        productoId: l.productoId,
-        servicioId: l.servicioId,
-        descripcion: l.descripcion,
-        cantidad: l.cantidad,
+        tipo:           l.tipo,
+        productoId:     l.productoId,
+        servicioId:     l.servicioId,
+        descripcion:    l.descripcion,
+        cantidad:       l.cantidad,
         precioUnitario: l.precioUnitario,
-        descuento: l.descuento,
+        descuento:      l.descuento,
         categoriaFiscal: l.categoriaFiscal,
       })),
     })
-
-    if (cobrarAhora.value && condicionVenta.value === "Contado") {
-      await registrarCobro({
-        ventaId: venta.id,
-        monto: total.value,
-        metodoPago: metodoPago.value,
-        fechaCobro: fechaVenta.value,
-        referencia: referenciaCobro.value || undefined,
-      })
-    }
-
-    router.push("/ventas")
+    router.push(`/ventas/${venta.id}`)
   } catch (e: any) {
     saveError.value = e?.response?.data?.message ?? "Error al crear la venta"
   } finally {
@@ -258,41 +233,29 @@ async function guardar() {
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Paciente</h3>
               <div class="relative">
-                <div class="flex gap-2">
-                  <input
-                    v-model="pacienteSearch"
-                    type="text"
-                    :disabled="!!selectedPaciente"
-                    placeholder="Buscá por nombre o CI…"
-                    class="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
-                    style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
-                    @focus="showPacienteDrop = pacientes.length > 0"
-                  />
-                  <button
-                    v-if="selectedPaciente"
-                    @click="clearPaciente"
-                    class="px-3 rounded-xl transition-all hover:scale-105"
-                    style="background-color: var(--color-error-container); color: var(--color-error)"
-                    title="Cambiar paciente"
-                  >
-                    <span class="material-symbols-outlined" style="font-size: 18px">close</span>
-                  </button>
-                </div>
-                <!-- Dropdown resultados -->
+                <input
+                  v-model="pacienteSearch"
+                  type="text"
+                  :disabled="!!selectedPaciente"
+                  placeholder="Buscar por nombre o CI…"
+                  class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+                  style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+                  @focus="showPacienteDrop = true"
+                  @blur="onPacienteBlur"
+                />
+                <!-- Dropdown -->
                 <div
-                  v-if="showPacienteDrop && pacientes.length"
-                  class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden"
-                  style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)"
+                  v-if="showPacienteDrop && filteredPacientes.length > 0"
+                  class="absolute left-0 right-0 z-20 mt-1 shadow-lg overflow-hidden"
+                  style="border-radius: 12px; background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); max-height: 200px; overflow-y: auto;"
                 >
                   <button
-                    v-for="p in pacientes"
+                    v-for="p in filteredPacientes"
                     :key="p.id"
                     type="button"
-                    class="w-full text-left px-4 py-3 text-sm transition-colors"
+                    class="w-full text-left px-4 py-2.5 text-sm hover:bg-surface-container-low transition-colors"
                     style="border-bottom: 1px solid rgba(196,197,213,0.1)"
-                    @mouseover="($event.target as HTMLElement).style.backgroundColor = 'var(--color-surface-container-high)'"
-                    @mouseout="($event.target as HTMLElement).style.backgroundColor = ''"
-                    @click="selectPaciente(p)"
+                    @mousedown.prevent="selectPaciente(p)"
                   >
                     <span class="font-medium" style="color: var(--color-on-surface)">{{ p.firstName }} {{ p.lastName }}</span>
                     <span class="ml-2 text-xs" style="color: var(--color-outline)">CI: {{ p.ci }}</span>
@@ -303,11 +266,13 @@ async function guardar() {
                   <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style="background: #DBEAFE; color: #1D4ED8">
                     {{ selectedPaciente.firstName[0] }}{{ selectedPaciente.lastName[0] }}
                   </div>
-                  <div>
+                  <div class="flex-1">
                     <p class="font-semibold text-sm" style="color: #1D4ED8">{{ selectedPaciente.firstName }} {{ selectedPaciente.lastName }}</p>
                     <p class="text-xs" style="color: #3B82F6">CI: {{ selectedPaciente.ci }}</p>
                   </div>
-                  <span class="material-symbols-outlined ml-auto" style="font-size: 20px; color: #3B82F6">check_circle</span>
+                  <button @click="clearPaciente" class="p-1 rounded-full transition-colors hover:bg-blue-100" title="Cambiar paciente">
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: #3B82F6">close</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -452,7 +417,29 @@ async function guardar() {
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Condiciones</h3>
               <div class="space-y-4">
                 <div>
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Condición de Venta</label>
+                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Tipo de Venta</label>
+                  <div class="flex gap-2">
+                    <button
+                      @click="tipoVenta = 'Directa'"
+                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      :style="tipoVenta === 'Directa'
+                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
+                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
+                    >Directa</button>
+                    <button
+                      @click="tipoVenta = 'TrabajoAPedido'"
+                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      :style="tipoVenta === 'TrabajoAPedido'
+                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
+                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
+                    >A pedido</button>
+                  </div>
+                  <p v-if="tipoVenta === 'TrabajoAPedido'" class="mt-1.5 text-xs" style="color: var(--color-outline)">
+                    Requiere receta clínica. Podrás asignar el laboratorio desde el detalle de la venta.
+                  </p>
+                </div>
+                <div>
+                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Condición de Pago</label>
                   <div class="flex gap-2">
                     <button
                       @click="condicionVenta = 'Contado'"
@@ -474,48 +461,9 @@ async function guardar() {
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha de Venta</label>
                   <input v-model="fechaVenta" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
                 </div>
-                <div v-if="condicionVenta === 'Credito'">
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha de Vencimiento *</label>
-                  <input v-model="fechaVencimiento" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
-                </div>
                 <div>
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Observaciones</label>
                   <textarea v-model="observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cobro inmediato (solo contado) -->
-            <div v-if="condicionVenta === 'Contado'" class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Cobro</h3>
-                <button
-                  @click="cobrarAhora = !cobrarAhora"
-                  class="flex items-center gap-2 text-sm transition-all"
-                  :style="`color: ${cobrarAhora ? 'var(--color-primary)' : 'var(--color-outline)'}`"
-                >
-                  <span class="material-symbols-outlined" style="font-size: 24px">{{ cobrarAhora ? "toggle_on" : "toggle_off" }}</span>
-                  Cobrar ahora
-                </button>
-              </div>
-              <div v-if="cobrarAhora" class="space-y-3">
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Método de Pago</label>
-                  <div class="grid grid-cols-2 gap-2">
-                    <button
-                      v-for="m in ['Efectivo', 'Tarjeta', 'Transferencia', 'Cheque']"
-                      :key="m"
-                      @click="metodoPago = m as MetodoPago"
-                      class="py-2 rounded-xl text-xs font-semibold transition-all"
-                      :style="metodoPago === m
-                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
-                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-                    >{{ m }}</button>
-                  </div>
-                </div>
-                <div v-if="metodoPago !== 'Efectivo'">
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Referencia</label>
-                  <input v-model="referenciaCobro" type="text" placeholder="N° transacción…" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
                 </div>
               </div>
             </div>
@@ -560,8 +508,8 @@ async function guardar() {
                   :disabled="!canSave || isSaving"
                   @click="guardar"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 20px">{{ cobrarAhora && condicionVenta === 'Contado' ? 'payments' : 'save' }}</span>
-                  {{ isSaving ? "Guardando…" : cobrarAhora && condicionVenta === "Contado" ? "Guardar y cobrar" : "Guardar venta" }}
+                  <span class="material-symbols-outlined" style="font-size: 20px">save</span>
+                  {{ isSaving ? "Guardando…" : "Crear venta" }}
                 </BaseButton>
                 <BaseButton variant="secondary" size="lg" class="w-full" @click="router.push('/ventas')">
                   Cancelar

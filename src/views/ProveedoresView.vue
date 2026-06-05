@@ -156,6 +156,7 @@ const emptyForm = (): CreateProveedorRequest => ({
   facebook: "",
   instagram: "",
   whatsApp: "",
+  esLaboratorio: false,
   contactos: [],
 })
 
@@ -225,8 +226,9 @@ async function submit() {
     sitioWeb:   (form.sitioWeb as string)?.trim() || undefined,
     facebook:   (form.facebook as string)?.trim() || undefined,
     instagram:  (form.instagram as string)?.trim() || undefined,
-    whatsApp:   (form.whatsApp as string)?.trim() || undefined,
-    contactos:  contactosValidos.map(c => ({
+    whatsApp:      (form.whatsApp as string)?.trim() || undefined,
+    esLaboratorio: form.esLaboratorio ?? false,
+    contactos:     contactosValidos.map(c => ({
       nombre:   c.nombre.trim(),
       cargo:    c.cargo.trim() || undefined,
       telefono: c.telefono.trim() || undefined,
@@ -492,6 +494,31 @@ async function confirmDeactivate() {
             <input v-model="form.instagram" type="text" placeholder="@usuario" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
               :style="inputStyle(false)" />
           </div>
+        </div>
+
+        <!-- Es laboratorio -->
+        <div>
+          <button
+            type="button"
+            @click="form.esLaboratorio = !form.esLaboratorio"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all"
+            :style="form.esLaboratorio
+              ? 'background:#F0FDF4; border: 1.5px solid #86EFAC;'
+              : 'background:var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);'"
+          >
+            <span
+              class="material-symbols-outlined"
+              :style="`font-size: 22px; color: ${form.esLaboratorio ? '#166534' : 'var(--color-outline)'}`"
+            >{{ form.esLaboratorio ? 'check_box' : 'check_box_outline_blank' }}</span>
+            <div class="text-left">
+              <p class="text-sm font-semibold" :style="`color: ${form.esLaboratorio ? '#166534' : 'var(--color-on-surface)'}`">
+                Es laboratorio óptico
+              </p>
+              <p class="text-xs" style="color: var(--color-on-surface-variant)">
+                Aparecerá disponible al asignar laboratorio en trabajos a pedido
+              </p>
+            </div>
+          </button>
         </div>
 
         <!-- Contactos -->
