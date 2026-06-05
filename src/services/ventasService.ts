@@ -1,6 +1,6 @@
 import { useHttp } from "@/composables/useHttp"
 
-const { get, post, put } = useHttp()
+const { get, post, put, delete: del } = useHttp()
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -133,6 +133,7 @@ export interface Venta {
   tipo: TipoVenta
   condicionVenta: CondicionVenta
   fechaVenta: string
+  validezDias: number
   fechaConfirmacion?: string
   fechaComprobante?: string
   montoExento: number
@@ -213,6 +214,7 @@ export interface CrearVentaRequest {
   tipo: TipoVenta
   condicionVenta: CondicionVenta
   fechaVenta: string
+  validezDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
 }
@@ -305,7 +307,7 @@ export const cancelarVenta = (id: number, data: CancelarVentaRequest) =>
   put<Venta>(`/api/ventas/${id}/cancelar`, data)
 
 export const eliminarPresupuesto = (id: number) =>
-  useHttp().del(`/api/ventas/${id}`)
+  del(`/api/ventas/${id}`)
 
 export const getPresupuestos = (patientId?: number) => {
   const q = new URLSearchParams({ estado: "Borrador", pageSize: "100" })

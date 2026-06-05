@@ -336,6 +336,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "registrar_venta", label: "Presupuestos" },
     },
     {
+      path: "/ventas/presupuestos/nuevo",
+      name: "ventas-presupuesto-nuevo",
+      component: () => import("@/views/PresupuestoNuevoView.vue"),
+      meta: { requiresAuth: true, permission: "registrar_venta", label: "Nuevo Presupuesto" },
+    },
+    {
       path: "/ventas/trabajos-pedido",
       name: "trabajos-pedido",
       component: () => import("@/views/TrabajosPedidoView.vue"),

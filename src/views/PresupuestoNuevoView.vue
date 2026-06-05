@@ -1,27 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch, nextTick } from "vue"
-import { useRouter, useRoute } from "vue-router"
+import { ref, reactive, computed, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
-import SearchInput from "@/components/SearchInput.vue"
 import {
   type AgregarLineaRequest,
   type CategoriaFiscal,
-  type CondicionVenta,
-  type TipoVenta,
-  type Venta,
   crearVenta,
-  confirmarVenta,
-  getPresupuestos,
-  getVentaById,
 } from "@/services/ventasService"
 import { getPatients, type Patient } from "@/services/patientService"
 import { getProductos, type Producto } from "@/services/inventarioService"
 
 const router = useRouter()
-const route  = useRoute()
 
 // ── Formato ───────────────────────────────────────────────────────────────────
 
@@ -42,22 +34,6 @@ onMounted(async () => {
   ])
   if (ptsRes.status === "fulfilled")   allPacientes.value = ptsRes.value.items
   if (prodsRes.status === "fulfilled") productos.value    = prodsRes.value.items.filter(p => p.isActive)
-
-  // Precarga desde un presupuesto (?presupuesto=ID)
-  const presupuestoId = Number(route.query.presupuesto)
-  if (presupuestoId) {
-    try {
-      const venta = await getVentaById(presupuestoId)
-      const pac = allPacientes.value.find(p => p.id === venta.patientId)
-      if (pac) {
-        selectedPaciente.value = pac
-        pacienteSearch.value   = `${pac.firstName} ${pac.lastName}`
-        // Dejar que el watcher de selectedPaciente corra antes de marcar el cargado
-        await nextTick()
-      }
-      cargarPresupuesto(venta)
-    } catch {}
-  }
 })
 
 const filteredPacientes = computed(() => {
@@ -82,56 +58,15 @@ function onPacienteBlur() {
 }
 
 function clearPaciente() {
-  selectedPaciente.value    = null
-  pacienteSearch.value      = ""
-  presupuestosDelPaciente.value = []
-  presupuestoCargado.value  = null
-  lineas.value              = []
-}
-
-// ── Presupuestos del paciente ─────────────────────────────────────────────────
-
-const presupuestosDelPaciente = ref<Venta[]>([])
-const presupuestoCargado      = ref<Venta | null>(null)
-
-watch(selectedPaciente, async (p) => {
-  presupuestosDelPaciente.value = []
-  presupuestoCargado.value      = null
-  if (!p) return
-  try {
-    const res = await getPresupuestos(p.id)
-    presupuestosDelPaciente.value = res.items
-  } catch {}
-})
-
-function cargarPresupuesto(v: Venta) {
-  presupuestoCargado.value = v
-  tipoVenta.value      = v.tipo
-  condicionVenta.value = v.condicionVenta
-  observaciones.value  = v.observaciones ?? ""
-  lineas.value = v.lineas.map(l => ({
-    tipo:           l.tipo,
-    productoId:     l.productoId,
-    servicioId:     l.servicioId,
-    descripcion:    l.descripcion,
-    cantidad:       l.cantidad,
-    precioUnitario: l.precioUnitario,
-    descuento:      l.descuento,
-    categoriaFiscal: l.categoriaFiscal,
-  }))
-}
-
-function limpiarPresupuesto() {
-  presupuestoCargado.value = null
-  lineas.value = []
+  selectedPaciente.value = null
+  pacienteSearch.value   = ""
 }
 
 // ── Productos ─────────────────────────────────────────────────────────────────
 
-const productos = ref<Producto[]>([])
-const productoSearch = ref("")
+const productos        = ref<Producto[]>([])
+const productoSearch   = ref("")
 const showProductoDrop = ref(false)
-
 
 const filteredProductos = computed(() =>
   productoSearch.value.trim()
@@ -212,16 +147,22 @@ const montoGravado5 = computed(() =>
 const montoGravado10 = computed(() =>
   lineas.value.filter((l) => l.categoriaFiscal === "Gravado10").reduce((s, l) => s + subtotalLinea(l), 0),
 )
-const iva5 = computed(() => Math.round(montoGravado5.value / 21))
+const iva5  = computed(() => Math.round(montoGravado5.value / 21))
 const iva10 = computed(() => Math.round(montoGravado10.value / 11))
 const total = computed(() => montoExento.value + montoGravado5.value + montoGravado10.value)
 
-// ── Formulario de venta ───────────────────────────────────────────────────────
+// ── Datos del presupuesto ─────────────────────────────────────────────────────
 
-const tipoVenta      = ref<TipoVenta>("Directa")
-const condicionVenta = ref<CondicionVenta>("Contado")
-const fechaVenta     = ref(new Date().toISOString().slice(0, 10))
-const observaciones  = ref("")
+const fechaVenta    = ref(new Date().toISOString().slice(0, 10))
+const validezDias   = ref(15)
+const observaciones = ref("")
+
+// Fecha de vencimiento calculada (informativa)
+const fechaVencimiento = computed(() => {
+  const base = new Date(fechaVenta.value + "T00:00:00")
+  base.setDate(base.getDate() + (validezDias.value || 0))
+  return base.toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" })
+})
 
 // ── Guardar ───────────────────────────────────────────────────────────────────
 
@@ -237,39 +178,27 @@ async function guardar() {
   isSaving.value  = true
   saveError.value = ""
   try {
-    let ventaId: number
-
-    if (presupuestoCargado.value) {
-      // Confirmar el presupuesto existente directamente
-      ventaId = presupuestoCargado.value.id
-      await confirmarVenta(ventaId)
-    } else {
-      // Crear la venta
-      const venta = await crearVenta({
-        patientId:      selectedPaciente.value.id,
-        tipo:           tipoVenta.value,
-        condicionVenta: condicionVenta.value,
-        fechaVenta:     fechaVenta.value,
-        observaciones:  observaciones.value || undefined,
-        lineas: lineas.value.map((l) => ({
-          tipo:           l.tipo,
-          productoId:     l.productoId,
-          servicioId:     l.servicioId,
-          descripcion:    l.descripcion,
-          cantidad:       l.cantidad,
-          precioUnitario: l.precioUnitario,
-          descuento:      l.descuento,
-          categoriaFiscal: l.categoriaFiscal,
-        })),
-      })
-      ventaId = venta.id
-
-      // Confirmar inmediatamente (la venta queda registrada, no en borrador)
-      await confirmarVenta(ventaId)
-    }
-
-    // Tras generar la venta se va directo a registrar el cobro (contado o crédito)
-    router.push(`/ventas/cobros-pendientes?venta=${ventaId}`)
+    // El presupuesto se guarda como venta en estado Borrador (sin confirmar).
+    // La forma de pago se define recién al generar la venta.
+    await crearVenta({
+      patientId:      selectedPaciente.value.id,
+      tipo:           "Directa",
+      condicionVenta: "Contado",
+      fechaVenta:     fechaVenta.value,
+      validezDias:    validezDias.value < 1 ? 15 : validezDias.value,
+      observaciones:  observaciones.value || undefined,
+      lineas: lineas.value.map((l) => ({
+        tipo:           l.tipo,
+        productoId:     l.productoId,
+        servicioId:     l.servicioId,
+        descripcion:    l.descripcion,
+        cantidad:       l.cantidad,
+        precioUnitario: l.precioUnitario,
+        descuento:      l.descuento,
+        categoriaFiscal: l.categoriaFiscal,
+      })),
+    })
+    router.push("/ventas/presupuestos")
   } catch (e: any) {
     saveError.value = e?.response?.data?.message ?? "Error al guardar"
   } finally {
@@ -288,7 +217,7 @@ async function guardar() {
         <!-- Encabezado -->
         <div class="flex items-center gap-4 mb-8">
           <button
-            @click="router.push('/ventas')"
+            @click="router.push('/ventas/presupuestos')"
             class="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105"
             style="background-color: var(--color-surface-container-high)"
           >
@@ -296,10 +225,10 @@ async function guardar() {
           </button>
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">
-              Nueva Venta
+              Nuevo Presupuesto
             </h1>
             <p class="mt-0.5 font-medium" style="color: var(--color-on-surface-variant)">
-              {{ presupuestoCargado ? "Revisá los datos del presupuesto y definí la forma de pago" : "Registrá los productos y servicios de la venta" }}
+              Cargá el paciente y los productos con sus precios
             </p>
           </div>
         </div>
@@ -357,62 +286,10 @@ async function guardar() {
               </div>
             </div>
 
-            <!-- Banner presupuestos del paciente (solo en modo venta) -->
-            <div
-              v-if="presupuestosDelPaciente.length && !presupuestoCargado"
-              class="rounded-2xl p-5"
-              style="background: #FEF3C7; border: 1.5px solid #FDE68A"
-            >
-              <div class="flex items-start gap-3 mb-3">
-                <span class="material-symbols-outlined flex-shrink-0" style="font-size:20px;color:#92400E">description</span>
-                <div>
-                  <p class="font-semibold text-sm" style="color:#92400E">
-                    Este paciente tiene {{ presupuestosDelPaciente.length }} presupuesto{{ presupuestosDelPaciente.length !== 1 ? "s" : "" }} pendiente{{ presupuestosDelPaciente.length !== 1 ? "s" : "" }}
-                  </p>
-                  <p class="text-xs mt-0.5" style="color:#A16207">¿Querés cargar uno como base para esta venta?</p>
-                </div>
-              </div>
-              <div class="space-y-2">
-                <button
-                  v-for="p in presupuestosDelPaciente"
-                  :key="p.id"
-                  @click="cargarPresupuesto(p)"
-                  class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.01]"
-                  style="background:white;border:1px solid #FDE68A"
-                >
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono font-semibold" style="color:#92400E">{{ p.numeroComprobante }}</span>
-                    <span style="color:var(--color-on-surface-variant)">· {{ p.lineas.length }} ítem{{ p.lineas.length !== 1 ? "s" : "" }}</span>
-                  </div>
-                  <span class="font-bold" style="color:var(--color-primary)">
-                    {{ new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(p.total) }}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Presupuesto cargado -->
-            <div
-              v-if="presupuestoCargado"
-              class="rounded-2xl p-4 flex items-center justify-between"
-              style="background:#F0FDF4;border:1.5px solid #BBF7D0"
-            >
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:20px;color:#166534">check_circle</span>
-                <div>
-                  <p class="text-sm font-semibold" style="color:#166534">Presupuesto cargado: {{ presupuestoCargado.numeroComprobante }}</p>
-                  <p class="text-xs" style="color:#4ADE80">Las líneas se cargaron desde el presupuesto. Podés editarlas.</p>
-                </div>
-              </div>
-              <button @click="limpiarPresupuesto" class="p-1 rounded-full hover:bg-green-100 transition-colors">
-                <span class="material-symbols-outlined" style="font-size:16px;color:#166534">close</span>
-              </button>
-            </div>
-
             <!-- Agregar productos -->
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Líneas</h3>
+                <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Productos</h3>
                 <button
                   @click="showLineaManual = true"
                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
@@ -453,9 +330,6 @@ async function guardar() {
                     </div>
                     <div class="text-right flex-shrink-0 ml-4">
                       <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
-                      <span class="ml-2 text-xs" :style="`color: ${p.stockActual <= p.stockMinimo ? '#92400E' : 'var(--color-outline)'}`">
-                        Stock: {{ p.stockActual }}
-                      </span>
                     </div>
                   </button>
                 </div>
@@ -463,7 +337,7 @@ async function guardar() {
 
               <!-- Líneas agregadas -->
               <div v-if="lineas.length === 0" class="py-6 text-center rounded-xl" style="border: 1.5px dashed var(--color-outline-variant)">
-                <span class="material-symbols-outlined text-4xl mb-2 block" style="color: var(--color-outline)">shopping_cart</span>
+                <span class="material-symbols-outlined text-4xl mb-2 block" style="color: var(--color-outline)">request_quote</span>
                 <p class="text-sm" style="color: var(--color-outline)">Buscá un producto o agregá una línea manual</p>
               </div>
 
@@ -544,54 +418,18 @@ async function guardar() {
           <!-- ── Columna lateral (1/3) ────────────────────────────────────── -->
           <div class="space-y-6">
 
-            <!-- Condiciones -->
+            <!-- Datos del presupuesto -->
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-              <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Condiciones</h3>
+              <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos</h3>
               <div class="space-y-4">
                 <div>
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Tipo de Venta</label>
-                  <div class="flex gap-2">
-                    <button
-                      @click="tipoVenta = 'Directa'"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      :style="tipoVenta === 'Directa'
-                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
-                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-                    >Directa</button>
-                    <button
-                      @click="tipoVenta = 'TrabajoAPedido'"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      :style="tipoVenta === 'TrabajoAPedido'
-                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
-                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-                    >A pedido</button>
-                  </div>
-                  <p v-if="tipoVenta === 'TrabajoAPedido'" class="mt-1.5 text-xs" style="color: var(--color-outline)">
-                    Requiere receta clínica. Podrás asignar el laboratorio desde el detalle de la venta.
-                  </p>
-                </div>
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Condición de Pago</label>
-                  <div class="flex gap-2">
-                    <button
-                      @click="condicionVenta = 'Contado'"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      :style="condicionVenta === 'Contado'
-                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
-                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-                    >Contado</button>
-                    <button
-                      @click="condicionVenta = 'Credito'"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      :style="condicionVenta === 'Credito'
-                        ? 'background: var(--color-primary); color: var(--color-on-primary)'
-                        : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'"
-                    >Crédito</button>
-                  </div>
-                </div>
-                <div>
-                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha de Venta</label>
+                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha</label>
                   <input v-model="fechaVenta" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Validez (días)</label>
+                  <input v-model.number="validezDias" type="number" min="1" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                  <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Vence el {{ fechaVencimiento }}</p>
                 </div>
                 <div>
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Observaciones</label>
@@ -600,7 +438,7 @@ async function guardar() {
               </div>
             </div>
 
-            <!-- Resumen fiscal -->
+            <!-- Resumen -->
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Resumen</h3>
               <div class="space-y-2 text-sm">
@@ -640,12 +478,10 @@ async function guardar() {
                   :disabled="!canSave || isSaving"
                   @click="guardar"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 20px">
-                    {{ presupuestoCargado ? "shopping_cart" : "point_of_sale" }}
-                  </span>
-                  {{ isSaving ? "Guardando…" : presupuestoCargado ? "Confirmar y crear venta" : "Crear venta" }}
+                  <span class="material-symbols-outlined" style="font-size: 20px">description</span>
+                  {{ isSaving ? "Guardando…" : "Guardar presupuesto" }}
                 </BaseButton>
-                <BaseButton variant="secondary" size="lg" class="w-full" @click="router.push('/ventas')">
+                <BaseButton variant="secondary" size="lg" class="w-full" @click="router.push('/ventas/presupuestos')">
                   Cancelar
                 </BaseButton>
               </div>

@@ -246,15 +246,15 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_ventas",
     children: [
       {
-        label: "Nueva Venta",
-        icon: "add_shopping_cart",
-        route: "/ventas/nueva",
-        permission: "registrar_venta",
-      },
-      {
         label: "Presupuestos",
         icon: "description",
         route: "/ventas/presupuestos",
+        permission: "registrar_venta",
+      },
+      {
+        label: "Nueva Venta",
+        icon: "add_shopping_cart",
+        route: "/ventas/nueva",
         permission: "registrar_venta",
       },
       {

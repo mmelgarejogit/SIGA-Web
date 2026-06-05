@@ -8,7 +8,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type Venta, getPresupuestos, confirmarVenta, eliminarPresupuesto, getVentaById } from "@/services/ventasService"
+import { type Venta, getPresupuestos, eliminarPresupuesto, getVentaById } from "@/services/ventasService"
 import { getConfiguracion } from "@/services/configService"
 import { usePresupuestoPdf } from "@/composables/usePresupuestoPdf"
 
@@ -50,13 +50,15 @@ const filtered = computed(() => {
   )
 })
 
-// ── Semáforo de vigencia (15 días) ────────────────────────────────────────────
+// ── Semáforo de vigencia ──────────────────────────────────────────────────────
 
-function vigenciaBadge(fechaVenta: string) {
-  const dias = diasDesde(fechaVenta)
-  if (dias > 15) return { label: "Vencido",          bg: "#FEE2E2", text: "#991B1B" }
-  if (dias > 10) return { label: `${15 - dias}d`,    bg: "#FEF3C7", text: "#92400E" }
-  return              { label: `${15 - dias}d rest.`, bg: "#DCFCE7", text: "#166534" }
+function vigenciaBadge(v: Venta) {
+  const validez   = v.validezDias > 0 ? v.validezDias : 15
+  const dias      = diasDesde(v.fechaVenta)
+  const restantes = validez - dias
+  if (restantes < 0)  return { label: "Vencido",            bg: "#FEE2E2", text: "#991B1B" }
+  if (restantes <= 5) return { label: `${restantes}d`,       bg: "#FEF3C7", text: "#92400E" }
+  return                     { label: `${restantes}d rest.`, bg: "#DCFCE7", text: "#166534" }
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
@@ -69,32 +71,11 @@ async function descargarPdf(v: Venta) {
   generarPdfPresupuesto(detalle, config)
 }
 
-// ── Convertir a venta ─────────────────────────────────────────────────────────
+// ── Generar venta ─────────────────────────────────────────────────────────────
+// Lleva a la vista de Nueva Venta con los datos del presupuesto precargados.
 
-const showConvertir  = ref(false)
-const isConvertiendo = ref(false)
-const convertError   = ref("")
-const convertItem    = ref<Venta | null>(null)
-
-function openConvertir(v: Venta) {
-  convertItem.value  = v
-  convertError.value = ""
-  showConvertir.value = true
-}
-
-async function submitConvertir() {
-  if (!convertItem.value) return
-  isConvertiendo.value = true
-  convertError.value   = ""
-  try {
-    await confirmarVenta(convertItem.value.id)
-    showConvertir.value = false
-    router.push(`/ventas/${convertItem.value.id}`)
-  } catch (e: any) {
-    convertError.value = e?.response?.data?.message ?? "Error al convertir"
-  } finally {
-    isConvertiendo.value = false
-  }
+function generarVenta(v: Venta) {
+  router.push(`/ventas/nueva?presupuesto=${v.id}`)
 }
 
 // ── Eliminar ──────────────────────────────────────────────────────────────────
@@ -130,7 +111,7 @@ async function submitEliminar() {
 function menuItems(v: Venta): ContextMenuItem[] {
   return [
     { type: "item", label: "Descargar PDF",       icon: "picture_as_pdf", action: () => descargarPdf(v) },
-    { type: "item", label: "Convertir a venta",   icon: "shopping_cart",  action: () => openConvertir(v) },
+    { type: "item", label: "Generar venta",        icon: "shopping_cart",  action: () => generarVenta(v) },
     { type: "separator" },
     { type: "item", label: "Eliminar",             icon: "delete",         action: () => openEliminar(v), danger: true },
   ]
@@ -152,7 +133,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
               {{ filtered.length }} presupuesto{{ filtered.length !== 1 ? "s" : "" }} pendiente{{ filtered.length !== 1 ? "s" : "" }}
             </p>
           </div>
-          <BaseButton variant="primary" size="lg" @click="router.push('/ventas/nueva?modo=presupuesto')">
+          <BaseButton variant="primary" size="lg" @click="router.push('/ventas/presupuestos/nuevo')">
             <span class="material-symbols-outlined" style="font-size: 20px">add</span>
             Nuevo Presupuesto
           </BaseButton>
@@ -192,8 +173,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(v.total) }}</td>
                 <td class="px-6 py-4">
                   <span class="text-xs font-bold px-2.5 py-1 rounded-full"
-                    :style="`background:${vigenciaBadge(v.fechaVenta).bg};color:${vigenciaBadge(v.fechaVenta).text}`">
-                    {{ vigenciaBadge(v.fechaVenta).label }}
+                    :style="`background:${vigenciaBadge(v).bg};color:${vigenciaBadge(v).text}`">
+                    {{ vigenciaBadge(v).label }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right" @click.stop>
@@ -206,28 +187,6 @@ function menuItems(v: Venta): ContextMenuItem[] {
 
       </div>
     </main>
-
-    <!-- Modal: Convertir a venta -->
-    <BaseModal :open="showConvertir" size="sm" title="Convertir a Venta" @close="showConvertir = false">
-      <template #body>
-        <div class="space-y-3">
-          <div class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
-            <p class="font-semibold" style="color:var(--color-on-surface)">{{ convertItem?.pacienteNombre }}</p>
-            <p style="color:var(--color-on-surface-variant)">{{ convertItem?.numeroComprobante }} · {{ formatPrice(convertItem?.total ?? 0) }}</p>
-          </div>
-          <p class="text-sm" style="color:var(--color-on-surface-variant)">
-            El presupuesto pasará a estado <strong>Confirmada</strong> y se podrá emitir comprobante desde el detalle de la venta.
-          </p>
-          <p v-if="convertError" class="text-xs font-medium" style="color:var(--color-error)">{{ convertError }}</p>
-        </div>
-      </template>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showConvertir = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isConvertiendo" @click="submitConvertir">
-          {{ isConvertiendo ? "Convirtiendo…" : "Convertir a venta" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
 
     <!-- Modal: Eliminar -->
     <BaseModal :open="showEliminar" size="sm" title="Eliminar Presupuesto" @close="showEliminar = false">

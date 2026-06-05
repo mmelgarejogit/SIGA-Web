@@ -101,13 +101,15 @@ export function usePresupuestoPdf() {
 
     y += 5
 
+    const validez = venta.validezDias > 0 ? venta.validezDias : 15
+
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9)
     doc.setTextColor(...GRAY)
     doc.text("Validez:", pageW / 2 + 5, y)
     doc.setTextColor(...ACCENT)
     doc.setFont("helvetica", "bold")
-    doc.text("15 días corridos", pageW / 2 + 22, y)
+    doc.text(`${validez} días corridos`, pageW / 2 + 22, y)
 
     y += 5
 
@@ -215,7 +217,7 @@ export function usePresupuestoPdf() {
     doc.setFont("helvetica", "normal")
     doc.setFontSize(7.5)
     doc.text(
-      `Válido por 15 días corridos desde la fecha de emisión. Precios sujetos a cambio sin previo aviso.`,
+      `Válido por ${validez} días corridos desde la fecha de emisión. Precios sujetos a cambio sin previo aviso.`,
       margin + 5, noteY + 9.5,
     )
 
