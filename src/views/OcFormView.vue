@@ -4,7 +4,9 @@ import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseModal from "@/components/BaseModal.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
+import DateInput from "@/components/DateInput.vue"
 import {
   getProveedores,
   getProductos,
@@ -17,7 +19,7 @@ import {
   getComprasPedidoById,
 } from "@/services/comprasService"
 
-const route = useRoute()
+const route  = useRoute()
 const router = useRouter()
 
 const editId = computed(() => {
@@ -27,21 +29,16 @@ const editId = computed(() => {
 const isEdit = computed(() => editId.value !== null)
 
 const proveedores = ref<Proveedor[]>([])
-const productos = ref<Producto[]>([])
-
-const proveedorOptions = computed(() =>
-  proveedores.value
-    .filter(p => p.isActive)
-    .map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
-)
+const productos   = ref<Producto[]>([])
 
 const productoOptions = computed(() =>
   productos.value
     .filter(p => p.isActive)
     .map(p => ({ value: p.id, label: p.nombre, code: p.sku ?? undefined })),
 )
+
 const isLoading = ref(true)
-const isSaving = ref(false)
+const isSaving  = ref(false)
 const loadError = ref("")
 const saveError = ref("")
 
@@ -52,8 +49,9 @@ interface FormItem {
 }
 
 const form = reactive({
-  proveedorId: null as number | null,
+  proveedorId:   null as number | null,
   observaciones: "",
+  fechaOrden:    "" as string,
 })
 const items = ref<FormItem[]>([])
 
@@ -65,6 +63,51 @@ function formatPrice(n: number) {
   return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
 }
 
+// ── Proveedor seleccionado ─────────────────────────────────────────────────────
+
+const proveedorSeleccionado = computed(() =>
+  proveedores.value.find(p => p.id === form.proveedorId) ?? null,
+)
+
+// ── Modal de búsqueda de proveedor ─────────────────────────────────────────────
+
+const showProveedorModal = ref(false)
+const proveedorSearch = reactive({ nombre: "", ruc: "", ciudad: "" })
+
+const proveedoresResultados = computed(() => {
+  const n = proveedorSearch.nombre.toLowerCase().trim()
+  const r = proveedorSearch.ruc.toLowerCase().trim()
+  const c = proveedorSearch.ciudad.toLowerCase().trim()
+
+  if (!n && !r && !c) return []
+
+  return proveedores.value.filter(p => {
+    if (!p.isActive) return false
+    if (n && !p.nombre.toLowerCase().includes(n)) return false
+    if (r && !p.ruc.toLowerCase().includes(r)) return false
+    if (c && !(p.ciudad ?? "").toLowerCase().includes(c)) return false
+    return true
+  })
+})
+
+function openProveedorModal() {
+  proveedorSearch.nombre = ""
+  proveedorSearch.ruc    = ""
+  proveedorSearch.ciudad = ""
+  showProveedorModal.value = true
+}
+
+function selectProveedor(p: Proveedor) {
+  form.proveedorId = p.id
+  showProveedorModal.value = false
+}
+
+function clearProveedor() {
+  form.proveedorId = null
+}
+
+// ── Carga inicial ──────────────────────────────────────────────────────────────
+
 onMounted(async () => {
   isLoading.value = true
   loadError.value = ""
@@ -74,7 +117,7 @@ onMounted(async () => {
       getProductos({ pageSize: 500 }),
     ])
     proveedores.value = provR.items
-    productos.value = prodR.items
+    productos.value   = prodR.items
 
     if (isEdit.value) {
       const pedido = await getComprasPedidoById(editId.value!)
@@ -82,15 +125,14 @@ onMounted(async () => {
         loadError.value = "Solo se pueden editar órdenes en estado Borrador."
         return
       }
-      form.proveedorId = pedido.proveedorId
+      form.proveedorId   = pedido.proveedorId
       form.observaciones = pedido.observaciones ?? ""
+      form.fechaOrden    = pedido.fechaOrden ?? ""
       items.value = pedido.items.map(i => ({
-        productoId: i.productoId,
-        cantidad: i.cantidad,
+        productoId:    i.productoId,
+        cantidad:      i.cantidad,
         precioUnitario: i.precioUnitario,
       }))
-    } else {
-      form.proveedorId = null
     }
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar datos."
@@ -99,12 +141,14 @@ onMounted(async () => {
   }
 })
 
+// ── Ítems ──────────────────────────────────────────────────────────────────────
+
 function addItem() {
   const primer = productos.value.find(p => p.isActive)
   if (!primer) return
   items.value.push({
-    productoId: primer.id,
-    cantidad: 1,
+    productoId:    primer.id,
+    cantidad:      1,
     precioUnitario: primer.precioCosto,
   })
 }
@@ -116,21 +160,24 @@ function removeItem(i: number) {
 function onProductoChange(i: number, val: number | string | null) {
   const prod = productos.value.find(p => p.id === Number(val))
   if (prod) {
-    items.value[i]!.productoId = prod.id
+    items.value[i]!.productoId     = prod.id
     items.value[i]!.precioUnitario = prod.precioCosto
   }
 }
 
+// ── Guardar ────────────────────────────────────────────────────────────────────
+
 async function submit() {
-  if (!form.proveedorId) { saveError.value = "Seleccioná un proveedor."; return }
+  if (!form.proveedorId)      { saveError.value = "Seleccioná un proveedor."; return }
   if (items.value.length === 0) { saveError.value = "Agregá al menos un ítem."; return }
 
   isSaving.value = true
   saveError.value = ""
   try {
     const payload = {
-      proveedorId: form.proveedorId!,
+      proveedorId:   form.proveedorId!,
       observaciones: form.observaciones.trim() || undefined,
+      fechaOrden:    form.fechaOrden || undefined,
       items: items.value.map(({ productoId, cantidad, precioUnitario }) => ({
         productoId, cantidad, precioUnitario,
       })),
@@ -156,7 +203,7 @@ function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
     ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 </script>
 
@@ -173,7 +220,7 @@ function inputStyle(hasError = false) {
           <span class="material-symbols-outlined animate-spin text-4xl" style="color: var(--color-primary)">progress_activity</span>
         </div>
 
-        <!-- Error -->
+        <!-- Error de carga -->
         <div v-else-if="loadError" class="rounded-2xl p-6"
           style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
           <p class="font-semibold">{{ loadError }}</p>
@@ -204,7 +251,7 @@ function inputStyle(hasError = false) {
           </div>
 
           <!-- Error general -->
-          <div v-if="saveError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
+          <div v-if="saveError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
             style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
             <span class="material-symbols-outlined" style="font-size: 18px">error</span>
             {{ saveError }}
@@ -216,17 +263,52 @@ function inputStyle(hasError = false) {
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
             <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor *</label>
-                <SearchableSelect
-                  :model-value="form.proveedorId"
-                  :options="proveedorOptions"
-                  placeholder="Buscar proveedor..."
-                  @update:model-value="form.proveedorId = $event as number | null"
-                />
+
+              <!-- Campo proveedor (ocupa ambas columnas) -->
+              <div class="col-span-2 flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Proveedor *</label>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="openProveedorModal"
+                    class="flex-1 flex items-center justify-between px-4 h-12 text-sm text-left transition-all"
+                    :style="inputStyle(false)"
+                  >
+                    <span v-if="proveedorSeleccionado" class="font-medium truncate" style="color: var(--color-on-surface)">
+                      {{ proveedorSeleccionado.nombre }}
+                    </span>
+                    <span v-else style="color: var(--color-outline)">Seleccionar proveedor…</span>
+                    <span class="material-symbols-outlined flex-shrink-0 ml-2" style="font-size: 18px; color: var(--color-outline)">
+                      {{ proveedorSeleccionado ? 'swap_horiz' : 'search' }}
+                    </span>
+                  </button>
+                  <button
+                    v-if="proveedorSeleccionado"
+                    type="button"
+                    @click="clearProveedor"
+                    class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95"
+                    style="background-color: var(--color-surface-container-high); color: var(--color-outline)"
+                    title="Quitar proveedor"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 18px">close</span>
+                  </button>
+                </div>
+                <!-- Info del proveedor seleccionado -->
+                <div v-if="proveedorSeleccionado" class="flex items-center gap-3 text-xs" style="color: var(--color-on-surface-variant)">
+                  <span v-if="proveedorSeleccionado.ruc" class="font-mono">RUC: {{ proveedorSeleccionado.ruc }}</span>
+                  <span v-if="proveedorSeleccionado.ciudad">· {{ proveedorSeleccionado.ciudad }}</span>
+                </div>
               </div>
-              <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
+
+              <!-- Fecha de la orden -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de la orden</label>
+                <DateInput v-model="form.fechaOrden" placeholder="dd/mm/aaaa" />
+              </div>
+
+              <!-- Observaciones -->
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Observaciones</label>
                 <input v-model="form.observaciones" type="text" placeholder="Opcional"
                   class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
                   :style="inputStyle(false)" />
@@ -249,8 +331,7 @@ function inputStyle(hasError = false) {
               </button>
             </div>
 
-            <div v-if="items.length === 0" class="px-6 py-12 text-center"
-              style="color: var(--color-outline)">
+            <div v-if="items.length === 0" class="px-6 py-12 text-center" style="color: var(--color-outline)">
               <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--color-outline)">inventory_2</span>
               <p class="text-sm font-medium">Agregá al menos un producto a esta orden.</p>
             </div>
@@ -322,5 +403,108 @@ function inputStyle(hasError = false) {
         </template>
       </div>
     </main>
+
+    <!-- ── MODAL BUSCAR PROVEEDOR ─────────────────────────────────────────────── -->
+    <BaseModal :show="showProveedorModal" title="Buscar Proveedor" size="lg" @close="showProveedorModal = false">
+      <div class="space-y-5">
+
+        <!-- Filtros -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre</label>
+            <input
+              v-model="proveedorSearch.nombre"
+              type="text"
+              placeholder="Buscar por nombre…"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">RUC</label>
+            <input
+              v-model="proveedorSearch.ruc"
+              type="text"
+              placeholder="Ej: 80012345-6"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all font-mono"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Ciudad</label>
+            <input
+              v-model="proveedorSearch.ciudad"
+              type="text"
+              placeholder="Filtrar por ciudad…"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)"
+            />
+          </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="rounded-2xl overflow-hidden"
+             style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15); max-height: 320px; overflow-y: auto;">
+
+          <!-- Estado vacío -->
+          <div v-if="proveedoresResultados.length === 0"
+            class="py-10 text-center text-sm"
+            style="color: var(--color-outline)">
+            <template v-if="!proveedorSearch.nombre.trim() && !proveedorSearch.ruc.trim() && !proveedorSearch.ciudad.trim()">
+              <span class="material-symbols-outlined text-3xl mb-2 block" style="color: var(--color-outline)">manage_search</span>
+              Ingresá nombre, RUC o ciudad para buscar.
+            </template>
+            <template v-else>
+              <span class="material-symbols-outlined text-3xl mb-2 block" style="color: var(--color-outline)">search_off</span>
+              No se encontraron proveedores con esos criterios.
+            </template>
+          </div>
+
+          <!-- Lista -->
+          <button
+            v-for="p in proveedoresResultados"
+            :key="p.id"
+            type="button"
+            @click="selectProveedor(p)"
+            class="w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
+            :class="p.id === form.proveedorId ? 'bg-surface-container-low' : ''"
+            style="border-bottom: 1px solid rgba(196,197,213,0.1);"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                   style="background-color: rgba(0,40,142,0.06); color: var(--color-primary)">
+                <span class="material-symbols-outlined" style="font-size: 16px">local_shipping</span>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ p.nombre }}</p>
+                <p class="text-xs truncate" style="color: var(--color-on-surface-variant)">
+                  <span v-if="p.ruc" class="font-mono">{{ p.ruc }}</span>
+                  <span v-if="p.ruc && p.ciudad"> · </span>
+                  <span v-if="p.ciudad">{{ p.ciudad }}</span>
+                </p>
+              </div>
+            </div>
+            <span
+              v-if="p.id === form.proveedorId"
+              class="material-symbols-outlined flex-shrink-0 ml-3"
+              style="font-size: 18px; color: var(--color-primary)"
+            >check_circle</span>
+          </button>
+        </div>
+
+        <!-- Conteo -->
+        <p v-if="proveedoresResultados.length > 0" class="text-xs" style="color: var(--color-outline)">
+          {{ proveedoresResultados.length }}
+          proveedor{{ proveedoresResultados.length !== 1 ? "es" : "" }} encontrado{{ proveedoresResultados.length !== 1 ? "s" : "" }}
+        </p>
+
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <BaseButton variant="secondary" @click="showProveedorModal = false">Cerrar</BaseButton>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>

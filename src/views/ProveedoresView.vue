@@ -167,13 +167,13 @@ function addContacto() {
 }
 
 function removeContacto(i: number) {
-  contactoRows.value.splice(i, 1)
+  if (contactoRows.value.length > 1) contactoRows.value.splice(i, 1)
 }
 
 function openCreate() {
   editingProveedor.value = null
   Object.assign(form, emptyForm())
-  contactoRows.value = []
+  contactoRows.value = [emptyContacto()]
   modalError.value = ""
   showModal.value = true
 }
@@ -192,12 +192,14 @@ function openEdit(p: Proveedor) {
     whatsApp:   p.whatsApp ?? "",
     contactos:  [],
   })
-  contactoRows.value = p.contactos.map(c => ({
-    nombre:   c.nombre,
-    cargo:    c.cargo ?? "",
-    telefono: c.telefono ?? "",
-    email:    c.email ?? "",
-  }))
+  contactoRows.value = p.contactos.length > 0
+    ? p.contactos.map(c => ({
+        nombre:   c.nombre,
+        cargo:    c.cargo ?? "",
+        telefono: c.telefono ?? "",
+        email:    c.email ?? "",
+      }))
+    : [emptyContacto()]
   modalError.value = ""
   showModal.value = true
 }
@@ -216,6 +218,10 @@ async function submit() {
   if (!/^\d{1,8}-\d$/.test(form.ruc.trim())) { modalError.value = "RUC inválido. Formato: 80012345-6"; return }
 
   const contactosValidos = contactoRows.value.filter(c => c.nombre.trim())
+  if (contactosValidos.length === 0) {
+    modalError.value = "Debe registrar al menos un contacto con nombre."
+    return
+  }
   const payload: CreateProveedorRequest = {
     nombre:     form.nombre!.trim(),
     razonSocial: (form.razonSocial as string)?.trim() || undefined,
@@ -568,7 +574,8 @@ async function confirmDeactivate() {
               <button
                 type="button"
                 @click="removeContacto(i)"
-                class="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                :disabled="contactoRows.length === 1"
+                class="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                 style="background-color: var(--color-error-container)"
                 title="Quitar contacto"
               >
@@ -578,9 +585,6 @@ async function confirmDeactivate() {
           </div>
         </div>
 
-        <p v-else class="text-sm text-center py-3" style="color: var(--color-outline)">
-          Sin contactos. Hacé clic en "Agregar contacto" para cargar personas de contacto.
-        </p>
 
       </div>
 

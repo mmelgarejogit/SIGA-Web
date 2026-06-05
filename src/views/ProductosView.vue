@@ -84,12 +84,25 @@ function modeloSelectOptions(marcaId: number | null) {
 }
 
 const columns = [
-  { key: "nombre", label: "Producto" },
+  { key: "nombre",   label: "Producto" },
   { key: "categoria", label: "Categoría" },
-  { key: "sku", label: "SKU" },
-  { key: "estado", label: "Estado" },
+  { key: "sku",      label: "SKU" },
+  { key: "estado",   label: "Estado" },
   { key: "acciones", label: "" },
 ]
+
+function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+}
+
+function statusStyle(isActive: boolean) {
+  return isActive
+    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+    : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
+}
 
 async function loadProductos() {
   isLoading.value = true
@@ -180,7 +193,7 @@ async function submitCreate() {
     await createProducto({
       nombre: createForm.nombre, categoria: createForm.categoria,
       sku: createForm.sku?.trim() || undefined,
-      precioCosto: 0, precioVenta: 0, stockActual: 0, stockMinimo: 0,
+      precioCosto: 0, precioVenta: 0, stockMinimo: 0,
       marcaId: createForm.marcaId,
       modeloId: createForm.modeloId,
       color: createForm.color?.trim() || undefined,
@@ -240,7 +253,7 @@ async function submitEdit() {
     await updateProducto(p.id, {
       nombre: editForm.nombre, categoria: editForm.categoria,
       sku: editForm.sku?.trim() || undefined,
-      precioCosto: p.precioCosto, precioVenta: p.precioVenta, stockMinimo: p.stockMinimo,
+      precioCosto: p.precioCosto, precioVenta: p.precioVenta,
       isActive: editForm.isActive,
       marcaId: editForm.marcaId,
       modeloId: editForm.modeloId,
@@ -320,6 +333,42 @@ async function confirmDeactivate() {
   }
 }
 
+// ── Modal Activar ──────────────────────────────────────────────────────────────
+
+const showActivateModal = ref(false)
+const productoToActivate = ref<Producto | null>(null)
+const isActivating = ref(false)
+const activateError = ref("")
+
+function openActivate(p: Producto) {
+  productoToActivate.value = p
+  activateError.value = ""
+  showActivateModal.value = true
+}
+
+async function confirmActivate() {
+  if (!productoToActivate.value) return
+  isActivating.value = true
+  activateError.value = ""
+  try {
+    const p = productoToActivate.value
+    await updateProducto(p.id, {
+      nombre: p.nombre, categoria: p.categoria,
+      sku: p.sku ?? undefined,
+      precioCosto: p.precioCosto, precioVenta: p.precioVenta,
+      isActive: true,
+      marcaId: p.marcaId, modeloId: p.modeloId,
+      color: p.color ?? undefined, talle: p.talle ?? undefined, descripcion: p.descripcion ?? undefined,
+    })
+    showActivateModal.value = false
+    await loadProductos()
+  } catch (err: unknown) {
+    activateError.value = err instanceof Error ? err.message : "Error al activar producto."
+  } finally {
+    isActivating.value = false
+  }
+}
+
 // ── Panel Detalle ─────────────────────────────────────────────────────────────
 
 const showDetail = ref(false)
@@ -394,7 +443,13 @@ function menuItems(p: Producto): ContextMenuItem[] {
     ...(canManage.value && p.isActive
       ? [
           { type: "separator" as const },
-          { type: "item" as const, label: "Desactivar", icon: "delete", action: () => openDeactivate(p), danger: true },
+          { type: "item" as const, label: "Desactivar", icon: "block", action: () => openDeactivate(p), danger: true },
+        ]
+      : []),
+    ...(canManage.value && !p.isActive
+      ? [
+          { type: "separator" as const },
+          { type: "item" as const, label: "Activar", icon: "check_circle", action: () => openActivate(p) },
         ]
       : []),
   ]
@@ -423,7 +478,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
               :model-value="categoriaFilter"
@@ -455,7 +510,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <!-- Error -->
         <div
           v-if="loadError"
-          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
+          class="flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
           style="background-color: var(--color-error-container); color: var(--color-on-error-container)"
         >
           <span class="material-symbols-outlined" style="font-size: 18px">error</span>
@@ -493,11 +548,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
             <template #estado="{ item }">
               <span
-                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="item.isActive
-                  ? 'background-color: #dcfce7; color: #166534'
-                  : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
-              >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                :style="`background-color: ${statusStyle(item.isActive).bg}; color: ${statusStyle(item.isActive).text};`"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(item.isActive).dot};`"></span>
+                {{ item.isActive ? "Activo" : "Inactivo" }}
+              </span>
             </template>
 
             <template #acciones="{ item }">
@@ -590,10 +646,11 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
             <!-- Estado + badges -->
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="detailProducto.isActive
-                  ? 'background-color:#dcfce7;color:#166534'
-                  : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                :style="`background-color: ${statusStyle(detailProducto.isActive).bg}; color: ${statusStyle(detailProducto.isActive).text};`"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(detailProducto.isActive).dot};`"></span>
                 {{ detailProducto.isActive ? "Activo" : "Inactivo" }}
               </span>
               <span v-if="detailProducto.descuentoCategoria > 0"
@@ -650,22 +707,23 @@ function menuItems(p: Producto): ContextMenuItem[] {
     <BaseModal :show="showCreateModal" title="Nuevo Producto" size="lg" @close="showCreateModal = false">
       <div
         v-if="createError"
-        class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)"
       >
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ createError }}
       </div>
 
-      <form @submit.prevent="submitCreate" class="space-y-4">
+      <form @submit.prevent="submitCreate" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-            <input v-model="createForm.nombre" type="text" required class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
+            <input v-model="createForm.nombre" type="text" required
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Categoría *</label>
             <SearchableSelect
               :model-value="createForm.categoria || null"
               :options="categoriaOptions"
@@ -675,16 +733,16 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">SKU / Código</label>
-          <input v-model="createForm.sku" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)"
-            placeholder="Opcional" />
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">SKU / Código</label>
+          <input v-model="createForm.sku" type="text" placeholder="Opcional"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca</label>
             <SearchableSelect
               :model-value="createForm.marcaId"
               :options="marcaSelectOptions"
@@ -692,8 +750,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
               @update:model-value="createForm.marcaId = $event as number | null; onCreateMarcaChange()"
             />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Modelo</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Modelo</label>
             <SearchableSelect
               :model-value="createForm.modeloId"
               :options="modeloSelectOptions(createForm.marcaId)"
@@ -705,27 +763,26 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Color</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Color</label>
             <input v-model="createForm.color" type="text" placeholder="Opcional"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Talle</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Talle</label>
             <input v-model="createForm.talle" type="text" placeholder="Ej: 58-14-135"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
           <textarea v-model="createForm.descripcion" rows="2" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none transition-all"
+            :style="inputStyle(false)" />
         </div>
-
       </form>
 
       <template #footer>
@@ -740,18 +797,18 @@ function menuItems(p: Producto): ContextMenuItem[] {
     <BaseModal :show="showEditModal" title="Editar Producto" size="lg" @close="showEditModal = false">
       <div
         v-if="editError"
-        class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)"
       >
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ editError }}
       </div>
 
-      <form @submit.prevent="submitEdit" class="space-y-4">
+      <form @submit.prevent="submitEdit" class="space-y-5">
 
         <!-- Imagen del producto -->
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Imagen</label>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Imagen</label>
           <div class="flex items-center gap-4">
             <div class="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
               style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)">
@@ -782,13 +839,14 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-            <input v-model="editForm.nombre" type="text" required class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
+            <input v-model="editForm.nombre" type="text" required
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Categoría *</label>
             <SearchableSelect
               :model-value="editForm.categoria || null"
               :options="categoriaOptions"
@@ -798,16 +856,16 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">SKU / Código</label>
-          <input v-model="editForm.sku" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)"
-            placeholder="Opcional" />
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">SKU / Código</label>
+          <input v-model="editForm.sku" type="text" placeholder="Opcional"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca</label>
             <SearchableSelect
               :model-value="editForm.marcaId"
               :options="marcaSelectOptions"
@@ -815,8 +873,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
               @update:model-value="editForm.marcaId = $event as number | null; onEditMarcaChange()"
             />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Modelo</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Modelo</label>
             <SearchableSelect
               :model-value="editForm.modeloId"
               :options="modeloSelectOptions(editForm.marcaId)"
@@ -828,32 +886,37 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Color</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Color</label>
             <input v-model="editForm.color" type="text" placeholder="Opcional"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Talle</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Talle</label>
             <input v-model="editForm.talle" type="text" placeholder="Ej: 58-14-135"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+              :style="inputStyle(false)" />
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
           <textarea v-model="editForm.descripcion" rows="2" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
-        <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
-          <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />
-          <label for="editIsActive" class="text-sm font-medium cursor-pointer" style="color: var(--color-on-surface)">
-            Producto activo
-          </label>
+        <div class="flex items-center justify-between px-4 py-3"
+             style="border-radius: 12px; background-color: var(--color-surface-container-low)">
+          <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">Estado</span>
+          <span
+            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider"
+            :style="`border-radius: 6px; background-color: ${statusStyle(editForm.isActive).bg}; color: ${statusStyle(editForm.isActive).text};`"
+          >
+            <span class="w-1.5 h-1.5" :style="`border-radius: 2px; background-color: ${statusStyle(editForm.isActive).dot};`"></span>
+            {{ editForm.isActive ? "Activo" : "Inactivo" }}
+          </span>
         </div>
       </form>
 
@@ -874,16 +937,16 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
       <div
         v-if="movError"
-        class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)"
       >
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ movError }}
       </div>
 
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Tipo</label>
+      <div class="space-y-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo</label>
           <div class="flex gap-2">
             <button
               v-for="tipo in ['Entrada', 'Salida', 'Ajuste']"
@@ -897,19 +960,20 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
             {{ movForm.tipo === "Ajuste" ? "Nuevo stock total" : "Cantidad" }}
           </label>
-          <input v-model.number="movForm.cantidad" type="number" min="1" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+          <input v-model.number="movForm.cantidad" type="number" min="1"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Motivo</label>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Motivo</label>
           <input v-model="movForm.motivo" type="text" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface)" />
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
       </div>
 
@@ -922,23 +986,50 @@ function menuItems(p: Producto): ContextMenuItem[] {
     </BaseModal>
 
     <!-- MODAL DESACTIVAR -->
-    <BaseModal :show="showDeactivateModal" size="sm" @close="showDeactivateModal = false">
+    <BaseModal :show="showDeactivateModal" title="Desactivar Producto" size="sm" @close="showDeactivateModal = false">
+      <div v-if="deactivateError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
+        {{ deactivateError }}
+      </div>
       <div class="text-center">
-        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
           style="background-color: var(--color-error-container)">
-          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 28px">delete</span>
+          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 28px">block</span>
         </div>
-        <h3 class="text-lg font-extrabold mb-2" style="color: var(--color-on-surface)">Desactivar Producto</h3>
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           ¿Desactivar <strong style="color: var(--color-on-surface)">{{ productoToDeactivate?.nombre }}</strong>?
           El producto quedará oculto pero sus datos se conservarán.
         </p>
-        <p v-if="deactivateError" class="mt-3 text-sm font-medium" style="color: var(--color-error)">{{ deactivateError }}</p>
       </div>
       <template #footer>
         <BaseButton variant="secondary" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
         <BaseButton variant="danger" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- MODAL ACTIVAR -->
+    <BaseModal :show="showActivateModal" title="Activar Producto" size="sm" @close="showActivateModal = false">
+      <div v-if="activateError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
+        {{ activateError }}
+      </div>
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+             style="background-color: #dcfce7">
+          <span class="material-symbols-outlined" style="color: #166534; font-size: 28px">check_circle</span>
+        </div>
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          ¿Activar <strong style="color: var(--color-on-surface)">{{ productoToActivate?.nombre }}</strong>?
+        </p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" class="flex-1" @click="showActivateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" class="flex-1" :disabled="isActivating" @click="confirmActivate">
+          {{ isActivating ? "Activando…" : "Activar" }}
         </BaseButton>
       </template>
     </BaseModal>

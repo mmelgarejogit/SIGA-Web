@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
   getProductos,
-  updateStockInfo,
+  updateStockConfig,
 } from "@/services/inventarioService"
 
 const router = useRouter()
@@ -146,7 +146,7 @@ async function submitNiveles() {
   isNivelesSaving.value = true
   nivelesError.value = ""
   try {
-    const updated = await updateStockInfo(editingProducto.value.id, {
+    const updated = await updateStockConfig(editingProducto.value.id, {
       precioCosto: editingProducto.value.precioCosto,
       stockMinimo: nivelesForm.value.stockMinimo,
       stockMaximo: nivelesForm.value.stockMaximo,

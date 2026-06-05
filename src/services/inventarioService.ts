@@ -46,7 +46,7 @@ export interface MovimientoStock {
   id: number
   productoId: number
   productoNombre: string
-  tipo: "Entrada" | "Salida"
+  tipo: "Entrada" | "Salida" | "Ajuste"
   cantidad: number
   motivo: string | null
   motivoMovimientoId: number | null
@@ -127,7 +127,6 @@ export interface CreateProductoRequest {
   sku?: string
   precioCosto: number
   precioVenta: number
-  stockActual: number
   stockMinimo: number
   marcaId?: number | null
   modeloId?: number | null
@@ -142,7 +141,6 @@ export interface UpdateProductoRequest {
   sku?: string
   precioCosto: number
   precioVenta: number
-  stockMinimo: number
   isActive: boolean
   marcaId?: number | null
   modeloId?: number | null
@@ -259,8 +257,8 @@ export async function deactivateProducto(id: number): Promise<void> {
   await http.delete(`/api/productos/${id}`)
 }
 
-export async function updateStockInfo(id: number, request: UpdateStockInfoRequest): Promise<Producto> {
-  const { data } = await http.put<Producto>(`/api/productos/${id}/stock`, request)
+export async function updateStockConfig(id: number, request: UpdateStockConfigRequest): Promise<Producto> {
+  const { data } = await http.put<Producto>(`/api/productos/${id}/stock-config`, request)
   return data
 }
 
@@ -401,7 +399,7 @@ export interface UpdateCategoriaProductoRequest {
   isActive: boolean
 }
 
-export interface UpdateStockInfoRequest {
+export interface UpdateStockConfigRequest {
   precioCosto: number
   stockMinimo: number
   stockMaximo?: number | null

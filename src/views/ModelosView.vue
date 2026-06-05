@@ -6,6 +6,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import SearchInput from "@/components/SearchInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
@@ -32,6 +33,7 @@ const isLoading = ref(false)
 const loadError = ref("")
 const marcaFilter = ref<string[]>([])
 const estadoFilter = ref<string[]>([])
+const searchQuery = ref("")
 
 const marcaOptions = computed(() =>
   marcas.value.filter(m => m.isActive).map(m => ({ value: String(m.id), label: m.nombre }))
@@ -72,13 +74,20 @@ const visiblePages = computed(() => {
 })
 
 const estadoOptions = [
-  { value: "activo",   label: "Activos",   dot: "#166534" },
+  { value: "activo",   label: "Activos",   dot: "#16a34a" },
   { value: "inactivo", label: "Inactivos", dot: "var(--color-outline)" },
 ]
 
 const modelosFiltrados = computed(() => {
   currentPage.value = 1
   let result = modelos.value
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter((m) =>
+      m.nombre.toLowerCase().includes(q) || m.marcaNombre?.toLowerCase().includes(q)
+    )
+  }
 
   if (marcaFilter.value.length > 0) {
     const ids = marcaFilter.value.map(Number)
@@ -101,6 +110,19 @@ const columns = [
   { key: "estado",   label: "Estado" },
   { key: "acciones", label: "", align: "right" as const },
 ]
+
+function inputStyle(hasError: boolean) {
+  const base = "border-radius: 12px; "
+  return hasError
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+}
+
+function statusStyle(isActive: boolean) {
+  return isActive
+    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+    : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
+}
 
 async function load() {
   isLoading.value = true
@@ -129,7 +151,13 @@ function menuItems(m: Modelo): ContextMenuItem[] {
     ...(canManage && m.isActive
       ? [
           { type: "separator" as const },
-          { type: "item" as const, label: "Desactivar", icon: "delete", action: () => openDeactivate(m), danger: true },
+          { type: "item" as const, label: "Desactivar", icon: "block", action: () => openDeactivate(m), danger: true },
+        ]
+      : []),
+    ...(canManage && !m.isActive
+      ? [
+          { type: "separator" as const },
+          { type: "item" as const, label: "Activar", icon: "check_circle", action: () => openActivate(m) },
         ]
       : []),
   ]
@@ -226,6 +254,35 @@ async function confirmDeactivate() {
     isDeactivating.value = false
   }
 }
+
+// ── Modal Activar ──────────────────────────────────────────────────────────────
+
+const showActivateModal = ref(false)
+const isActivating = ref(false)
+const activateError = ref("")
+const activatingModelo = ref<Modelo | null>(null)
+
+function openActivate(m: Modelo) {
+  activatingModelo.value = m
+  activateError.value = ""
+  showActivateModal.value = true
+}
+
+async function confirmActivate() {
+  if (!activatingModelo.value) return
+  isActivating.value = true
+  activateError.value = ""
+  try {
+    const m = activatingModelo.value
+    await updateModelo(m.id, { nombre: m.nombre, marcaId: m.marcaId, isActive: true })
+    showActivateModal.value = false
+    await load()
+  } catch (err: unknown) {
+    activateError.value = err instanceof Error ? err.message : "Error al activar modelo."
+  } finally {
+    isActivating.value = false
+  }
+}
 </script>
 
 <template>
@@ -239,35 +296,38 @@ async function confirmDeactivate() {
         <!-- Header -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Modelos</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Modelos</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ modelos.filter(m => m.isActive).length }} modelo{{ modelos.filter(m => m.isActive).length !== 1 ? "s" : "" }} activo{{ modelos.filter(m => m.isActive).length !== 1 ? "s" : "" }}
             </p>
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="openCreate">
-            <span class="material-symbols-outlined" style="font-size: 20px">add</span>
+            <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
             Nuevo Modelo
           </BaseButton>
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
-          <FilterChips
-            :model-value="marcaFilter"
-            :options="marcaOptions"
-            placeholder="Marca"
-            @update:model-value="marcaFilter = $event"
-          />
-          <FilterChips
-            :model-value="estadoFilter"
-            :options="estadoOptions"
-            placeholder="Estado"
-            @update:model-value="estadoFilter = $event"
-          />
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div class="flex items-center gap-3 flex-wrap">
+            <FilterChips
+              :model-value="marcaFilter"
+              :options="marcaOptions"
+              placeholder="Marca"
+              @update:model-value="marcaFilter = $event"
+            />
+            <FilterChips
+              :model-value="estadoFilter"
+              :options="estadoOptions"
+              placeholder="Estado"
+              @update:model-value="estadoFilter = $event"
+            />
+          </div>
+          <SearchInput v-model="searchQuery" placeholder="Buscar por nombre o marca..." />
         </div>
 
         <!-- Error -->
-        <div v-if="loadError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
+        <div v-if="loadError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
           style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
           <span class="material-symbols-outlined" style="font-size: 18px">error</span>
           {{ loadError }}
@@ -275,38 +335,39 @@ async function confirmDeactivate() {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
-        <BaseTable :columns="columns" :items="modelosPaginados" :loading="isLoading"
-          empty-text="No hay modelos registrados.">
+          <BaseTable :columns="columns" :items="modelosPaginados" :loading="isLoading"
+            empty-text="No hay modelos registrados.">
 
-          <template #nombre="{ item }">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style="background-color: var(--color-surface-container-low)">
-                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">style</span>
+            <template #nombre="{ item }">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style="background-color: var(--color-surface-container-low)">
+                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">style</span>
+                </div>
+                <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
               </div>
-              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
-            </div>
-          </template>
+            </template>
 
-          <template #marca="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.marcaNombre }}</span>
-          </template>
+            <template #marca="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.marcaNombre }}</span>
+            </template>
 
-          <template #estado="{ item }">
-            <span
-              class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="item.isActive
-                ? 'background-color: #dcfce7; color: #166534'
-                : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
-            >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
-          </template>
+            <template #estado="{ item }">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                :style="`background-color: ${statusStyle(item.isActive).bg}; color: ${statusStyle(item.isActive).text};`"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(item.isActive).dot};`"></span>
+                {{ item.isActive ? "Activo" : "Inactivo" }}
+              </span>
+            </template>
 
-          <template #acciones="{ item }">
-            <div class="flex justify-end">
-              <RowContextMenu :items="menuItems(item)" />
-            </div>
-          </template>
-        </BaseTable>
+            <template #acciones="{ item }">
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(item)" />
+              </div>
+            </template>
+          </BaseTable>
 
           <!-- Footer: conteo + paginador -->
           <div
@@ -352,14 +413,14 @@ async function confirmDeactivate() {
 
     <!-- ── MODAL CREAR ───────────────────────────────────────────────────────── -->
     <BaseModal :show="showCreateModal" title="Nuevo Modelo" size="lg" @close="showCreateModal = false">
-      <div v-if="createError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="createError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ createError }}
       </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca *</label>
+      <div class="space-y-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca *</label>
           <SearchableSelect
             :model-value="createForm.marcaId || null"
             :options="marcaSelectOptions"
@@ -367,10 +428,10 @@ async function confirmDeactivate() {
             @update:model-value="createForm.marcaId = ($event as number) || 0"
           />
         </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="createForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
+          <input v-model="createForm.nombre" type="text" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
       </div>
       <template #footer>
@@ -383,14 +444,14 @@ async function confirmDeactivate() {
 
     <!-- ── MODAL EDITAR ──────────────────────────────────────────────────────── -->
     <BaseModal :show="showEditModal" title="Editar Modelo" size="lg" @close="showEditModal = false">
-      <div v-if="editError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="editError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ editError }}
       </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Marca *</label>
+      <div class="space-y-5">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca *</label>
           <SearchableSelect
             :model-value="editForm.marcaId || null"
             :options="marcaSelectOptions"
@@ -398,16 +459,21 @@ async function confirmDeactivate() {
             @update:model-value="editForm.marcaId = ($event as number) || 0"
           />
         </div>
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
+          <input v-model="editForm.nombre" type="text" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
-        <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
-          <input v-model="editForm.isActive" type="checkbox" id="editModeloIsActive" class="w-4 h-4 rounded" />
-          <label for="editModeloIsActive" class="text-sm font-medium cursor-pointer" style="color: var(--color-on-surface)">
-            Modelo activo
-          </label>
+        <div class="flex items-center justify-between px-4 py-3"
+             style="border-radius: 12px; background-color: var(--color-surface-container-low)">
+          <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">Estado</span>
+          <span
+            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider"
+            :style="`border-radius: 6px; background-color: ${statusStyle(editForm.isActive).bg}; color: ${statusStyle(editForm.isActive).text};`"
+          >
+            <span class="w-1.5 h-1.5" :style="`border-radius: 2px; background-color: ${statusStyle(editForm.isActive).dot};`"></span>
+            {{ editForm.isActive ? "Activo" : "Inactivo" }}
+          </span>
         </div>
       </div>
       <template #footer>
@@ -420,20 +486,52 @@ async function confirmDeactivate() {
 
     <!-- ── MODAL DESACTIVAR ──────────────────────────────────────────────────── -->
     <BaseModal :show="showDeactivateModal" title="Desactivar Modelo" size="sm" @close="showDeactivateModal = false">
-      <div v-if="deactivateError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+      <div v-if="deactivateError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
         style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
         {{ deactivateError }}
       </div>
-      <p class="text-sm" style="color: var(--color-on-surface-variant)">
-        ¿Desactivar el modelo
-        <span class="font-semibold" style="color: var(--color-on-surface)">{{ deactivatingModelo?.nombre }}</span>
-        de <span class="font-semibold" style="color: var(--color-on-surface)">{{ deactivatingModelo?.marcaNombre }}</span>?
-      </p>
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+             style="background-color: var(--color-error-container)">
+          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 28px">block</span>
+        </div>
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          ¿Desactivar el modelo
+          <strong style="color: var(--color-on-surface)">{{ deactivatingModelo?.nombre }}</strong>
+          de <strong style="color: var(--color-on-surface)">{{ deactivatingModelo?.marcaNombre }}</strong>?
+        </p>
+      </div>
       <template #footer>
-        <BaseButton variant="secondary" size="default" @click="showDeactivateModal = false">Cancelar</BaseButton>
-        <BaseButton variant="danger" size="default" :disabled="isDeactivating" @click="confirmDeactivate">
+        <BaseButton variant="secondary" size="default" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" size="default" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── MODAL ACTIVAR ─────────────────────────────────────────────────────── -->
+    <BaseModal :show="showActivateModal" title="Activar Modelo" size="sm" @close="showActivateModal = false">
+      <div v-if="activateError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
+        {{ activateError }}
+      </div>
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+             style="background-color: #dcfce7">
+          <span class="material-symbols-outlined" style="color: #166534; font-size: 28px">check_circle</span>
+        </div>
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          ¿Activar el modelo
+          <strong style="color: var(--color-on-surface)">{{ activatingModelo?.nombre }}</strong>
+          de <strong style="color: var(--color-on-surface)">{{ activatingModelo?.marcaNombre }}</strong>?
+        </p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" size="default" class="flex-1" @click="showActivateModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="default" class="flex-1" :disabled="isActivating" @click="confirmActivate">
+          {{ isActivating ? "Activando…" : "Activar" }}
         </BaseButton>
       </template>
     </BaseModal>

@@ -71,6 +71,7 @@ export interface PedidoCompras {
   proveedorNombre: string
   estado: EstadoPedido
   observaciones: string | null
+  fechaOrden: string | null
   createdAt: string
   updatedAt: string
   items: PedidoItemCompras[]
@@ -90,6 +91,7 @@ export interface ItemPedidoRequest {
 export interface CrearPedidoRequest {
   proveedorId: number
   observaciones?: string
+  fechaOrden?: string
   items: ItemPedidoRequest[]
 }
 
