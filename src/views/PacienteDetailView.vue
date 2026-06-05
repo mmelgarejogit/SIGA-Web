@@ -9,9 +9,7 @@ import { useAuthStore } from "@/stores/auth"
 
 import {
   type Patient,
-  type UpsertDatosFacturacionRequest,
   getPatientById,
-  upsertDatosFacturacion,
   deletePatient,
 } from "@/services/patientService"
 import PacienteEditModal from "@/components/PacienteEditModal.vue"
@@ -268,54 +266,6 @@ function inputStyle(hasError: boolean) {
   return hasError
     ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
-
-// ── Modal Facturación ─────────────────────────────────────────────────────────
-
-const showFacturacionModal = ref(false)
-const facturacionForm = ref<UpsertDatosFacturacionRequest>({
-  rucCiFiscal: "",
-  razonSocial: "",
-  direccion:   "",
-  email:       "",
-  telefono:    "",
-})
-const facturacionError = ref("")
-const isSavingFacturacion = ref(false)
-
-function openFacturacionModal() {
-  if (!patient.value) return
-  const df = patient.value.datosFacturacion
-  facturacionForm.value = {
-    rucCiFiscal: df?.rucCiFiscal ?? "",
-    razonSocial: df?.razonSocial ?? "",
-    direccion:   df?.direccion   ?? "",
-    email:       df?.email       ?? "",
-    telefono:    df?.telefono    ?? "",
-  }
-  facturacionError.value = ""
-  showFacturacionModal.value = true
-}
-
-async function submitFacturacion() {
-  if (isSavingFacturacion.value) return
-  facturacionError.value = ""
-  isSavingFacturacion.value = true
-  try {
-    const updated = await upsertDatosFacturacion(patientId.value, {
-      rucCiFiscal: facturacionForm.value.rucCiFiscal || undefined,
-      razonSocial: facturacionForm.value.razonSocial || undefined,
-      direccion:   facturacionForm.value.direccion   || undefined,
-      email:       facturacionForm.value.email       || undefined,
-      telefono:    facturacionForm.value.telefono    || undefined,
-    })
-    patient.value = updated
-    showFacturacionModal.value = false
-  } catch (err: unknown) {
-    facturacionError.value = err instanceof Error ? err.message : "Error al guardar datos de facturación."
-  } finally {
-    isSavingFacturacion.value = false
-  }
 }
 
 // ── Modal Desactivar ──────────────────────────────────────────────────────────
@@ -715,90 +665,6 @@ async function confirmDelete() {
               </dl>
             </div>
 
-          <!-- ── Card: Facturación ─────────────────────────────────────────── -->
-          <div
-            v-if="auth.hasPermission('editar_paciente')"
-            class="rounded-2xl p-6 md:col-span-3"
-            style="
-              background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
-            "
-          >
-            <div class="flex items-center justify-between mb-5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="material-symbols-outlined"
-                  style="color: var(--color-primary); font-size: 20px"
-                  >receipt_long</span
-                >
-                <h2
-                  class="text-xs font-bold uppercase tracking-widest"
-                  style="color: var(--color-outline)"
-                >
-                  Datos de Facturación
-                </h2>
-              </div>
-              <button
-                class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
-                style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant);"
-                @click="openFacturacionModal"
-              >
-                <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
-                Editar
-              </button>
-            </div>
-
-            <div v-if="patient.datosFacturacion" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
-                  RUC / CI Fiscal
-                </dt>
-                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
-                  <span v-if="patient.datosFacturacion.rucCiFiscal">{{ patient.datosFacturacion.rucCiFiscal }}</span>
-                  <span v-else style="color: var(--color-outline-variant)">—</span>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
-                  Razón Social
-                </dt>
-                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
-                  <span v-if="patient.datosFacturacion.razonSocial">{{ patient.datosFacturacion.razonSocial }}</span>
-                  <span v-else style="color: var(--color-outline-variant)">—</span>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
-                  Dirección
-                </dt>
-                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
-                  <span v-if="patient.datosFacturacion.direccion">{{ patient.datosFacturacion.direccion }}</span>
-                  <span v-else style="color: var(--color-outline-variant)">—</span>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">
-                  Contacto fiscal
-                </dt>
-                <dd class="text-sm font-bold" style="color: var(--color-on-surface)">
-                  <span v-if="patient.datosFacturacion.email || patient.datosFacturacion.telefono">
-                    <span v-if="patient.datosFacturacion.email" class="block">{{ patient.datosFacturacion.email }}</span>
-                    <span v-if="patient.datosFacturacion.telefono" class="block">{{ patient.datosFacturacion.telefono }}</span>
-                  </span>
-                  <span v-else style="color: var(--color-outline-variant)">—</span>
-                </dd>
-              </div>
-            </div>
-
-            <div v-else class="flex items-center gap-3 py-2">
-              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-outline-variant)">info</span>
-              <p class="text-sm" style="color: var(--color-outline)">
-                No se han cargado datos de facturación para este paciente.
-                <button class="font-bold underline ml-1" style="color: var(--color-primary)" @click="openFacturacionModal">Agregar</button>
-              </p>
-            </div>
-          </div>
           </div><!-- fin grid tab Información -->
 
           <!-- ── Tab: Citas y Turnos ─────────────────────────────────────────── -->
@@ -1084,92 +950,6 @@ async function confirmDelete() {
       @close="showEditModal = false"
       @saved="p => { patient = p }"
     />
-
-    <!-- MODAL: DATOS DE FACTURACIÓN -->
-    <BaseModal
-      :show="showFacturacionModal"
-      title="Datos de Facturación"
-      size="lg"
-      @close="showFacturacionModal = false"
-    >
-      <form @submit.prevent="submitFacturacion" class="space-y-5">
-        <div
-          v-if="facturacionError"
-          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-          style="background-color: var(--color-error-container); color: var(--color-on-error-container);"
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
-          {{ facturacionError }}
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">RUC / CI Fiscal</label>
-            <input
-              v-model="facturacionForm.rucCiFiscal"
-              type="text"
-              placeholder="80012345-6"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(false)"
-            />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Razón Social</label>
-            <input
-              v-model="facturacionForm.razonSocial"
-              type="text"
-              placeholder="Juan Pérez o Empresa S.A."
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(false)"
-            />
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Dirección de Facturación</label>
-          <input
-            v-model="facturacionForm.direccion"
-            type="text"
-            placeholder="Av. Mariscal López 1234, Asunción"
-            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)"
-          />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email de Facturación</label>
-            <input
-              v-model="facturacionForm.email"
-              type="email"
-              placeholder="facturacion@empresa.com"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(false)"
-            />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono de Facturación</label>
-            <input
-              v-model="facturacionForm.telefono"
-              type="tel"
-              placeholder="0981234567"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(false)"
-            />
-          </div>
-        </div>
-      </form>
-
-      <template #footer>
-        <div class="flex justify-between w-full">
-          <BaseButton variant="secondary" @click="showFacturacionModal = false">Cancelar</BaseButton>
-          <BaseButton variant="primary" :disabled="isSavingFacturacion" @click="submitFacturacion">
-            <span v-if="isSavingFacturacion" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
-            {{ isSavingFacturacion ? "Guardando..." : "Guardar Datos" }}
-          </BaseButton>
-        </div>
-      </template>
-    </BaseModal>
 
     <!-- MODAL: CONFIRMAR DESACTIVACIÓN -->
     <BaseModal :show="showDeleteModal" size="sm" @close="showDeleteModal = false">
