@@ -152,6 +152,12 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_inventario",
     children: [
       {
+        label: "Proveedores",
+        icon: "storefront",
+        route: "/inventario/proveedores",
+        permission: "ver_inventario",
+      },
+      {
         label: "Órdenes de Compra",
         icon: "shopping_cart",
         route: "/compras/oc",
@@ -160,7 +166,7 @@ export const menuConfig: MenuItem[] = [
       {
         label: "Aprobación de OC",
         icon: "task_alt",
-        route: "/compras/oc/aprobacion",
+        route: "/compras/aprobaciones",
         permission: "aprobar_pedidos",
       },
       {
@@ -173,12 +179,6 @@ export const menuConfig: MenuItem[] = [
         label: "Recepciones",
         icon: "inventory",
         route: "/compras/recepciones",
-        permission: "ver_inventario",
-      },
-      {
-        label: "Proveedores",
-        icon: "storefront",
-        route: "/inventario/proveedores",
         permission: "ver_inventario",
       },
       {
@@ -365,6 +365,12 @@ export const menuConfig: MenuItem[] = [
         label: "Configuración",
         icon: "settings",
         route: "/admin/config",
+        permission: "gestionar_configuracion",
+      },
+      {
+        label: "Ubicaciones",
+        icon: "map",
+        route: "/admin/ubicaciones",
         permission: "gestionar_configuracion",
       },
       {

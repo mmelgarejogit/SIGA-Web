@@ -105,11 +105,6 @@ function estadoOCLabel(estado: EstadoPedido) {
                   <span class="material-symbols-outlined" style="font-size: 18px">receipt_long</span>
                   Ver Factura
                 </BaseButton>
-                <BaseButton variant="secondary" size="lg"
-                  @click="router.push(`/compras/oc/${recepcion.pedidoProveedorId}`)">
-                  <span class="material-symbols-outlined" style="font-size: 18px">open_in_new</span>
-                  Ver OC #{{ recepcion.pedidoProveedorId }}
-                </BaseButton>
               </div>
             </div>
           </div>

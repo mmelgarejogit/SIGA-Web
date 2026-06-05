@@ -149,11 +149,6 @@ async function confirmarAnulacion() {
               </div>
 
               <div class="flex items-center gap-2">
-                <BaseButton v-if="factura.pedidoProveedorId" variant="secondary" size="lg"
-                  @click="router.push(`/compras/oc/${factura.pedidoProveedorId}`)">
-                  <span class="material-symbols-outlined" style="font-size: 18px">open_in_new</span>
-                  Ver OC #{{ factura.pedidoProveedorId }}
-                </BaseButton>
                 <BaseButton v-if="canGestionar && factura.estado !== 'Anulado'" variant="danger" size="lg"
                   @click="openAnularModal">
                   <span class="material-symbols-outlined" style="font-size: 18px">block</span>

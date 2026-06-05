@@ -12,9 +12,7 @@ import {
   type PedidoItemCompras,
   type EstadoPedido,
   getComprasPedidoById,
-  confirmarPedido,
   registrarDevolucion,
-  cancelarPedido,
 } from "@/services/comprasService"
 import { useOcPdf } from "@/composables/useOcPdf"
 
@@ -26,6 +24,14 @@ const canManage = computed(() => auth.hasPermission("gestionar_pedidos"))
 const { generarPdfOC } = useOcPdf()
 
 const ocId = Number(route.params.id)
+const backRoutes: Record<string, { to: string; label: string }> = {
+  aprobacion:  { to: "/compras/aprobaciones", label: "Aprobación de OC" },
+  facturas:    { to: "/compras/facturas",      label: "Facturas de Compra" },
+  recepciones: { to: "/compras/recepciones",   label: "Recepciones" },
+}
+const backKey = String(route.query.from ?? "")
+const backTo    = backRoutes[backKey]?.to    ?? "/compras/oc"
+const backLabel = backRoutes[backKey]?.label ?? "Órdenes de Compra"
 
 // ── Estado principal ───────────────────────────────────────────────────────────
 
@@ -52,6 +58,11 @@ onMounted(load)
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function formatDateOnly(date: string) {
+  const [y, m, d] = date.split("-").map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function formatPrice(n: number) {
@@ -83,44 +94,6 @@ function estadoLabel(estado: EstadoPedido) {
     case "RecibidaParcial": return "Recibida parcial"
     case "RecibidaTotal":   return "Recibida total"
     default:                return estado
-  }
-}
-
-// ── Acción: Confirmar ──────────────────────────────────────────────────────────
-
-const isConfirmando = ref(false)
-const confirmError = ref("")
-
-async function onConfirmar() {
-  if (!pedido.value) return
-  isConfirmando.value = true
-  confirmError.value = ""
-  try {
-    pedido.value = await confirmarPedido(pedido.value.id)
-  } catch (err: unknown) {
-    confirmError.value = err instanceof Error ? err.message : "Error al confirmar."
-  } finally {
-    isConfirmando.value = false
-  }
-}
-
-// ── Acción: Cancelar ──────────────────────────────────────────────────────────
-
-const isCancelando = ref(false)
-const cancelError = ref("")
-const showCancelModal = ref(false)
-
-async function onCancelar() {
-  if (!pedido.value) return
-  isCancelando.value = true
-  cancelError.value = ""
-  try {
-    pedido.value = await cancelarPedido(pedido.value.id)
-    showCancelModal.value = false
-  } catch (err: unknown) {
-    cancelError.value = err instanceof Error ? err.message : "Error al cancelar."
-  } finally {
-    isCancelando.value = false
   }
 }
 
@@ -212,12 +185,12 @@ async function submitDevolucion() {
           <!-- Breadcrumb + Header -->
           <div class="mb-8">
             <button
-              @click="router.push('/compras/oc')"
+              @click="router.push(backTo)"
               class="flex items-center gap-1.5 text-sm font-semibold mb-4 transition-all hover:opacity-75"
               style="color: var(--color-primary)"
             >
               <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
-              Órdenes de Compra
+              {{ backLabel }}
             </button>
 
             <div class="flex items-start justify-between">
@@ -231,55 +204,29 @@ async function submitDevolucion() {
                 </div>
                 <p class="font-medium" style="color: var(--color-on-surface-variant)">
                   {{ pedido.proveedorNombre }} · {{ formatDate(pedido.createdAt) }}
+                  <span v-if="pedido.fechaOrden"> · Fecha orden: {{ formatDateOnly(pedido.fechaOrden) }}</span>
                   <span v-if="pedido.observaciones" class="italic"> · {{ pedido.observaciones }}</span>
                 </p>
               </div>
 
-              <!-- Acciones según estado -->
+              <!-- Acciones -->
               <div class="flex items-center gap-2 flex-wrap">
-                <!-- Descargar PDF (siempre visible) -->
                 <BaseButton variant="secondary" size="lg" @click="generarPdfOC(pedido)">
                   <span class="material-symbols-outlined" style="font-size: 18px">download</span>
                   Descargar PDF
                 </BaseButton>
 
-                <template v-if="canManage">
-                  <BaseButton
-                    v-if="pedido.estado === 'Borrador'"
-                    variant="primary" size="lg" :disabled="isConfirmando"
-                    @click="onConfirmar"
-                  >
-                    <span class="material-symbols-outlined" style="font-size: 18px">send</span>
-                    {{ isConfirmando ? "Confirmando…" : "Confirmar OC" }}
-                  </BaseButton>
-
-                  <BaseButton
-                    v-if="pedido.estado === 'RecibidaTotal' || pedido.estado === 'RecibidaParcial'"
-                    variant="secondary" size="lg"
-                    @click="openDevolucionModal"
-                  >
-                    <span class="material-symbols-outlined" style="font-size: 18px">undo</span>
-                    Registrar Devolución
-                  </BaseButton>
-
-                  <BaseButton
-                    v-if="pedido.estado !== 'RecibidaTotal' && pedido.estado !== 'Cancelada'"
-                    variant="danger" size="lg"
-                    @click="showCancelModal = true"
-                  >
-                    <span class="material-symbols-outlined" style="font-size: 18px">cancel</span>
-                    Cancelar OC
-                  </BaseButton>
-                </template>
+                <BaseButton
+                  v-if="canManage && (pedido.estado === 'RecibidaTotal' || pedido.estado === 'RecibidaParcial')"
+                  variant="secondary" size="lg"
+                  @click="openDevolucionModal"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 18px">undo</span>
+                  Registrar Devolución
+                </BaseButton>
               </div>
             </div>
 
-            <!-- Error de acción -->
-            <div v-if="confirmError" class="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
-              style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-              <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
-              {{ confirmError }}
-            </div>
           </div>
 
           <!-- Tabs -->
@@ -557,25 +504,6 @@ async function submitDevolucion() {
         </template>
       </div>
     </main>
-
-    <!-- ── MODAL CANCELAR ────────────────────────────────────────────────────── -->
-    <BaseModal :show="showCancelModal" title="Cancelar Orden de Compra" size="sm" @close="showCancelModal = false">
-      <p class="text-sm" style="color: var(--color-on-surface-variant)">
-        ¿Estás seguro que querés cancelar la OC #{{ ocId }}? Esta acción no se puede deshacer.
-      </p>
-      <div v-if="cancelError" class="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"
-        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-        {{ cancelError }}
-      </div>
-      <template #footer>
-        <div class="flex justify-between w-full">
-          <BaseButton variant="secondary" size="default" @click="showCancelModal = false">Cerrar</BaseButton>
-          <BaseButton variant="danger" size="default" :disabled="isCancelando" @click="onCancelar">
-            {{ isCancelando ? "Cancelando…" : "Sí, cancelar" }}
-          </BaseButton>
-        </div>
-      </template>
-    </BaseModal>
 
     <!-- ── MODAL DEVOLUCIÓN ──────────────────────────────────────────────────── -->
     <BaseModal :show="showDevolucionModal" title="Registrar Devolución" size="lg" @close="showDevolucionModal = false">

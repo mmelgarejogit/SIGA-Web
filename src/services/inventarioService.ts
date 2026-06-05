@@ -81,7 +81,9 @@ export interface Proveedor {
   razonSocial: string | null
   ruc: string
   direccion: string | null
-  ciudad: string | null
+  ciudadId: number | null
+  ciudadNombre: string | null
+  departamentoNombre: string | null
   sitioWeb: string | null
   facebook: string | null
   instagram: string | null
@@ -204,7 +206,7 @@ export interface CreateProveedorRequest {
   razonSocial?: string
   ruc: string
   direccion?: string
-  ciudad?: string
+  ciudadId?: number | null
   sitioWeb?: string
   facebook?: string
   instagram?: string

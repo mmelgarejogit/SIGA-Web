@@ -210,7 +210,7 @@ const pendientesCount = computed(() => pedidos.value.length)
                 <button
                   class="flex items-center gap-1.5 text-sm font-semibold transition-all hover:opacity-75"
                   style="color: var(--color-primary)"
-                  @click="router.push(`/compras/oc/${p.id}`)">
+                  @click="router.push(`/compras/oc/${p.id}?from=aprobacion`)">
                   <span class="material-symbols-outlined" style="font-size: 16px">open_in_new</span>
                   Ver detalle
                 </button>
