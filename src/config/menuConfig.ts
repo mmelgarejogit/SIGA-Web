@@ -252,6 +252,12 @@ export const menuConfig: MenuItem[] = [
         permission: "registrar_venta",
       },
       {
+        label: "Presupuestos",
+        icon: "description",
+        route: "/ventas/presupuestos",
+        permission: "registrar_venta",
+      },
+      {
         label: "Historial",
         icon: "receipt_long",
         route: "/ventas",

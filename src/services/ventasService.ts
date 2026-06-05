@@ -304,6 +304,15 @@ export const confirmarVenta = (id: number) =>
 export const cancelarVenta = (id: number, data: CancelarVentaRequest) =>
   put<Venta>(`/api/ventas/${id}/cancelar`, data)
 
+export const eliminarPresupuesto = (id: number) =>
+  useHttp().del(`/api/ventas/${id}`)
+
+export const getPresupuestos = (patientId?: number) => {
+  const q = new URLSearchParams({ estado: "Borrador", pageSize: "100" })
+  if (patientId) q.set("patientId", String(patientId))
+  return get<VentasPagedResult>(`/api/ventas?${q}`)
+}
+
 export const registrarCobro = (data: RegistrarCobroRequest) =>
   post<Venta>("/api/ventas/cobros", data)
 

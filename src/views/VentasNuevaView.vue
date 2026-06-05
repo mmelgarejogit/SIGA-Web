@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue"
-import { useRouter } from "vue-router"
+import { ref, reactive, computed, onMounted, watch } from "vue"
+import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -11,12 +11,19 @@ import {
   type CategoriaFiscal,
   type CondicionVenta,
   type TipoVenta,
+  type Venta,
   crearVenta,
+  confirmarVenta,
+  getPresupuestos,
 } from "@/services/ventasService"
 import { getPatients, type Patient } from "@/services/patientService"
 import { getProductos, type Producto } from "@/services/inventarioService"
 
 const router = useRouter()
+const route  = useRoute()
+
+// Modo presupuesto: no confirmar al guardar
+const modoPresupuesto = computed(() => route.query.modo === "presupuesto")
 
 // ── Formato ───────────────────────────────────────────────────────────────────
 
@@ -61,8 +68,48 @@ function onPacienteBlur() {
 }
 
 function clearPaciente() {
-  selectedPaciente.value = null
-  pacienteSearch.value   = ""
+  selectedPaciente.value    = null
+  pacienteSearch.value      = ""
+  presupuestosDelPaciente.value = []
+  presupuestoCargado.value  = null
+  lineas.value              = []
+}
+
+// ── Presupuestos del paciente ─────────────────────────────────────────────────
+
+const presupuestosDelPaciente = ref<Venta[]>([])
+const presupuestoCargado      = ref<Venta | null>(null)
+
+watch(selectedPaciente, async (p) => {
+  presupuestosDelPaciente.value = []
+  presupuestoCargado.value      = null
+  if (!p) return
+  try {
+    const res = await getPresupuestos(p.id)
+    presupuestosDelPaciente.value = res.items
+  } catch {}
+})
+
+function cargarPresupuesto(v: Venta) {
+  presupuestoCargado.value = v
+  tipoVenta.value      = v.tipo
+  condicionVenta.value = v.condicionVenta
+  observaciones.value  = v.observaciones ?? ""
+  lineas.value = v.lineas.map(l => ({
+    tipo:           l.tipo,
+    productoId:     l.productoId,
+    servicioId:     l.servicioId,
+    descripcion:    l.descripcion,
+    cantidad:       l.cantidad,
+    precioUnitario: l.precioUnitario,
+    descuento:      l.descuento,
+    categoriaFiscal: l.categoriaFiscal,
+  }))
+}
+
+function limpiarPresupuesto() {
+  presupuestoCargado.value = null
+  lineas.value = []
 }
 
 // ── Productos ─────────────────────────────────────────────────────────────────
@@ -176,26 +223,42 @@ async function guardar() {
   isSaving.value  = true
   saveError.value = ""
   try {
-    const venta = await crearVenta({
-      patientId:      selectedPaciente.value.id,
-      tipo:           tipoVenta.value,
-      condicionVenta: condicionVenta.value,
-      fechaVenta:     fechaVenta.value,
-      observaciones:  observaciones.value || undefined,
-      lineas: lineas.value.map((l) => ({
-        tipo:           l.tipo,
-        productoId:     l.productoId,
-        servicioId:     l.servicioId,
-        descripcion:    l.descripcion,
-        cantidad:       l.cantidad,
-        precioUnitario: l.precioUnitario,
-        descuento:      l.descuento,
-        categoriaFiscal: l.categoriaFiscal,
-      })),
-    })
-    router.push(`/ventas/${venta.id}`)
+    let ventaId: number
+
+    if (presupuestoCargado.value) {
+      // Confirmar el presupuesto existente directamente
+      ventaId = presupuestoCargado.value.id
+      await confirmarVenta(ventaId)
+    } else {
+      // Crear la venta
+      const venta = await crearVenta({
+        patientId:      selectedPaciente.value.id,
+        tipo:           tipoVenta.value,
+        condicionVenta: condicionVenta.value,
+        fechaVenta:     fechaVenta.value,
+        observaciones:  observaciones.value || undefined,
+        lineas: lineas.value.map((l) => ({
+          tipo:           l.tipo,
+          productoId:     l.productoId,
+          servicioId:     l.servicioId,
+          descripcion:    l.descripcion,
+          cantidad:       l.cantidad,
+          precioUnitario: l.precioUnitario,
+          descuento:      l.descuento,
+          categoriaFiscal: l.categoriaFiscal,
+        })),
+      })
+      ventaId = venta.id
+
+      // Si no es modo presupuesto: confirmar inmediatamente
+      if (!modoPresupuesto.value) {
+        await confirmarVenta(ventaId)
+      }
+    }
+
+    router.push(modoPresupuesto.value ? "/ventas/presupuestos" : `/ventas/${ventaId}`)
   } catch (e: any) {
-    saveError.value = e?.response?.data?.message ?? "Error al crear la venta"
+    saveError.value = e?.response?.data?.message ?? "Error al guardar"
   } finally {
     isSaving.value = false
   }
@@ -212,15 +275,19 @@ async function guardar() {
         <!-- Encabezado -->
         <div class="flex items-center gap-4 mb-8">
           <button
-            @click="router.push('/ventas')"
+            @click="router.push(modoPresupuesto ? '/ventas/presupuestos' : '/ventas')"
             class="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105"
             style="background-color: var(--color-surface-container-high)"
           >
             <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-on-surface-variant)">arrow_back</span>
           </button>
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Nueva Venta</h1>
-            <p class="mt-0.5 font-medium" style="color: var(--color-on-surface-variant)">Registrá los productos y servicios de la venta</p>
+            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">
+              {{ modoPresupuesto ? "Nuevo Presupuesto" : "Nueva Venta" }}
+            </h1>
+            <p class="mt-0.5 font-medium" style="color: var(--color-on-surface-variant)">
+              {{ modoPresupuesto ? "Generá un presupuesto para el paciente" : "Registrá los productos y servicios de la venta" }}
+            </p>
           </div>
         </div>
 
@@ -275,6 +342,58 @@ async function guardar() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            <!-- Banner presupuestos del paciente (solo en modo venta) -->
+            <div
+              v-if="!modoPresupuesto && presupuestosDelPaciente.length && !presupuestoCargado"
+              class="rounded-2xl p-5"
+              style="background: #FEF3C7; border: 1.5px solid #FDE68A"
+            >
+              <div class="flex items-start gap-3 mb-3">
+                <span class="material-symbols-outlined flex-shrink-0" style="font-size:20px;color:#92400E">description</span>
+                <div>
+                  <p class="font-semibold text-sm" style="color:#92400E">
+                    Este paciente tiene {{ presupuestosDelPaciente.length }} presupuesto{{ presupuestosDelPaciente.length !== 1 ? "s" : "" }} pendiente{{ presupuestosDelPaciente.length !== 1 ? "s" : "" }}
+                  </p>
+                  <p class="text-xs mt-0.5" style="color:#A16207">¿Querés cargar uno como base para esta venta?</p>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <button
+                  v-for="p in presupuestosDelPaciente"
+                  :key="p.id"
+                  @click="cargarPresupuesto(p)"
+                  class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.01]"
+                  style="background:white;border:1px solid #FDE68A"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono font-semibold" style="color:#92400E">{{ p.numeroComprobante }}</span>
+                    <span style="color:var(--color-on-surface-variant)">· {{ p.lineas.length }} ítem{{ p.lineas.length !== 1 ? "s" : "" }}</span>
+                  </div>
+                  <span class="font-bold" style="color:var(--color-primary)">
+                    {{ new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(p.total) }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Presupuesto cargado -->
+            <div
+              v-if="presupuestoCargado"
+              class="rounded-2xl p-4 flex items-center justify-between"
+              style="background:#F0FDF4;border:1.5px solid #BBF7D0"
+            >
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:20px;color:#166534">check_circle</span>
+                <div>
+                  <p class="text-sm font-semibold" style="color:#166534">Presupuesto cargado: {{ presupuestoCargado.numeroComprobante }}</p>
+                  <p class="text-xs" style="color:#4ADE80">Las líneas se cargaron desde el presupuesto. Podés editarlas.</p>
+                </div>
+              </div>
+              <button @click="limpiarPresupuesto" class="p-1 rounded-full hover:bg-green-100 transition-colors">
+                <span class="material-symbols-outlined" style="font-size:16px;color:#166534">close</span>
+              </button>
             </div>
 
             <!-- Agregar productos -->
@@ -508,8 +627,10 @@ async function guardar() {
                   :disabled="!canSave || isSaving"
                   @click="guardar"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 20px">save</span>
-                  {{ isSaving ? "Guardando…" : "Crear venta" }}
+                  <span class="material-symbols-outlined" style="font-size: 20px">
+                    {{ modoPresupuesto ? "description" : presupuestoCargado ? "shopping_cart" : "point_of_sale" }}
+                  </span>
+                  {{ isSaving ? "Guardando…" : modoPresupuesto ? "Guardar presupuesto" : presupuestoCargado ? "Confirmar y crear venta" : "Crear venta" }}
                 </BaseButton>
                 <BaseButton variant="secondary" size="lg" class="w-full" @click="router.push('/ventas')">
                   Cancelar
