@@ -264,8 +264,8 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Detalle Factura" },
     },
     {
-      path: "/compras/oc/aprobacion",
-      name: "compras-oc-aprobacion",
+      path: "/compras/aprobaciones",
+      name: "compras-aprobaciones",
       component: () => import("@/views/OcAprobacionView.vue"),
       meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobación de OC" },
     },
@@ -406,6 +406,12 @@ const router = createRouter({
       name: "admin-config",
       component: () => import("@/views/ConfiguracionView.vue"),
       meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Configuración" },
+    },
+    {
+      path: "/admin/ubicaciones",
+      name: "admin-ubicaciones",
+      component: () => import("@/views/UbicacionesView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Ubicaciones" },
     },
     {
       path: "/egresos",

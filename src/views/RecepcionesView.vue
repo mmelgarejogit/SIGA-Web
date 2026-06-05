@@ -141,7 +141,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
       type: "item",
       label: `Ver OC #${r.pedidoProveedorId}`,
       icon: "open_in_new",
-      action: () => router.push(`/compras/oc/${r.pedidoProveedorId}`),
+      action: () => router.push(`/compras/oc/${r.pedidoProveedorId}?from=recepciones`),
     },
   ]
 }

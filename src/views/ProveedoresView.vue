@@ -7,6 +7,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
@@ -18,6 +19,7 @@ import {
   updateProveedor,
   deactivateProveedor,
 } from "@/services/inventarioService"
+import { type Ciudad, getCiudades } from "@/services/ubicacionService"
 
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_pedidos")
@@ -25,8 +27,13 @@ const canManage = auth.hasPermission("gestionar_pedidos")
 // ── Estado ─────────────────────────────────────────────────────────────────────
 
 const proveedores = ref<Proveedor[]>([])
+const ciudades = ref<Ciudad[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
+
+const ciudadOptions = computed(() =>
+  ciudades.value.map(c => ({ value: c.id, label: `${c.nombre} — ${c.departamentoNombre}` })),
+)
 
 // Paginación
 const currentPage = ref(1)
@@ -108,7 +115,14 @@ function onEstadoChange(val: string[]) {
 }
 
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  try {
+    ciudades.value = await getCiudades(undefined, true)
+  } catch {
+    // El listado de ciudades es complementario; no bloquea la vista
+  }
+})
 
 function rowMenuItems(item: Proveedor): ContextMenuItem[] {
   return [
@@ -151,7 +165,7 @@ const emptyForm = (): CreateProveedorRequest => ({
   razonSocial: "",
   ruc: "",
   direccion: "",
-  ciudad: "",
+  ciudadId: null,
   sitioWeb: "",
   facebook: "",
   instagram: "",
@@ -186,7 +200,7 @@ function openEdit(p: Proveedor) {
     razonSocial: p.razonSocial ?? "",
     ruc:        p.ruc,
     direccion:  p.direccion ?? "",
-    ciudad:     p.ciudad ?? "",
+    ciudadId:   p.ciudadId,
     sitioWeb:   p.sitioWeb ?? "",
     facebook:   p.facebook ?? "",
     instagram:  p.instagram ?? "",
@@ -228,7 +242,7 @@ async function submit() {
     razonSocial: (form.razonSocial as string)?.trim() || undefined,
     ruc:        form.ruc!.trim(),
     direccion:  (form.direccion as string)?.trim() || undefined,
-    ciudad:     (form.ciudad as string)?.trim() || undefined,
+    ciudadId:   form.ciudadId ?? null,
     sitioWeb:   (form.sitioWeb as string)?.trim() || undefined,
     facebook:   (form.facebook as string)?.trim() || undefined,
     instagram:  (form.instagram as string)?.trim() || undefined,
@@ -351,7 +365,11 @@ async function confirmDeactivate() {
           </template>
 
           <template #ciudad="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.ciudad || "—" }}</span>
+            <div v-if="item.ciudadNombre">
+              <p class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.ciudadNombre }}</p>
+              <p v-if="item.departamentoNombre" class="text-xs" style="color: var(--color-outline)">{{ item.departamentoNombre }}</p>
+            </div>
+            <span v-else class="text-sm" style="color: var(--color-outline)">—</span>
           </template>
 
           <template #contactos="{ item }">
@@ -470,8 +488,13 @@ async function confirmDeactivate() {
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Ciudad</label>
-          <input v-model="form.ciudad" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)" />
+          <SearchableSelect
+            :model-value="form.ciudadId ?? null"
+            :options="ciudadOptions"
+            null-label="Sin ciudad"
+            placeholder="Seleccioná una ciudad"
+            @update:model-value="form.ciudadId = $event as number | null"
+          />
         </div>
 
         <!-- Redes sociales -->

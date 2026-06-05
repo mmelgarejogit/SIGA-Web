@@ -85,7 +85,7 @@ const proveedoresResultados = computed(() => {
     if (!p.isActive) return false
     if (n && !p.nombre.toLowerCase().includes(n)) return false
     if (r && !p.ruc.toLowerCase().includes(r)) return false
-    if (c && !(p.ciudad ?? "").toLowerCase().includes(c)) return false
+    if (c && !(p.ciudadNombre ?? "").toLowerCase().includes(c)) return false
     return true
   })
 })
@@ -296,7 +296,7 @@ function inputStyle(hasError = false) {
                 <!-- Info del proveedor seleccionado -->
                 <div v-if="proveedorSeleccionado" class="flex items-center gap-3 text-xs" style="color: var(--color-on-surface-variant)">
                   <span v-if="proveedorSeleccionado.ruc" class="font-mono">RUC: {{ proveedorSeleccionado.ruc }}</span>
-                  <span v-if="proveedorSeleccionado.ciudad">· {{ proveedorSeleccionado.ciudad }}</span>
+                  <span v-if="proveedorSeleccionado.ciudadNombre">· {{ proveedorSeleccionado.ciudadNombre }}</span>
                 </div>
               </div>
 
@@ -479,8 +479,8 @@ function inputStyle(hasError = false) {
                 <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ p.nombre }}</p>
                 <p class="text-xs truncate" style="color: var(--color-on-surface-variant)">
                   <span v-if="p.ruc" class="font-mono">{{ p.ruc }}</span>
-                  <span v-if="p.ruc && p.ciudad"> · </span>
-                  <span v-if="p.ciudad">{{ p.ciudad }}</span>
+                  <span v-if="p.ruc && p.ciudadNombre"> · </span>
+                  <span v-if="p.ciudadNombre">{{ p.ciudadNombre }}</span>
                 </p>
               </div>
             </div>

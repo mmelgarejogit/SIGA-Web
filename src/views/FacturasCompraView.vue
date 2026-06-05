@@ -188,13 +188,12 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
       icon: "receipt_long",
       action: () => router.push(`/compras/facturas/${f.id}`),
     },
-    ...(hasOC ? [{ type: "separator" as const }] : []),
     {
       type: "item",
       label: "Ver Orden de Compra",
       icon: "open_in_new",
       hidden: !hasOC,
-      action: () => router.push(`/compras/oc/${f.pedidoProveedorId}`),
+      action: () => router.push(`/compras/oc/${f.pedidoProveedorId}?from=facturas`),
     },
     ...((hasOC || true) && canAnular ? [{ type: "separator" as const }] : []),
     {
