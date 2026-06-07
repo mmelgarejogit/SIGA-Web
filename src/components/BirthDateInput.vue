@@ -9,6 +9,7 @@ const MONTHS = [
 const props = defineProps<{
   modelValue: string   // yyyy-mm-dd o ""
   hasError?: boolean
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{ "update:modelValue": [string] }>()
@@ -22,10 +23,10 @@ const year  = ref<number | "">("")
 // Parsear prop inicial
 watch(() => props.modelValue, (val) => {
   if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-    const [y, m, d] = val.split("-").map(Number)
-    year.value  = y
-    month.value = m
-    day.value   = d
+    const parts = val.split("-").map(Number)
+    year.value  = parts[0] ?? ""
+    month.value = parts[1] ?? null
+    day.value   = parts[2] ?? ""
   } else {
     year.value  = ""
     month.value = null
@@ -57,6 +58,7 @@ const dropRef    = ref<HTMLElement | null>(null)
 const dropPos    = ref({ top: "0px", left: "0px" })
 
 async function toggleMonth() {
+  if (props.disabled) return
   if (!monthOpen.value && triggerRef.value) {
     const rect = triggerRef.value.getBoundingClientRect()
     dropPos.value = {
@@ -123,6 +125,7 @@ const fieldStyle = computed(() =>
       placeholder="Día"
       class="bdi-num"
       :style="fieldStyle"
+      :disabled="disabled"
     />
 
     <!-- Mes -->
@@ -132,6 +135,7 @@ const fieldStyle = computed(() =>
       class="bdi-month-trigger"
       :class="{ open: monthOpen }"
       :style="fieldStyle"
+      :disabled="disabled"
       @click="toggleMonth"
     >
       <span :class="{ 'bdi-placeholder': !month }">
@@ -151,6 +155,7 @@ const fieldStyle = computed(() =>
       placeholder="Año"
       class="bdi-num bdi-year"
       :style="fieldStyle"
+      :disabled="disabled"
     />
 
     <!-- Dropdown meses (teleportado) -->

@@ -287,8 +287,9 @@ async function submitEnvioLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarEnvioLab(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarEnvioLab(venta.value.id, { observacion: labObservacion.value || undefined })
     showEnvioLab.value = false
+    await load()
   } finally {
     isLabOp.value = false
   }
@@ -298,8 +299,9 @@ async function submitRecepcionLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarRecepcionLab(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarRecepcionLab(venta.value.id, { observacion: labObservacion.value || undefined })
     showRecepcionLab.value = false
+    await load()
   } finally {
     isLabOp.value = false
   }

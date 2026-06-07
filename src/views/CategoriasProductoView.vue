@@ -263,7 +263,7 @@ async function confirmActivate() {
     const cat = activatingCategoria.value
     await updateCategoria(cat.id, {
       nombre: cat.nombre,
-      descripcion: cat.descripcion,
+      descripcion: cat.descripcion ?? undefined,
       margen: cat.margen,
       descuento: cat.descuento,
       isActive: true,

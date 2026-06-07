@@ -15,6 +15,7 @@ import {
   type Empleado,
   type CargoEmpleado,
   type ActualizarEmpleadoRequest,
+  type CrearEmpleadoRequest,
   getEmpleados,
   crearEmpleado,
   actualizarEmpleado,
@@ -618,7 +619,7 @@ async function confirmDelete() {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Egreso</label>
-            <DateInput v-model="editForm.fechaEgreso" />
+            <DateInput :model-value="editForm.fechaEgreso ?? ''" @update:model-value="editForm.fechaEgreso = $event" />
           </div>
         </div>
       </form>

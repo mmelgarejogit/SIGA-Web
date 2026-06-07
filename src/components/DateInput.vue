@@ -49,7 +49,7 @@ const dropPos = ref({ top: "0px", left: "0px" })
 const selectedDate = computed<Date | null>(() => {
   if (!props.modelValue || !/^\d{4}-\d{2}-\d{2}$/.test(props.modelValue)) return null
   const [y, m, d] = props.modelValue.split("-").map(Number)
-  return new Date(y, m - 1, d)
+  return new Date(y!, m! - 1, d!)
 })
 
 const displayValue = computed(() => {

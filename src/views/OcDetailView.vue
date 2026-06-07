@@ -62,7 +62,7 @@ function formatDate(iso: string) {
 
 function formatDateOnly(date: string) {
   const [y, m, d] = date.split("-").map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+  return new Date(y!, m! - 1, d!).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function formatPrice(n: number) {

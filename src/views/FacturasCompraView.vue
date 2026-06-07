@@ -52,7 +52,7 @@ const inputHasta = ref<HTMLInputElement | null>(null)
 
 function openPicker(input: HTMLInputElement | null) {
   if (!input) return
-  if ("showPicker" in input) (input as any).showPicker()
+  if (typeof input.showPicker === "function") input.showPicker()
   else input.focus()
 }
 

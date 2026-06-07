@@ -37,6 +37,13 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_pacientes",
   },
   {
+    id: "clientes",
+    label: "Clientes",
+    icon: "badge",
+    route: "/clientes",
+    permission: "ver_clientes",
+  },
+  {
     id: "agenda",
     label: "Agenda",
     icon: "calendar_month",

@@ -379,11 +379,11 @@ export const getTrabajosPedido = (estado?: string) => {
 export const gestionarAprobacionTP = (id: number, data: GestionarTrabajoPedidoRequest) =>
   post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/gestionar`, data)
 
-export const registrarEnvioLab = (id: number) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/enviar`, {})
+export const registrarEnvioLab = (id: number, data?: { observacion?: string }) =>
+  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/enviar`, data ?? {})
 
-export const registrarRecepcionLab = (id: number) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/recibir`, {})
+export const registrarRecepcionLab = (id: number, data?: { observacion?: string }) =>
+  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/recibir`, data ?? {})
 
 export const emitirFacturaLaboratorio = (id: number, data: EmitirFacturaLaboratorioRequest) =>
   post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/factura`, data)
