@@ -214,7 +214,7 @@ const emptyProvForm = (): CreateProveedorRequest => ({
   razonSocial: undefined,
   ruc: "",
   direccion: undefined,
-  ciudad: undefined,
+  ciudadId: undefined,
   sitioWeb: undefined,
   facebook: undefined,
   instagram: undefined,

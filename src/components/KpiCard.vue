@@ -3,13 +3,13 @@ defineProps<{
   title: string
   value: string
   icon: string
-  badge: string
-  badgeType: "positive" | "neutral" | "critical"
+  badge?: string
+  badgeType?: "positive" | "neutral" | "critical"
   iconBg: string
   iconColor: string
 }>()
 
-const badgeStyle = (type: string) => {
+const badgeStyle = (type?: string) => {
   if (type === "positive") return "background-color: #dcfce7; color: #166534;"
   if (type === "critical")
     return "background-color: var(--color-error-container); color: var(--color-on-error-container);"
@@ -38,7 +38,7 @@ const badgeStyle = (type: string) => {
         >
       </div>
       <!-- Badge -->
-      <span class="text-xs font-bold px-2.5 py-1 rounded-full" :style="badgeStyle(badgeType)">{{
+      <span v-if="badge" class="text-xs font-bold px-2.5 py-1 rounded-full" :style="badgeStyle(badgeType)">{{
         badge
       }}</span>
     </div>

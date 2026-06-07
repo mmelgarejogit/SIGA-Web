@@ -14,6 +14,7 @@ export interface GetPatientsParams {
   pageSize?: number
   search?: string
   status?: "active" | "inactive"
+  isActive?: boolean
 }
 
 export interface Patient {

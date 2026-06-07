@@ -173,8 +173,9 @@ export interface UpdateModeloRequest {
 }
 
 export interface CreateMovimientoRequest {
-  tipo: "Entrada" | "Salida"
+  tipo: "Entrada" | "Salida" | "Ajuste"
   cantidad: number
+  motivo?: string
   motivoMovimientoId?: number
   fechaMovimiento?: string
 }
@@ -236,6 +237,7 @@ export async function getProductos(params: {
   search?: string
   categoria?: string
   bajoStock?: boolean
+  isActive?: boolean
 } = {}): Promise<PagedResult<Producto>> {
   const q = new URLSearchParams()
   if (params.page) q.set("page", String(params.page))
@@ -243,6 +245,7 @@ export async function getProductos(params: {
   if (params.search) q.set("search", params.search)
   if (params.categoria) q.set("categoria", params.categoria)
   if (params.bajoStock != null) q.set("bajoStock", String(params.bajoStock))
+  if (params.isActive != null) q.set("isActive", String(params.isActive))
   const { data } = await http.get<PagedResult<Producto>>(`/api/productos?${q}`)
   return data
 }
@@ -488,7 +491,7 @@ export interface StockLote {
 }
 
 export interface ConteoItemRequest {
-  loteId: number
+  productoId: number
   cantidadFisica: number
 }
 
