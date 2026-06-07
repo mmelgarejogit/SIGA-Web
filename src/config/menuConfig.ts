@@ -112,6 +112,18 @@ export const menuConfig: MenuItem[] = [
         route: "/inventario/modelos",
         permission: "ver_inventario",
       },
+      {
+        label: "Tipos de Lente",
+        icon: "lens",
+        route: "/inventario/tipos-lente",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Tratamientos",
+        icon: "auto_fix_high",
+        route: "/inventario/tratamientos",
+        permission: "ver_inventario",
+      },
     ],
   },
   {
@@ -241,6 +253,12 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_ventas",
     children: [
       {
+        label: "Presupuestos",
+        icon: "description",
+        route: "/ventas/presupuestos",
+        permission: "registrar_venta",
+      },
+      {
         label: "Nueva Venta",
         icon: "add_shopping_cart",
         route: "/ventas/nueva",
@@ -253,9 +271,33 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_ventas",
       },
       {
-        label: "Emitir Factura",
-        icon: "post_add",
-        route: "/ventas/facturacion",
+        label: "Cobros Pendientes",
+        icon: "pending_actions",
+        route: "/ventas/cobros-pendientes",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Pedidos a Lab",
+        icon: "science",
+        route: "/ventas/trabajos-pedido",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Aprobaciones Lab",
+        icon: "task_alt",
+        route: "/ventas/trabajos-pedido/aprobacion",
+        permission: "gestionar_ventas",
+      },
+      {
+        label: "Recepciones Lab",
+        icon: "inventory",
+        route: "/ventas/trabajos-pedido/recepciones",
+        permission: "registrar_venta",
+      },
+      {
+        label: "Facturas Lab",
+        icon: "receipt_long",
+        route: "/ventas/trabajos-pedido/facturas",
         permission: "registrar_venta",
       },
       {
@@ -263,12 +305,6 @@ export const menuConfig: MenuItem[] = [
         icon: "folder_open",
         route: "/ventas/facturas",
         permission: "ver_ventas",
-      },
-      {
-        label: "Aprobaciones",
-        icon: "task_alt",
-        route: "/ventas/aprobaciones",
-        permission: "gestionar_ventas",
       },
     ],
   },
@@ -283,12 +319,6 @@ export const menuConfig: MenuItem[] = [
         icon: "lock_clock",
         route: "/ventas/cierre",
         permission: "gestionar_ventas",
-      },
-      {
-        label: "Devoluciones",
-        icon: "undo",
-        route: "/ventas/devoluciones",
-        permission: "ver_ventas",
       },
     ],
   },
