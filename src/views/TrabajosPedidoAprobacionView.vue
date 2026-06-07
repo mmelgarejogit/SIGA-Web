@@ -16,7 +16,7 @@ const auth   = useAuthStore()
 const canManage = auth.hasPermission("gestionar_ventas")
 
 const formatDate = (s?: string) =>
-  s ? new Date(s + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
+  s ? new Date(s.includes("T") ? s : s + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
 
 // ── Datos ──────────────────────────────────────────────────────────────────────
 

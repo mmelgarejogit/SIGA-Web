@@ -245,6 +245,7 @@ export const menuConfig: MenuItem[] = [
     icon: "point_of_sale",
     permission: "ver_ventas",
     children: [
+      // ── Orden según el proceso de venta ──────────────────────────────
       {
         label: "Presupuestos",
         icon: "description",
@@ -256,18 +257,6 @@ export const menuConfig: MenuItem[] = [
         icon: "add_shopping_cart",
         route: "/ventas/nueva",
         permission: "registrar_venta",
-      },
-      {
-        label: "Historial",
-        icon: "receipt_long",
-        route: "/ventas",
-        permission: "ver_ventas",
-      },
-      {
-        label: "Cobros Pendientes",
-        icon: "pending_actions",
-        route: "/ventas/cobros-pendientes",
-        permission: "ver_ventas",
       },
       {
         label: "Pedidos a Lab",
@@ -294,9 +283,22 @@ export const menuConfig: MenuItem[] = [
         permission: "registrar_venta",
       },
       {
+        label: "Cobros Pendientes",
+        icon: "pending_actions",
+        route: "/ventas/cobros-pendientes",
+        permission: "ver_ventas",
+      },
+      {
         label: "Historial Facturas",
         icon: "folder_open",
         route: "/ventas/facturas",
+        permission: "ver_ventas",
+      },
+      // ── Reporte / consulta (solo lectura) al final ──────────────────
+      {
+        label: "Historial de Ventas",
+        icon: "history",
+        route: "/ventas",
         permission: "ver_ventas",
       },
     ],
