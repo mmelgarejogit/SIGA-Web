@@ -230,34 +230,19 @@ function confirmarCierreYSalir() {
             </div>
           </div>
 
-          <!-- KPIs -->
-          <div class="grid grid-cols-4 gap-4 mb-6">
-            <KpiCard title="Ingresos" :value="fmt(sesion.totalIngresos)" icon="trending_up" iconBg="#D1FAE5" iconColor="#065F46" />
-            <KpiCard title="Egresos" :value="fmt(sesion.totalEgresos)" icon="trending_down" iconBg="#FEE2E2" iconColor="#991B1B" />
-            <KpiCard title="Saldo neto" :value="fmt(sesion.saldoNeto)" icon="account_balance_wallet" iconBg="#DBEAFE" iconColor="#1D4ED8" />
-            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="#EDE9FE" iconColor="#7C3AED" />
+          <!-- ── Bloque 1: Posición de efectivo ────────────────────────────── -->
+          <h3 class="text-base font-extrabold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Posición de efectivo</h3>
+          <div class="grid grid-cols-4 gap-4 mb-8">
+            <KpiCard title="Efectivo inicial" :value="fmt(sesion.montoInicial)" icon="account_balance_wallet" iconBg="#EDE9FE" iconColor="#7C3AED" />
+            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="#D1FAE5" iconColor="#065F46" />
+            <KpiCard
+              title="Egresos efectivo"
+              :value="fmt(sesion.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0))"
+              icon="trending_down" iconBg="#FEE2E2" iconColor="#991B1B"
+            />
+            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="#DBEAFE" iconColor="#1D4ED8" />
           </div>
 
-          <!-- Desglose método de pago -->
-          <div class="grid grid-cols-4 gap-4 mb-8">
-            <div v-for="item in [
-              { label: 'Efectivo', key: 'efectivoIngresos', icon: 'payments' },
-              { label: 'Tarjeta', key: 'tarjetaTotal', icon: 'credit_card' },
-              { label: 'Transferencia', key: 'transferenciaTotal', icon: 'account_balance' },
-              { label: 'Cheque', key: 'chequeTotal', icon: 'description' },
-            ]" :key="item.key"
-              class="rounded-2xl p-5"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)"
-            >
-              <div class="flex items-center gap-2 mb-3">
-                <span class="material-symbols-outlined" style="font-size:20px; color: var(--color-outline)">{{ item.icon }}</span>
-                <p class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ item.label }}</p>
-              </div>
-              <p class="text-xl font-extrabold" style="color: var(--color-on-surface)">
-                {{ fmt((sesion as any)[item.key]) }}
-              </p>
-            </div>
-          </div>
 
           <!-- Movimientos -->
           <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
@@ -298,9 +283,14 @@ function confirmarCierreYSalir() {
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ m.concepto }}</p>
-                  <div class="flex items-center gap-2 mt-0.5">
+                  <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span class="material-symbols-outlined" style="font-size:14px; color: var(--color-outline)">{{ metodoPagoIcon(m.metodoPago) }}</span>
                     <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }}</span>
+                    <span v-if="m.metodoPago !== 'Efectivo'"
+                          class="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style="background-color: var(--color-surface-container-high); color: var(--color-outline)">
+                      No afecta caja
+                    </span>
                     <span v-if="m.referencia" class="text-xs" style="color: var(--color-outline)">· {{ m.referencia }}</span>
                     <span class="text-xs" style="color: var(--color-outline)">· {{ fmtTime(m.createdAt) }}</span>
                   </div>
@@ -405,8 +395,8 @@ function confirmarCierreYSalir() {
           <p class="font-extrabold" style="color: #065F46">+{{ fmt(sesion?.efectivoIngresos ?? 0) }}</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Total ingresos</p>
-          <p class="font-extrabold" style="color: var(--color-on-surface)">{{ fmt(sesion?.totalIngresos ?? 0) }}</p>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Egresos efectivo</p>
+          <p class="font-extrabold" style="color: #991B1B">−{{ fmt(sesion?.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0) ?? 0) }}</p>
         </div>
       </div>
 
