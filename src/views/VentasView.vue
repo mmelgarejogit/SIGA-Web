@@ -67,7 +67,7 @@ const filtered = computed(() => {
   if (!search.value.trim()) return ventas.value
   const q = search.value.toLowerCase()
   return ventas.value.filter(v =>
-    v.pacienteNombre.toLowerCase().includes(q) ||
+    v.clienteNombre.toLowerCase().includes(q) ||
     v.numeroComprobante.toLowerCase().includes(q),
   )
 })
@@ -145,7 +145,7 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
             <FilterChips v-model="estadoFiltro" :options="estadoOptions" placeholder="Estado" />
             <FilterChips v-model="tipoFiltro"   :options="tipoOptions"   placeholder="Tipo" />
           </div>
-          <SearchInput v-model="search" placeholder="Buscar por paciente o comprobante…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
         </div>
 
         <!-- Tabla -->
@@ -153,7 +153,7 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay ventas que mostrar">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
-              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Paciente</th>
+              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cliente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tipo</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Fecha</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Total</th>
@@ -171,7 +171,7 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
                 </td>
-                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.pacienteNombre }}</td>
+                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</td>
                 <td class="px-6 py-4">
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
@@ -253,8 +253,8 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
           <!-- Datos generales -->
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Paciente</p>
-              <p class="font-medium" style="color:var(--color-on-surface)">{{ detalle.pacienteNombre }}</p>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Cliente</p>
+              <p class="font-medium" style="color:var(--color-on-surface)">{{ detalle.clienteNombre }}</p>
             </div>
             <div>
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Fecha de venta</p>

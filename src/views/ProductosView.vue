@@ -17,11 +17,13 @@ import {
   type Modelo,
   type CreateProductoRequest,
   type CreateMovimientoRequest,
+  type MotivoMovimiento,
   getProductos,
   createProducto,
   updateProducto,
   deactivateProducto,
   registrarMovimiento,
+  getMotivosMovimiento,
   getCategorias,
   getMarcas,
   getModelos,
@@ -131,6 +133,7 @@ onMounted(async () => {
     getCategorias().then((c) => (categoriasDisponibles.value = c)),
     getMarcas().then((m) => (marcasDisponibles.value = m)),
     getModelos().then((m) => (modelosDisponibles.value = m)),
+    getMotivosMovimiento().then((m) => (motivosDisponibles.value = m)),
   ])
   document.addEventListener("keydown", onEscape)
 })
@@ -277,12 +280,16 @@ const movProducto = ref<Producto | null>(null)
 const isMoving = ref(false)
 const movError = ref("")
 const movForm = reactive<CreateMovimientoRequest>({
-  tipo: "Entrada", cantidad: 1, motivo: "",
+  tipo: "Entrada", cantidad: 1, motivoMovimientoId: undefined,
 })
+const motivosDisponibles = ref<MotivoMovimiento[]>([])
+const motivosFiltrados = computed(() =>
+  motivosDisponibles.value.filter((m) => m.tipo === movForm.tipo || m.tipo === "Ambos"),
+)
 
 function openMovimiento(p: Producto) {
   movProducto.value = p
-  Object.assign(movForm, { tipo: "Entrada", cantidad: 1, motivo: "" })
+  Object.assign(movForm, { tipo: "Entrada", cantidad: 1, motivoMovimientoId: undefined })
   movError.value = ""
   showMovModal.value = true
 }
@@ -293,8 +300,9 @@ async function submitMovimiento() {
   movError.value = ""
   try {
     await registrarMovimiento(movProducto.value.id, {
-      ...movForm,
-      motivo: movForm.motivo?.trim() || undefined,
+      tipo: movForm.tipo,
+      cantidad: movForm.cantidad,
+      motivoMovimientoId: movForm.motivoMovimientoId || undefined,
     })
     showMovModal.value = false
     await loadProductos()
@@ -971,9 +979,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Motivo</label>
-          <input v-model="movForm.motivo" type="text" placeholder="Opcional"
+          <select v-model="movForm.motivoMovimientoId"
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)" />
+            :style="inputStyle(false)">
+            <option :value="undefined">Sin motivo</option>
+            <option v-for="m in motivosFiltrados" :key="m.id" :value="m.id">{{ m.nombre }}</option>
+          </select>
         </div>
       </div>
 

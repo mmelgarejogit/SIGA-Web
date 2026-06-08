@@ -2,10 +2,13 @@ import { http } from "@/api/http"
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
+export type TipoCategoriaProducto = "Generico" | "Armazon" | "Cristal"
+
 export interface Producto {
   id: number
   nombre: string
   categoria: string
+  tipoCategoria: TipoCategoriaProducto
   sku: string | null
   precioCosto: number
   precioVenta: number
@@ -175,7 +178,6 @@ export interface UpdateModeloRequest {
 export interface CreateMovimientoRequest {
   tipo: "Entrada" | "Salida" | "Ajuste"
   cantidad: number
-  motivo?: string
   motivoMovimientoId?: number
   fechaMovimiento?: string
 }
@@ -237,7 +239,7 @@ export async function getProductos(params: {
   search?: string
   categoria?: string
   bajoStock?: boolean
-  isActive?: boolean
+  tipoCategoria?: TipoCategoriaProducto
 } = {}): Promise<PagedResult<Producto>> {
   const q = new URLSearchParams()
   if (params.page) q.set("page", String(params.page))
@@ -245,7 +247,7 @@ export async function getProductos(params: {
   if (params.search) q.set("search", params.search)
   if (params.categoria) q.set("categoria", params.categoria)
   if (params.bajoStock != null) q.set("bajoStock", String(params.bajoStock))
-  if (params.isActive != null) q.set("isActive", String(params.isActive))
+  if (params.tipoCategoria) q.set("tipoCategoria", params.tipoCategoria)
   const { data } = await http.get<PagedResult<Producto>>(`/api/productos?${q}`)
   return data
 }
@@ -385,6 +387,7 @@ export interface CategoriaProducto {
   id: number
   nombre: string
   descripcion: string | null
+  tipo: TipoCategoriaProducto
   margen: number
   descuento: number
   isActive: boolean
@@ -394,6 +397,7 @@ export interface CategoriaProducto {
 export interface CreateCategoriaProductoRequest {
   nombre: string
   descripcion?: string
+  tipo: TipoCategoriaProducto
   margen: number
   descuento: number
 }
@@ -401,6 +405,7 @@ export interface CreateCategoriaProductoRequest {
 export interface UpdateCategoriaProductoRequest {
   nombre: string
   descripcion?: string
+  tipo: TipoCategoriaProducto
   margen: number
   descuento: number
   isActive: boolean
@@ -620,12 +625,13 @@ export async function deactivateTipoLente(id: number): Promise<void> {
 export interface Tratamiento {
   id: number
   nombre: string
+  precio: number
   isActive: boolean
   createdAt: string
 }
 
-export interface CreateTratamientoRequest { nombre: string }
-export interface UpdateTratamientoRequest { nombre: string; isActive: boolean }
+export interface CreateTratamientoRequest { nombre: string; precio: number }
+export interface UpdateTratamientoRequest { nombre: string; precio: number; isActive: boolean }
 
 export async function getTratamientos(): Promise<Tratamiento[]> {
   const { data } = await http.get<Tratamiento[]>("/api/tratamientos")

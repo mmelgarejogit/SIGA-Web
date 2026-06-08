@@ -11,7 +11,9 @@ export interface PagedResult<T> {
 
 export interface Receta {
   id: number
-  consultaClinicaId: number
+  consultaClinicaId?: number
+  personId?: number
+  esExterna?: boolean
   fechaEmision: string
   odEsferico?: number
   odCilindro?: number
@@ -196,5 +198,34 @@ export async function downloadRecetaPdf(consultaId: number, patientLastName: str
 
 export async function cambiarEstadoConsulta(id: number, estadoConfigId: number): Promise<ConsultaClinica> {
   const { data } = await http.patch<ConsultaClinica>(`/api/consultas/${id}/estado`, { estadoConfigId })
+  return data
+}
+
+// ── Recetas (flujo de venta a pedido) ───────────────────────────────────────────
+
+export interface CreateRecetaManualRequest {
+  clienteId: number
+  fechaEmision: string
+  odEsferico?: number | null
+  odCilindro?: number | null
+  odEje?: number | null
+  odAdicion?: number | null
+  oiEsferico?: number | null
+  oiCilindro?: number | null
+  oiEje?: number | null
+  oiAdicion?: number | null
+  distanciaInterpupilar?: number | null
+  avSinCorreccion?: string
+  avConCorreccion?: string
+  observaciones?: string
+}
+
+export async function getRecetasByCliente(clienteId: number): Promise<Receta[]> {
+  const { data } = await http.get<Receta[]>(`/api/recetas?clienteId=${clienteId}`)
+  return data
+}
+
+export async function crearRecetaManual(request: CreateRecetaManualRequest): Promise<Receta> {
+  const { data } = await http.post<Receta>("/api/recetas", request)
   return data
 }

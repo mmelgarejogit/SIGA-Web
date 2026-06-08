@@ -37,7 +37,7 @@ const filtered = computed(() => {
   if (!search.value.trim()) return items.value
   const q = search.value.toLowerCase()
   return items.value.filter(i =>
-    i.pacienteNombre.toLowerCase().includes(q) || i.numeroComprobante.toLowerCase().includes(q),
+    i.clienteNombre.toLowerCase().includes(q) || i.numeroComprobante.toLowerCase().includes(q),
   )
 })
 
@@ -104,14 +104,14 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
         </div>
 
         <div class="flex justify-end mb-6">
-          <SearchInput v-model="search" placeholder="Buscar por paciente o comprobante…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
         </div>
 
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos pendientes de aprobación">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
-              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Paciente</th>
+              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cliente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tipo de lente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tratamientos</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Laboratorio</th>
@@ -125,7 +125,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ item.numeroComprobante }}</span>
                 </td>
-                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ item.pacienteNombre }}</td>
+                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ item.clienteNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.tipoLenteNombre }}</td>
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-1">
@@ -159,7 +159,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
       <template #body>
         <div class="space-y-4">
           <div class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
-            <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedItem?.pacienteNombre }}</p>
+            <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedItem?.clienteNombre }}</p>
             <p style="color:var(--color-on-surface-variant)">{{ selectedItem?.tipoLenteNombre }} · {{ selectedItem?.laboratorioNombre }}</p>
           </div>
           <div>

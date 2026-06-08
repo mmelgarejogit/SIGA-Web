@@ -35,6 +35,18 @@ const estadoOptions = [
   { value: "inactiva", label: "Inactivas", dot: "var(--color-outline)" },
 ]
 
+const TIPO_OPTIONS = [
+  { value: "Generico", label: "Genérico" },
+  { value: "Armazon",  label: "Armazón" },
+  { value: "Cristal",  label: "Cristal" },
+] as const
+
+const tipoLabel = (t: string) => TIPO_OPTIONS.find(o => o.value === t)?.label ?? t
+const tipoStyle = (t: string) =>
+  t === "Armazon" ? "background-color: rgba(0,40,142,0.08); color: var(--color-primary)"
+  : t === "Cristal" ? "background-color: rgba(0,103,128,0.10); color: var(--color-secondary)"
+  : "background-color: var(--color-surface-container-high); color: var(--color-outline)"
+
 // ── Paginación ─────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
@@ -88,6 +100,7 @@ const visiblePages = computed(() => {
 
 const columns = [
   { key: "nombre",      label: "Nombre" },
+  { key: "tipo",        label: "Tipo" },
   { key: "descripcion", label: "Descripción" },
   { key: "descuento",   label: "Descuento" },
   { key: "productos",   label: "Productos" },
@@ -149,10 +162,10 @@ function menuItems(cat: CategoriaProducto): ContextMenuItem[] {
 const showCreateModal = ref(false)
 const isSaving = ref(false)
 const createError = ref("")
-const createForm = reactive<CreateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, margen: 0, descuento: 0 })
+const createForm = reactive<CreateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, tipo: "Generico", margen: 0, descuento: 0 })
 
 function openCreate() {
-  Object.assign(createForm, { nombre: "", descripcion: "", margen: 0, descuento: 0 })
+  Object.assign(createForm, { nombre: "", descripcion: "", tipo: "Generico", margen: 0, descuento: 0 })
   createError.value = ""
   showCreateModal.value = true
 }
@@ -165,6 +178,7 @@ async function submitCreate() {
     await createCategoria({
       nombre: createForm.nombre.trim(),
       descripcion: (createForm.descripcion as string)?.trim() || undefined,
+      tipo: createForm.tipo,
       margen: createForm.margen,
       descuento: createForm.descuento,
     })
@@ -183,11 +197,11 @@ const showEditModal = ref(false)
 const isEditSaving = ref(false)
 const editError = ref("")
 const editingCategoria = ref<CategoriaProducto | null>(null)
-const editForm = reactive<UpdateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, margen: 0, descuento: 0, isActive: true })
+const editForm = reactive<UpdateCategoriaProductoRequest>({ nombre: "", descripcion: undefined, tipo: "Generico", margen: 0, descuento: 0, isActive: true })
 
 function openEdit(cat: CategoriaProducto) {
   editingCategoria.value = cat
-  Object.assign(editForm, { nombre: cat.nombre, descripcion: cat.descripcion ?? "", margen: cat.margen, descuento: cat.descuento, isActive: cat.isActive })
+  Object.assign(editForm, { nombre: cat.nombre, descripcion: cat.descripcion ?? "", tipo: cat.tipo, margen: cat.margen, descuento: cat.descuento, isActive: cat.isActive })
   editError.value = ""
   showEditModal.value = true
 }
@@ -201,6 +215,7 @@ async function submitEdit() {
     await updateCategoria(editingCategoria.value.id, {
       nombre: editForm.nombre.trim(),
       descripcion: (editForm.descripcion as string)?.trim() || undefined,
+      tipo: editForm.tipo,
       margen: editForm.margen,
       descuento: editForm.descuento,
       isActive: editForm.isActive,
@@ -264,6 +279,7 @@ async function confirmActivate() {
     await updateCategoria(cat.id, {
       nombre: cat.nombre,
       descripcion: cat.descripcion ?? undefined,
+      tipo: cat.tipo,
       margen: cat.margen,
       descuento: cat.descuento,
       isActive: true,
@@ -331,6 +347,12 @@ async function confirmActivate() {
                 </div>
                 <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
               </div>
+            </template>
+
+            <template #tipo="{ item }">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold" :style="tipoStyle(item.tipo)">
+                {{ tipoLabel(item.tipo) }}
+              </span>
             </template>
 
             <template #descripcion="{ item }">
@@ -435,6 +457,14 @@ async function confirmActivate() {
             :style="inputStyle(false)" />
         </div>
         <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo *</label>
+          <select v-model="createForm.tipo" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)">
+            <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+          <p class="text-xs" style="color: var(--color-outline)">Armazón / Cristal habilitan el producto en el flujo de venta a pedido.</p>
+        </div>
+        <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
           <input v-model="createForm.descripcion" type="text" placeholder="Opcional"
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
@@ -479,6 +509,14 @@ async function confirmActivate() {
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="editForm.nombre" type="text" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
             :style="inputStyle(false)" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo *</label>
+          <select v-model="editForm.tipo" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)">
+            <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+          <p class="text-xs" style="color: var(--color-outline)">Armazón / Cristal habilitan el producto en el flujo de venta a pedido.</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
