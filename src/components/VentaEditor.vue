@@ -179,7 +179,8 @@ async function guardar() {
       ventaId = v.id
     }
     await confirmarVenta(ventaId)
-    router.push(`/ventas/cobros-pendientes?venta=${ventaId}`)
+    // Tras confirmar se va a la pantalla de cobro de la venta (cobro independiente del laboratorio).
+    router.push(`/ventas/${ventaId}/cobrar`)
   } catch (e: any) {
     saveError.value = e?.response?.data?.message ?? "Error al guardar"
   } finally {

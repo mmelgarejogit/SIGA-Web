@@ -9,11 +9,12 @@ import BaseButton from "@/components/BaseButton.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type TrabajoPedidoListDto, getTrabajosPedido, gestionarAprobacionTP } from "@/services/ventasService"
+import { type TrabajoPedidoListDto } from "@/services/ventasService"
+import { getPedidos, gestionarAprobacion } from "@/services/laboratorioService"
 
 const router = useRouter()
 const auth   = useAuthStore()
-const canManage = auth.hasPermission("gestionar_ventas")
+const canManage = auth.hasPermission("gestionar_laboratorio")
 
 const formatDate = (s?: string) =>
   s ? new Date(s.includes("T") ? s : s + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
@@ -26,7 +27,7 @@ const search    = ref("")
 
 async function load() {
   isLoading.value = true
-  try { items.value = await getTrabajosPedido("PendienteAprobacion") }
+  try { items.value = await getPedidos("PendienteAprobacion") }
   catch { items.value = [] }
   finally { isLoading.value = false }
 }
@@ -63,7 +64,7 @@ async function submitGestion() {
   isGestion.value    = true
   gestionError.value = ""
   try {
-    await gestionarAprobacionTP(selectedItem.value.id, { accion: accion.value, observacion: observacion.value || undefined })
+    await gestionarAprobacion(selectedItem.value.id, { accion: accion.value, observacion: observacion.value || undefined })
     showModal.value = false
     await load()
   } catch (e: any) {

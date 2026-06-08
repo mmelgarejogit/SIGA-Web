@@ -10,9 +10,9 @@ import {
   type Venta, type TipoDevolucion,
   getVentaById, confirmarVenta, cancelarVenta,
   emitirComprobante, emitirFactura,
-  crearTrabajoPedido, registrarEnvioLabVenta, registrarRecepcionLabVenta,
   solicitarDevolucion, gestionarDevolucion,
 } from "@/services/ventasService"
+import { crearPedido, registrarEnvio, registrarRecepcion } from "@/services/laboratorioService"
 import { getLaboratorios, type ProveedorSimple } from "@/services/comprasService"
 import { getTiposLente, getTratamientos, type TipoLente, type Tratamiento } from "@/services/inventarioService"
 
@@ -86,7 +86,7 @@ const puedeCancelar         = computed(() => ["Borrador", "Confirmada", "EnProce
 const puedeConfirmar        = computed(() => venta.value?.estado === "Borrador")
 const puedeEmitirComp       = computed(() => venta.value?.estado === "ListaParaCobrar" && !venta.value?.comprobante)
 const puedeRegistrarCobro   = computed(() => (venta.value?.saldoPendiente ?? 0) > 0 && !["Cancelada", "Borrador", "ComprobanteEmitido"].includes(venta.value?.estado ?? ""))
-const puedeCrearTP          = computed(() => venta.value?.tipo === "TrabajoAPedido" && venta.value?.estado === "EnProceso" && !venta.value?.trabajoPedido)
+const puedeCrearTP          = computed(() => venta.value?.tipo === "TrabajoAPedido" && !["Borrador", "Cancelada"].includes(venta.value?.estado ?? "") && !venta.value?.trabajoPedido)
 const puedeEnviarLab        = computed(() => venta.value?.trabajoPedido?.estado === "PendienteEnvio")
 const puedeRecibirLab       = computed(() => venta.value?.trabajoPedido?.estado === "Enviado")
 const puedeDevolver         = computed(() => venta.value?.estado === "ComprobanteEmitido")
@@ -261,13 +261,15 @@ async function submitTP() {
   isCreandoTP.value = true
   tpError.value     = ""
   try {
-    venta.value = await crearTrabajoPedido(venta.value.id, {
+    await crearPedido({
+      ventaId:                venta.value.id,
       recetaId:               tpForm.recetaId || (venta.value.recetaId ?? 0),
       tipoLenteId:            tpForm.tipoLenteId,
       tratamientoIds:         tpForm.tratamientoIds,
       laboratorioProveedorId: tpForm.laboratorioProveedorId,
       observacion:            tpForm.observacion || undefined,
     })
+    await load()
     showTP.value = false
   } catch (e: any) {
     tpError.value = e?.response?.data?.message ?? "Error al crear pedido"
@@ -287,7 +289,8 @@ async function submitEnvioLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarEnvioLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarEnvio(venta.value.trabajoPedido!.id)
+    await load()
     showEnvioLab.value = false
   } finally {
     isLabOp.value = false
@@ -298,7 +301,8 @@ async function submitRecepcionLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarRecepcionLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarRecepcion(venta.value.trabajoPedido!.id)
+    await load()
     showRecepcionLab.value = false
   } finally {
     isLabOp.value = false
@@ -411,7 +415,7 @@ async function submitGestionDev() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8 max-w-5xl">
+      <div class="p-8">
 
         <!-- Volver -->
         <button
@@ -468,9 +472,9 @@ async function submitGestionDev() {
                 <span class="material-symbols-outlined" style="font-size:18px">inventory</span>
                 Registrar recepción
               </BaseButton>
-              <BaseButton v-if="puedeRegistrarCobro" variant="primary" @click="router.push(`/ventas/cobros-pendientes?venta=${venta!.id}`)">
+              <BaseButton v-if="puedeRegistrarCobro" variant="primary" @click="router.push(`/ventas/${venta!.id}/cobrar`)">
                 <span class="material-symbols-outlined" style="font-size:18px">payments</span>
-                Registrar cobro
+                Cobrar
               </BaseButton>
               <BaseButton v-if="puedeEmitirComp" variant="primary" @click="showComprobante = true">
                 <span class="material-symbols-outlined" style="font-size:18px">receipt_long</span>

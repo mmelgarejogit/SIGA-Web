@@ -45,6 +45,9 @@ export const SYSTEM_PERMISSIONS = [
   { id: "pagar_egresos",          label: "Registrar pago de egresos" },
   { id: "ver_ventas",             label: "Ver ventas" },
   { id: "registrar_venta",        label: "Registrar venta" },
+  { id: "gestionar_ventas",       label: "Gestionar ventas" },
+  { id: "ver_laboratorio",        label: "Ver laboratorio" },
+  { id: "gestionar_laboratorio",  label: "Gestionar laboratorio" },
   { id: "ver_reportes",           label: "Ver reportes" },
   { id: "ver_dashboard",          label: "Ver dashboard" },
   { id: "ver_notificaciones",     label: "Ver notificaciones" },
@@ -139,10 +142,20 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   {
     module: "Ventas y Caja",
     icon: "payments",
-    description: "Facturación y movimientos de caja",
+    description: "Facturación, cobros y movimientos de caja",
     permissions: [
-      { id: "ver_ventas",      label: "Ver ventas" },
-      { id: "registrar_venta", label: "Registrar venta" },
+      { id: "ver_ventas",       label: "Ver ventas" },
+      { id: "registrar_venta",  label: "Registrar venta" },
+      { id: "gestionar_ventas", label: "Gestionar ventas" },
+    ],
+  },
+  {
+    module: "Laboratorio",
+    icon: "biotech",
+    description: "Pedidos a laboratorio: aprobación, envío, recepción y facturas",
+    permissions: [
+      { id: "ver_laboratorio",       label: "Ver laboratorio" },
+      { id: "gestionar_laboratorio", label: "Gestionar laboratorio" },
     ],
   },
   {

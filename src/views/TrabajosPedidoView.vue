@@ -10,13 +10,14 @@ import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type TrabajoPedidoListDto, type Venta, getTrabajosPedido, getVentas, crearTrabajoPedido } from "@/services/ventasService"
+import { type TrabajoPedidoListDto, type Venta, getVentas } from "@/services/ventasService"
+import { getPedidos, crearPedido } from "@/services/laboratorioService"
 import { getLaboratorios, type ProveedorSimple } from "@/services/comprasService"
 import { getTiposLente, getTratamientos, type TipoLente, type Tratamiento } from "@/services/inventarioService"
 
 const router = useRouter()
 const auth   = useAuthStore()
-const canCreate = auth.hasPermission("registrar_venta")
+const canCreate = auth.hasPermission("gestionar_laboratorio")
 
 const formatDate = (s?: string) =>
   s ? new Date(s.includes("T") ? s : s + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
@@ -39,7 +40,7 @@ const estadoOptions = [
 async function load() {
   isLoading.value = true
   try {
-    items.value = await getTrabajosPedido(estadoFiltro.value.length === 1 ? estadoFiltro.value[0] : undefined)
+    items.value = await getPedidos(estadoFiltro.value.length === 1 ? estadoFiltro.value[0] : undefined)
   } catch { items.value = [] }
   finally { isLoading.value = false }
 }
@@ -104,12 +105,12 @@ async function openTP() {
   tpTratamientosSearch.value = ""
   tpShowTratDrop.value       = false
   const [vts, labs, tipos, tratos] = await Promise.allSettled([
-    getVentas({ estado: "EnProceso", tipo: "TrabajoAPedido", pageSize: 200 }),
+    getVentas({ tipo: "TrabajoAPedido", pageSize: 200 }),
     laboratorios.value.length  ? Promise.resolve(laboratorios.value)  : getLaboratorios(),
     tiposLente.value.length    ? Promise.resolve(tiposLente.value)    : getTiposLente(),
     tratamientos.value.length  ? Promise.resolve(tratamientos.value)  : getTratamientos(),
   ])
-  if (vts.status   === "fulfilled") candidatos.value   = vts.value.items.filter(v => !v.trabajoPedido)
+  if (vts.status   === "fulfilled") candidatos.value   = vts.value.items.filter(v => !v.trabajoPedido && !["Borrador", "Cancelada"].includes(v.estado))
   if (labs.status  === "fulfilled") laboratorios.value = labs.value
   if (tipos.status === "fulfilled") tiposLente.value   = tipos.value.filter((t: TipoLente) => t.isActive)
   if (tratos.status === "fulfilled") tratamientos.value = tratos.value.filter((t: Tratamiento) => t.isActive)
@@ -191,7 +192,8 @@ async function submitTP() {
   isCreandoTP.value = true
   tpError.value     = ""
   try {
-    await crearTrabajoPedido(tpForm.ventaId, {
+    await crearPedido({
+      ventaId:                tpForm.ventaId,
       recetaId:               tpSelectedVenta.value?.recetaId ?? 0,
       tipoLenteId:            tpForm.tipoLenteId,
       tratamientoIds:         tpForm.tratamientoIds,
