@@ -12,10 +12,13 @@ import {
   getEgresoById,
   registrarPago,
 } from "@/services/egresosService"
+import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
 const route = useRoute()
 const id = Number(route.params.id)
+const auth = useAuthStore()
+const canMarkExternal = auth.hasPermission("aprobar_egresos")
 
 // ── Estado ─────────────────────────────────────────────────────────────────────
 
@@ -30,9 +33,11 @@ const form = reactive({
   metodoPago: "" as MetodoPago | "",
   nroComprobante: "",
   observaciones: "",
+  esExterno: false,
+  motivoExterno: "",
 })
 
-type FormErrors = { fechaPago?: string; metodoPago?: string }
+type FormErrors = { fechaPago?: string; metodoPago?: string; motivoExterno?: string }
 const errors = ref<FormErrors>({})
 
 onMounted(async () => {
@@ -107,6 +112,7 @@ function validate() {
   const e: FormErrors = {}
   if (!form.fechaPago) e.fechaPago = "La fecha de pago es obligatoria."
   if (!form.metodoPago) e.metodoPago = "El método de pago es obligatorio."
+  if (form.esExterno && !form.motivoExterno.trim()) e.motivoExterno = "El motivo es obligatorio para un pago externo."
   errors.value = e
   return Object.keys(e).length === 0
 }
@@ -121,6 +127,8 @@ async function submit() {
       fechaPago: form.fechaPago,
       nroComprobante: form.nroComprobante.trim() || undefined,
       observaciones: form.observaciones.trim() || undefined,
+      esExterno: form.esExterno || undefined,
+      motivoExterno: form.esExterno ? form.motivoExterno.trim() : undefined,
     })
     router.push("/egresos/pagos")
   } catch (err: unknown) {
@@ -269,6 +277,60 @@ async function submit() {
                 class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                 :style="inputStyle(false)" />
             </div>
+
+            <!-- Pago externo (solo visible para aprobar_egresos) -->
+            <template v-if="canMarkExternal">
+              <div class="pt-1" style="border-top: 1px solid rgba(196,197,213,0.2)">
+                <button
+                  type="button"
+                  @click="form.esExterno = !form.esExterno"
+                  class="flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 transition-all"
+                  :style="form.esExterno
+                    ? 'background-color: #FEF3C7; border: 1px solid #FDE68A;'
+                    : 'background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);'"
+                >
+                  <div
+                    class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
+                    :style="form.esExterno
+                      ? 'background-color: #D97706; border: 1.5px solid #D97706;'
+                      : 'background-color: transparent; border: 1.5px solid var(--color-outline);'"
+                  >
+                    <span v-if="form.esExterno" class="material-symbols-outlined text-white" style="font-size:14px">check</span>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold" :style="form.esExterno ? 'color: #92400E' : 'color: var(--color-on-surface)'">
+                      Pago externo (no afecta la caja)
+                    </p>
+                    <p class="text-xs" :style="form.esExterno ? 'color: #B45309' : 'color: var(--color-outline)'">
+                      El pago fue realizado desde fuera de la caja (ej: transferencia directa, pago del jefe)
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              <div v-if="form.esExterno" class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+                  Motivo del pago externo *
+                </label>
+                <textarea
+                  v-model="form.motivoExterno"
+                  rows="2"
+                  placeholder="Ej: Pagado por transferencia bancaria directa del gerente"
+                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
+                  :style="inputStyle(!!errors.motivoExterno)"
+                />
+                <p v-if="errors.motivoExterno" class="text-xs font-medium" style="color: var(--color-error)">
+                  {{ errors.motivoExterno }}
+                </p>
+              </div>
+
+              <div v-if="form.esExterno"
+                class="flex items-start gap-2 rounded-xl px-4 py-3 text-xs font-medium"
+                style="background-color: #FEF3C7; color: #92400E;">
+                <span class="material-symbols-outlined flex-shrink-0" style="font-size:16px">warning</span>
+                Este pago quedará registrado bajo tu nombre. No se creará movimiento en la caja actual.
+              </div>
+            </template>
           </div>
 
           <!-- Acciones -->

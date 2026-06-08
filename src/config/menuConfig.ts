@@ -317,10 +317,22 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_ventas",
     children: [
       {
-        label: "Cierre de Caja",
-        icon: "lock_clock",
+        label: "Caja",
+        icon: "point_of_sale",
         route: "/ventas/cierre",
-        permission: "gestionar_ventas",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Historial de Caja",
+        icon: "history",
+        route: "/caja/historial",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Aprobaciones",
+        icon: "task_alt",
+        route: "/caja/aprobaciones",
+        permission: "aprobar_cierres_caja",
       },
     ],
   },

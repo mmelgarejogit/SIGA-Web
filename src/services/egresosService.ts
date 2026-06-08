@@ -22,6 +22,8 @@ export interface Egreso {
   motivoRechazo?: string
   fechaAprobacion?: string
   nroComprobante?: string
+  pagoExterno: boolean
+  motivoPagoExterno?: string
   createdAt: string
 
   // FacturaCompra — referencia
@@ -108,6 +110,8 @@ export interface RegistrarPagoRequest {
   fechaPago: string
   nroComprobante?: string
   observaciones?: string
+  esExterno?: boolean
+  motivoExterno?: string
 }
 
 export interface AprobarEgresoRequest { }

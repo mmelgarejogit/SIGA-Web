@@ -398,7 +398,7 @@ export const getDevoluciones = (ventaId: number) =>
 export const gestionarDevolucion = (devolucionId: number, data: GestionarDevolucionRequest) =>
   post<Devolucion>(`/api/ventas/devoluciones/${devolucionId}/gestionar`, data)
 
-// Caja
+// Caja — resumen
 export const getCobrosPendientes = () =>
   get<Venta[]>("/api/ventas/cobros-pendientes")
 
@@ -407,3 +407,84 @@ export const getResumenCaja = (fecha: string) =>
 
 export const getServicios = () =>
   get<Servicio[]>("/api/servicios")
+
+// ── Sesiones de caja ──────────────────────────────────────────────────────────
+
+export type EstadoSesionCaja = "Abierta" | "Cerrada" | "PendienteAprobacion"
+
+export interface SesionCaja {
+  id: number
+  estado: EstadoSesionCaja
+  montoInicial: number
+  abiertaPorNombre: string
+  fechaApertura: string
+  cerradaPorNombre?: string
+  fechaCierre?: string
+  efectivoContado?: number
+  efectivoEsperado?: number
+  diferencia?: number
+  observacionCierre?: string
+  aprobadoPorNombre?: string
+  fechaAprobacion?: string
+  motivoRechazo?: string
+  totalIngresos: number
+  totalEgresos: number
+  saldoNeto: number
+  efectivoIngresos: number
+  tarjetaTotal: number
+  transferenciaTotal: number
+  chequeTotal: number
+  cantidadMovimientos: number
+  movimientos: MovimientoCaja[]
+}
+
+export interface SesionCajaListItem {
+  id: number
+  estado: EstadoSesionCaja
+  montoInicial: number
+  abiertaPorNombre: string
+  fechaApertura: string
+  cerradaPorNombre?: string
+  fechaCierre?: string
+  efectivoContado?: number
+  efectivoEsperado?: number
+  diferencia?: number
+  aprobadoPorNombre?: string
+  fechaAprobacion?: string
+  motivoRechazo?: string
+  totalIngresos: number
+  totalEgresos: number
+  saldoNeto: number
+}
+
+export interface SesionesPagedResult {
+  items: SesionCajaListItem[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export const getSesionActual = () =>
+  get<SesionCaja | null>("/api/caja/sesion-actual")
+
+export const abrirSesion = (montoInicial: number) =>
+  post<SesionCaja>("/api/caja/sesiones", { montoInicial })
+
+export const cerrarSesion = (id: number, efectivoContado: number, observacion?: string) =>
+  post<SesionCaja>(`/api/caja/sesiones/${id}/cerrar`, { efectivoContado, observacion })
+
+export const getSesionById = (id: number) =>
+  get<SesionCaja>(`/api/caja/sesiones/${id}`)
+
+export const getSesiones = (page = 1, pageSize = 20, estado?: string) => {
+  const q = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (estado) q.set("estado", estado)
+  return get<SesionesPagedResult>(`/api/caja/sesiones?${q}`)
+}
+
+export const aprobarCierre = (id: number) =>
+  post<SesionCaja>(`/api/caja/sesiones/${id}/aprobar-cierre`, {})
+
+export const rechazarCierre = (id: number, motivo: string) =>
+  post<SesionCaja>(`/api/caja/sesiones/${id}/rechazar-cierre`, { motivo })

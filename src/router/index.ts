@@ -393,7 +393,19 @@ const router = createRouter({
       path: "/ventas/cierre",
       name: "ventas-cierre",
       component: () => import("@/views/VentasCierreView.vue"),
-      meta: { requiresAuth: true, permission: "gestionar_ventas", label: "Cierre de Caja" },
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Caja" },
+    },
+    {
+      path: "/caja/historial",
+      name: "caja-historial",
+      component: () => import("@/views/CajaHistorialView.vue"),
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Caja" },
+    },
+    {
+      path: "/caja/aprobaciones",
+      name: "caja-aprobaciones",
+      component: () => import("@/views/CajaAprobacionesView.vue"),
+      meta: { requiresAuth: true, permission: "aprobar_cierres_caja", label: "Aprobaciones de Caja" },
     },
     {
       path: "/reportes/citas",

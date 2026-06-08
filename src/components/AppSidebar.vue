@@ -47,19 +47,29 @@ const visibleItems = computed<MenuItem[]>(() => {
 
 // ── Active group (contains active route) ───────────────────
 const activeGroupId = computed<string | null>(() => {
+  // First pass: exact child match wins over any prefix match
   for (const item of visibleItems.value) {
-    if (item.route && (route.path === item.route || route.path.startsWith(item.route + "/"))) {
-      return null
-    }
+    if (item.route && route.path === item.route) return null
     if (item.children) {
       for (const child of item.children) {
-        if (route.path === child.route || route.path.startsWith(child.route + "/")) {
-          return item.id
+        if (route.path === child.route) return item.id
+      }
+    }
+  }
+  // Second pass: prefix match (for nested sub-routes), pick longest
+  let best: { groupId: string; len: number } | null = null
+  for (const item of visibleItems.value) {
+    if (item.children) {
+      for (const child of item.children) {
+        if (route.path.startsWith(child.route + "/")) {
+          if (!best || child.route.length > best.len) {
+            best = { groupId: item.id, len: child.route.length }
+          }
         }
       }
     }
   }
-  return null
+  return best?.groupId ?? null
 })
 
 // ── Active child route ─────────────────────────────────────
