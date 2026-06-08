@@ -16,7 +16,7 @@ const ventasFiltradas = computed(() => {
   const q = search.value.toLowerCase()
   return ventas.value.filter(
     (v) =>
-      v.pacienteNombre.toLowerCase().includes(q) ||
+      v.clienteNombre.toLowerCase().includes(q) ||
       v.numeroComprobante.toLowerCase().includes(q) ||
       v.factura?.numeroFactura?.toLowerCase().includes(q),
   )
@@ -25,7 +25,7 @@ const ventasFiltradas = computed(() => {
 const columns = [
   { key: "factura",     label: "Nro. Factura"  },
   { key: "comprobante", label: "Comprobante"   },
-  { key: "paciente",    label: "Paciente"      },
+  { key: "paciente",    label: "Cliente"       },
   { key: "fecha",       label: "Fecha emisión" },
   { key: "total",       label: "Total"         },
   { key: "iva",         label: "IVA total"     },
@@ -74,7 +74,7 @@ const formatDate = (s?: string) =>
         <div class="flex items-center justify-end mb-6">
           <SearchInput
             :model-value="search"
-            placeholder="Buscar por factura, comprobante o paciente..."
+            placeholder="Buscar por factura, comprobante o cliente..."
             class="w-80"
             @update:model-value="search = $event"
           />
@@ -102,7 +102,7 @@ const formatDate = (s?: string) =>
           </template>
 
           <template #paciente="{ item }">
-            <span class="text-sm" style="color: var(--color-on-surface)">{{ item.pacienteNombre }}</span>
+            <span class="text-sm" style="color: var(--color-on-surface)">{{ item.clienteNombre }}</span>
           </template>
 
           <template #fecha="{ item }">

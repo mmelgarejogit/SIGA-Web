@@ -10,7 +10,7 @@ import {
   type Venta, type TipoDevolucion,
   getVentaById, confirmarVenta, cancelarVenta,
   emitirComprobante, emitirFactura,
-  crearTrabajoPedido, registrarEnvioLab, registrarRecepcionLab,
+  crearTrabajoPedido, registrarEnvioLabVenta, registrarRecepcionLabVenta,
   solicitarDevolucion, gestionarDevolucion,
 } from "@/services/ventasService"
 import { getLaboratorios, type ProveedorSimple } from "@/services/comprasService"
@@ -287,9 +287,8 @@ async function submitEnvioLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    await registrarEnvioLab(venta.value.id, { observacion: labObservacion.value || undefined })
+    venta.value = await registrarEnvioLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
     showEnvioLab.value = false
-    await load()
   } finally {
     isLabOp.value = false
   }
@@ -299,9 +298,8 @@ async function submitRecepcionLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    await registrarRecepcionLab(venta.value.id, { observacion: labObservacion.value || undefined })
+    venta.value = await registrarRecepcionLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
     showRecepcionLab.value = false
-    await load()
   } finally {
     isLabOp.value = false
   }
@@ -448,7 +446,7 @@ async function submitGestionDev() {
                 >{{ venta.tipo === "TrabajoAPedido" ? "Trabajo a pedido" : "Directa" }}</span>
               </div>
               <p class="font-medium" style="color: var(--color-on-surface-variant)">
-                {{ venta.pacienteNombre }} · {{ venta.condicionVenta === "Credito" ? "Crédito" : "Contado" }} · {{ formatDate(venta.fechaVenta) }}
+                {{ venta.clienteNombre }} · {{ venta.condicionVenta === "Credito" ? "Crédito" : "Contado" }} · {{ formatDate(venta.fechaVenta) }}
               </p>
             </div>
 
@@ -569,7 +567,11 @@ async function submitGestionDev() {
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Laboratorio</p>
                     <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.laboratorioNombre }}</p>
                   </div>
-                  <div>
+                  <div v-if="venta.trabajoPedido.cristalProductoNombre">
+                    <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Cristal</p>
+                    <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.cristalProductoNombre }}</p>
+                  </div>
+                  <div v-if="venta.trabajoPedido.tipoLenteNombre">
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Tipo de lente</p>
                     <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.tipoLenteNombre }}</p>
                   </div>
@@ -584,9 +586,9 @@ async function submitGestionDev() {
                       >{{ t.nombre }}</span>
                     </div>
                   </div>
-                  <div v-if="venta.trabajoPedido.armazonProductoNombre">
+                  <div v-if="venta.trabajoPedido.armazonProductoNombre || venta.trabajoPedido.armazonDelCliente">
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Armazón</p>
-                    <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.armazonProductoNombre }}</p>
+                    <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.armazonDelCliente ? "Propio del cliente" : venta.trabajoPedido.armazonProductoNombre }}</p>
                   </div>
                   <div v-if="venta.trabajoPedido.fechaEnvio">
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Fecha envío</p>

@@ -50,7 +50,7 @@ const filtered = computed(() => {
   if (!search.value.trim()) return items.value
   const q = search.value.toLowerCase()
   return items.value.filter(i =>
-    i.pacienteNombre.toLowerCase().includes(q) ||
+    i.clienteNombre.toLowerCase().includes(q) ||
     i.numeroComprobante.toLowerCase().includes(q) ||
     i.laboratorioNombre.toLowerCase().includes(q),
   )
@@ -123,12 +123,12 @@ const tpSelectedVenta = computed(() => candidatos.value.find(v => v.id === tpFor
 const tpFilteredVentas = computed(() => {
   const q = tpVentaSearch.value.trim().toLowerCase()
   return q
-    ? candidatos.value.filter(v => v.pacienteNombre.toLowerCase().includes(q) || v.numeroComprobante.toLowerCase().includes(q))
+    ? candidatos.value.filter(v => v.clienteNombre.toLowerCase().includes(q) || v.numeroComprobante.toLowerCase().includes(q))
     : candidatos.value
 })
 function selectVenta(v: Venta) {
   tpForm.ventaId      = v.id
-  tpVentaSearch.value = `${v.numeroComprobante} · ${v.pacienteNombre}`
+  tpVentaSearch.value = `${v.numeroComprobante} · ${v.clienteNombre}`
   tpShowVentaDrop.value = false
 }
 function clearVenta() { tpForm.ventaId = 0; tpVentaSearch.value = "" }
@@ -230,14 +230,14 @@ async function submitTP() {
 
         <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <FilterChips v-model="estadoFiltro" :options="estadoOptions" placeholder="Estado" @update:model-value="load" />
-          <SearchInput v-model="search" placeholder="Buscar por paciente, comprobante o laboratorio…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente, comprobante o laboratorio…" class="w-72" />
         </div>
 
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos que mostrar">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
-              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Paciente</th>
+              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cliente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tipo de lente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Laboratorio</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Fecha</th>
@@ -255,7 +255,7 @@ async function submitTP() {
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ item.numeroComprobante }}</span>
                 </td>
-                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ item.pacienteNombre }}</td>
+                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ item.clienteNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.tipoLenteNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.laboratorioNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</td>
@@ -296,7 +296,7 @@ async function submitTP() {
                 v-model="tpVentaSearch"
                 :disabled="!!tpSelectedVenta"
                 type="text"
-                placeholder="Buscar venta por comprobante o paciente…"
+                placeholder="Buscar venta por comprobante o cliente…"
                 class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
                 style="border-radius:12px;border:1px solid var(--color-outline-variant);color:var(--color-on-surface);background-color:var(--color-surface-container-low)"
                 @focus="tpShowVentaDrop = true"
@@ -316,7 +316,7 @@ async function submitTP() {
                   @mousedown.prevent="selectVenta(v)"
                 >
                   <span class="font-mono font-semibold" style="color:var(--color-primary)">{{ v.numeroComprobante }}</span>
-                  <span class="ml-2 font-medium" style="color:var(--color-on-surface)">{{ v.pacienteNombre }}</span>
+                  <span class="ml-2 font-medium" style="color:var(--color-on-surface)">{{ v.clienteNombre }}</span>
                 </button>
               </div>
               <div v-if="tpShowVentaDrop && !tpFilteredVentas.length" class="absolute left-0 right-0 z-30 mt-1 px-4 py-3 text-sm rounded-xl"
@@ -330,7 +330,7 @@ async function submitTP() {
                   <span class="material-symbols-outlined" style="font-size:18px;color:#1D4ED8">receipt_long</span>
                   <div>
                     <p class="text-sm font-semibold" style="color:#1D4ED8">{{ tpSelectedVenta.numeroComprobante }}</p>
-                    <p class="text-xs" style="color:#3B82F6">{{ tpSelectedVenta.pacienteNombre }}</p>
+                    <p class="text-xs" style="color:#3B82F6">{{ tpSelectedVenta.clienteNombre }}</p>
                   </div>
                 </div>
                 <button @click="clearVenta" class="p-1 rounded-full hover:bg-blue-100 transition-colors">

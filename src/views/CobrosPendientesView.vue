@@ -96,7 +96,7 @@ const filtered = computed(() => {
   if (!search.value.trim()) return ventas.value
   const q = search.value.toLowerCase()
   return ventas.value.filter(v =>
-    v.pacienteNombre.toLowerCase().includes(q) ||
+    v.clienteNombre.toLowerCase().includes(q) ||
     v.numeroComprobante.toLowerCase().includes(q),
   )
 })
@@ -110,10 +110,10 @@ const totalSaldo = computed(() =>
 const porPaciente = computed(() => {
   const map = new Map<string, { nombre: string; ventas: number; saldo: number }>()
   for (const v of filtered.value) {
-    const entry = map.get(v.pacienteNombre) ?? { nombre: v.pacienteNombre, ventas: 0, saldo: 0 }
+    const entry = map.get(v.clienteNombre) ?? { nombre: v.clienteNombre, ventas: 0, saldo: 0 }
     entry.ventas++
     entry.saldo += v.saldoPendiente
-    map.set(v.pacienteNombre, entry)
+    map.set(v.clienteNombre, entry)
   }
   return [...map.values()].sort((a, b) => b.saldo - a.saldo)
 })
@@ -179,14 +179,14 @@ function menuItems(v: Venta): ContextMenuItem[] {
 
             <!-- Filtros -->
             <div class="flex items-center justify-end">
-              <SearchInput v-model="search" placeholder="Buscar por paciente o comprobante…" class="w-72" />
+              <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
             </div>
 
             <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="Sin cobros pendientes">
                 <template #head>
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Paciente</th>
+                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cliente</th>
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Fecha</th>
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Antigüedad</th>
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Total</th>
@@ -206,7 +206,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
                     <td class="px-6 py-4">
                       <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
                     </td>
-                    <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.pacienteNombre }}</td>
+                    <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</td>
                     <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(v.fechaVenta) }}</td>
                     <td class="px-6 py-4">
                       <span
@@ -239,7 +239,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
           <div class="xl:col-span-1">
             <div class="rounded-2xl overflow-hidden sticky top-24" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <div class="px-5 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
-                <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Por paciente</h3>
+                <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Por cliente</h3>
               </div>
               <div class="divide-y" style="divide-color: rgba(196,197,213,0.12); max-height: 480px; overflow-y: auto">
                 <div v-if="!porPaciente.length" class="px-5 py-4 text-sm" style="color: var(--color-outline)">
@@ -274,7 +274,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
       <template #body>
         <div class="space-y-5">
           <div v-if="selectedVenta" class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
-            <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedVenta.numeroComprobante }} · {{ selectedVenta.pacienteNombre }}</p>
+            <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedVenta.numeroComprobante }} · {{ selectedVenta.clienteNombre }}</p>
             <p style="color:var(--color-on-surface-variant)">Saldo pendiente: <strong style="color:#92400E">{{ formatPrice(selectedVenta.saldoPendiente) }}</strong></p>
           </div>
           <div class="grid grid-cols-2 gap-4">

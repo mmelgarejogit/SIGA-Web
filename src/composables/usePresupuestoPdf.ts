@@ -82,7 +82,7 @@ export function usePresupuestoPdf() {
     doc.setFont("helvetica", "bold")
     doc.setFontSize(11)
     doc.setTextColor(...PRIMARY)
-    doc.text("Paciente", margin, y)
+    doc.text("Cliente", margin, y)
     doc.text("Detalles", pageW / 2 + 5, y)
 
     y += 5
@@ -90,7 +90,7 @@ export function usePresupuestoPdf() {
     doc.setFont("helvetica", "bold")
     doc.setFontSize(10)
     doc.setTextColor(...DARK)
-    doc.text(venta.pacienteNombre, margin, y)
+    doc.text(venta.clienteNombre, margin, y)
 
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9)
@@ -236,7 +236,7 @@ export function usePresupuestoPdf() {
       pageW / 2, footerY + 5, { align: "center" },
     )
 
-    doc.save(`Presupuesto-${venta.numeroComprobante}-${venta.pacienteNombre.replace(/\s+/g, "-")}.pdf`)
+    doc.save(`Presupuesto-${venta.numeroComprobante}-${venta.clienteNombre.replace(/\s+/g, "-")}.pdf`)
   }
 
   return { generarPdfPresupuesto }

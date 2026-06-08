@@ -18,8 +18,8 @@ const loadError = ref("")
 
 async function load() {
   try {
-    const result = await getProductos({ pageSize: 500, isActive: true })
-    productos.value = result.items
+    const result = await getProductos({ pageSize: 500 })
+    productos.value = result.items.filter((p) => p.isActive)
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar productos."
   } finally {

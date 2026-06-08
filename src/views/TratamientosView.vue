@@ -21,6 +21,9 @@ import {
 const auth      = useAuthStore()
 const canManage = auth.hasPermission("gestionar_inventario")
 
+const formatPrice = (n: number) =>
+  new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
+
 // ── Estado ─────────────────────────────────────────────────────────────────────
 
 const items     = ref<Tratamiento[]>([])
@@ -71,6 +74,7 @@ const visiblePages = computed(() => {
 
 const columns = [
   { key: "nombre",   label: "Nombre" },
+  { key: "precio",   label: "Precio" },
   { key: "estado",   label: "Estado" },
   { key: "acciones", label: "", align: "right" as const },
 ]
@@ -106,10 +110,10 @@ function menuItems(item: Tratamiento): ContextMenuItem[] {
 const showCreate  = ref(false)
 const isSaving    = ref(false)
 const createError = ref("")
-const createForm  = reactive<CreateTratamientoRequest>({ nombre: "" })
+const createForm  = reactive<CreateTratamientoRequest>({ nombre: "", precio: 0 })
 
 function openCreate() {
-  Object.assign(createForm, { nombre: "" })
+  Object.assign(createForm, { nombre: "", precio: 0 })
   createError.value = ""
   showCreate.value  = true
 }
@@ -117,9 +121,10 @@ function openCreate() {
 async function submitCreate() {
   createError.value = ""
   if (!createForm.nombre.trim()) { createError.value = "El nombre es obligatorio."; return }
+  if (createForm.precio < 0) { createError.value = "El precio no puede ser negativo."; return }
   isSaving.value = true
   try {
-    await createTratamiento({ nombre: createForm.nombre.trim() })
+    await createTratamiento({ nombre: createForm.nombre.trim(), precio: createForm.precio })
     showCreate.value = false
     await load()
   } catch (err: unknown) {
@@ -135,11 +140,11 @@ const showEdit     = ref(false)
 const isEditSaving = ref(false)
 const editError    = ref("")
 const editingItem  = ref<Tratamiento | null>(null)
-const editForm     = reactive<UpdateTratamientoRequest>({ nombre: "", isActive: true })
+const editForm     = reactive<UpdateTratamientoRequest>({ nombre: "", precio: 0, isActive: true })
 
 function openEdit(item: Tratamiento) {
   editingItem.value = item
-  Object.assign(editForm, { nombre: item.nombre, isActive: item.isActive })
+  Object.assign(editForm, { nombre: item.nombre, precio: item.precio, isActive: item.isActive })
   editError.value = ""
   showEdit.value  = true
 }
@@ -147,10 +152,11 @@ function openEdit(item: Tratamiento) {
 async function submitEdit() {
   editError.value = ""
   if (!editForm.nombre.trim()) { editError.value = "El nombre es obligatorio."; return }
+  if (editForm.precio < 0) { editError.value = "El precio no puede ser negativo."; return }
   if (!editingItem.value) return
   isEditSaving.value = true
   try {
-    await updateTratamiento(editingItem.value.id, { nombre: editForm.nombre.trim(), isActive: editForm.isActive })
+    await updateTratamiento(editingItem.value.id, { nombre: editForm.nombre.trim(), precio: editForm.precio, isActive: editForm.isActive })
     showEdit.value = false
     await load()
   } catch (err: unknown) {
@@ -233,6 +239,9 @@ async function confirmDeactivate() {
                 <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
               </div>
             </template>
+            <template #precio="{ item }">
+              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(item.precio) }}</span>
+            </template>
             <template #estado="{ item }">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
                 :style="item.isActive ? 'background-color:#dcfce7;color:#166534' : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
@@ -285,11 +294,20 @@ async function confirmDeactivate() {
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
         {{ createError }}
       </div>
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-        <input v-model="createForm.nombre" type="text" placeholder="Ej: Antirreflejo, Fotocromático…"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
+          <input v-model="createForm.nombre" type="text" placeholder="Ej: Antirreflejo, Fotocromático…"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio</label>
+          <input v-model.number="createForm.precio" type="number" min="0" placeholder="0"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <p class="text-xs mt-1" style="color: var(--color-outline)">Se suma como línea al agregar el tratamiento a una venta.</p>
+        </div>
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="showCreate = false">Cancelar</BaseButton>
@@ -310,6 +328,12 @@ async function confirmDeactivate() {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio</label>
+          <input v-model.number="editForm.precio" type="number" min="0"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
         </div>
         <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">

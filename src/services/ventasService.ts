@@ -83,14 +83,17 @@ export interface TrabajoPedidoTratamiento {
 
 export interface TrabajoPedido {
   id: number
-  recetaId: number
-  tipoLenteId: number
-  tipoLenteNombre: string
+  recetaId?: number
+  tipoLenteId?: number
+  tipoLenteNombre?: string
+  cristalProductoId?: number
+  cristalProductoNombre?: string
   tratamientos: TrabajoPedidoTratamiento[]
   armazonProductoId?: number
   armazonProductoNombre?: string
-  laboratorioProveedorId: number
-  laboratorioNombre: string
+  armazonDelCliente: boolean
+  laboratorioProveedorId?: number
+  laboratorioNombre?: string
   estado: EstadoTrabajoPedido
   fechaEnvio?: string
   fechaRecepcion?: string
@@ -126,8 +129,8 @@ export interface Devolucion {
 export interface Venta {
   id: number
   numeroComprobante: string
-  patientId: number
-  pacienteNombre: string
+  clienteId?: number
+  clienteNombre: string
   recetaId?: number
   estado: EstadoVenta
   tipo: TipoVenta
@@ -208,8 +211,18 @@ export interface AgregarLineaRequest {
   categoriaFiscal: CategoriaFiscal
 }
 
+export interface CrearVentaTrabajoPedidoRequest {
+  cristalProductoId?: number | null
+  tipoLenteId?: number | null
+  tratamientoIds: number[]
+  armazonProductoId?: number | null
+  armazonDelCliente: boolean
+  laboratorioProveedorId?: number | null
+  observacion?: string
+}
+
 export interface CrearVentaRequest {
-  patientId: number
+  clienteId?: number
   recetaId?: number
   tipo: TipoVenta
   condicionVenta: CondicionVenta
@@ -217,6 +230,7 @@ export interface CrearVentaRequest {
   validezDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
+  trabajoPedido?: CrearVentaTrabajoPedidoRequest
 }
 
 export interface CobroLineaRequest {
@@ -278,7 +292,7 @@ export const getVentas = (params?: {
   tipo?: string
   fechaDesde?: string
   fechaHasta?: string
-  patientId?: number
+  clienteId?: number
   page?: number
   pageSize?: number
 }) => {
@@ -287,7 +301,7 @@ export const getVentas = (params?: {
   if (params?.tipo)       q.set("tipo",        params.tipo)
   if (params?.fechaDesde) q.set("fechaDesde",  params.fechaDesde)
   if (params?.fechaHasta) q.set("fechaHasta",  params.fechaHasta)
-  if (params?.patientId)  q.set("patientId",   String(params.patientId))
+  if (params?.clienteId)  q.set("clienteId",   String(params.clienteId))
   if (params?.page)       q.set("page",        String(params.page))
   if (params?.pageSize)   q.set("pageSize",    String(params.pageSize))
   const qs = q.toString()
@@ -309,9 +323,9 @@ export const cancelarVenta = (id: number, data: CancelarVentaRequest) =>
 export const eliminarPresupuesto = (id: number) =>
   del(`/api/ventas/${id}`)
 
-export const getPresupuestos = (patientId?: number) => {
+export const getPresupuestos = (clienteId?: number) => {
   const q = new URLSearchParams({ estado: "Borrador", pageSize: "100" })
-  if (patientId) q.set("patientId", String(patientId))
+  if (clienteId) q.set("clienteId", String(clienteId))
   return get<VentasPagedResult>(`/api/ventas?${q}`)
 }
 
@@ -344,7 +358,7 @@ export interface TrabajoPedidoListDto {
   id: number
   ventaId: number
   numeroComprobante: string
-  pacienteNombre: string
+  clienteNombre: string
   tipoLenteNombre: string
   tratamientos: string[]
   laboratorioNombre: string
@@ -379,11 +393,18 @@ export const getTrabajosPedido = (estado?: string) => {
 export const gestionarAprobacionTP = (id: number, data: GestionarTrabajoPedidoRequest) =>
   post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/gestionar`, data)
 
-export const registrarEnvioLab = (id: number, data?: { observacion?: string }) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/enviar`, data ?? {})
+export const registrarEnvioLab = (id: number) =>
+  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/enviar`, {})
 
-export const registrarRecepcionLab = (id: number, data?: { observacion?: string }) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/recibir`, data ?? {})
+export const registrarRecepcionLab = (id: number) =>
+  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/recibir`, {})
+
+// Envío/recepción a laboratorio desde el detalle de la venta (devuelve la venta actualizada)
+export const registrarEnvioLabVenta = (ventaId: number, data: { observacion?: string }) =>
+  put<Venta>(`/api/ventas/${ventaId}/trabajo-pedido/enviar`, data)
+
+export const registrarRecepcionLabVenta = (ventaId: number, data: { observacion?: string }) =>
+  put<Venta>(`/api/ventas/${ventaId}/trabajo-pedido/recibir`, data)
 
 export const emitirFacturaLaboratorio = (id: number, data: EmitirFacturaLaboratorioRequest) =>
   post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/factura`, data)

@@ -45,7 +45,7 @@ const filtered = computed(() => {
   if (!search.value.trim()) return items.value
   const q = search.value.toLowerCase()
   return items.value.filter(v =>
-    v.pacienteNombre.toLowerCase().includes(q) ||
+    v.clienteNombre.toLowerCase().includes(q) ||
     v.numeroComprobante.toLowerCase().includes(q),
   )
 })
@@ -141,7 +141,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
 
         <!-- Filtro -->
         <div class="flex justify-end mb-6">
-          <SearchInput v-model="search" placeholder="Buscar por paciente o número…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente o número…" class="w-72" />
         </div>
 
         <!-- Tabla -->
@@ -149,7 +149,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay presupuestos pendientes">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">N° Presupuesto</th>
-              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Paciente</th>
+              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cliente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Fecha</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tipo</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Total</th>
@@ -165,7 +165,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
                 </td>
-                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.pacienteNombre }}</td>
+                <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(v.fechaVenta) }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
                   {{ v.tipo === "TrabajoAPedido" ? "A pedido" : "Directa" }}
@@ -195,7 +195,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
           <p class="text-sm" style="color:var(--color-on-surface-variant)">
             ¿Eliminar el presupuesto
             <strong style="color:var(--color-on-surface)">{{ eliminarItem?.numeroComprobante }}</strong>
-            de <strong style="color:var(--color-on-surface)">{{ eliminarItem?.pacienteNombre }}</strong>?
+            de <strong style="color:var(--color-on-surface)">{{ eliminarItem?.clienteNombre }}</strong>?
             Esta acción no se puede deshacer.
           </p>
           <p v-if="eliminarError" class="text-xs font-medium" style="color:var(--color-error)">{{ eliminarError }}</p>
