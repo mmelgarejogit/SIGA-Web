@@ -142,6 +142,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "registrar_consulta", label: "Nueva Consulta" },
     },
     {
+      path: "/clinica/consultas/:id/editar",
+      name: "clinica-consultas-editar",
+      component: () => import("@/views/ConsultaEditView.vue"),
+      meta: { requiresAuth: true, permission: "editar_consulta", label: "Editar Consulta" },
+    },
+    {
       path: "/clinica/historial",
       name: "clinica-historial",
       component: () => import("@/views/HistorialClinicoView.vue"),
@@ -327,7 +333,7 @@ const router = createRouter({
       path: "/ventas",
       name: "ventas",
       component: () => import("@/views/VentasView.vue"),
-      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Ventas" },
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Lista de Ventas" },
     },
     {
       path: "/ventas/nueva",
@@ -384,6 +390,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "registrar_venta", label: "Cobrar Venta" },
     },
     {
+      path: "/ventas/:id(\\d+)/comprobante",
+      name: "venta-comprobante",
+      component: () => import("@/views/VentaComprobanteView.vue"),
+      meta: { requiresAuth: true, permission: "registrar_venta", label: "Emitir Documento" },
+    },
+    {
       path: "/ventas/:id(\\d+)",
       name: "venta-detalle",
       component: () => import("@/views/VentaDetalleView.vue"),
@@ -394,6 +406,12 @@ const router = createRouter({
       name: "ventas-facturas",
       component: () => import("@/views/FacturasVentaView.vue"),
       meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Facturas" },
+    },
+    {
+      path: "/ventas/timbrados",
+      name: "ventas-timbrados",
+      component: () => import("@/views/TimbradosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Timbrados" },
     },
     {
       path: "/ventas/cierre",

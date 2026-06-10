@@ -6,7 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import {
   type Venta, type MetodoPago, type TipoCobro,
-  getVentaById, registrarCobro, emitirComprobante,
+  getVentaById, registrarCobro,
 } from "@/services/ventasService"
 
 const route  = useRoute()
@@ -62,6 +62,10 @@ onMounted(load)
 async function doRegistrarCobro(): Promise<boolean> {
   if (!venta.value) return false
   if (totalCobro.value <= 0) { opError.value = "El monto total debe ser mayor a 0"; return false }
+  if (totalCobro.value > saldo.value) {
+    opError.value = `El monto a cobrar (${formatPrice(totalCobro.value)}) supera el saldo pendiente (${formatPrice(saldo.value)})`
+    return false
+  }
   opError.value = ""
   venta.value = await registrarCobro({
     ventaId: venta.value.id,
@@ -73,43 +77,18 @@ async function doRegistrarCobro(): Promise<boolean> {
   return true
 }
 
-// Crédito: registrar una cuota/seña y quedarse en la pantalla
-async function registrarCobroCredito() {
+// Registrar una seña/cuota/pago y quedarse en la pantalla
+async function guardarCobro() {
   isSaving.value = true
   try { await doRegistrarCobro() }
   catch (e: any) { opError.value = e?.response?.data?.message ?? "Error al registrar el cobro" }
   finally { isSaving.value = false }
 }
 
-// Contado: registra el pago (con sus métodos) y emite el comprobante en un paso
-async function cobrarContado() {
+// Ir al paso dedicado de emisión de documento (recibo o factura)
+function goEmitir() {
   if (!venta.value) return
-  isSaving.value = true
-  opError.value = ""
-  try {
-    const ok = await doRegistrarCobro()
-    if (!ok) return
-    await emitirComprobante(venta.value.id)
-    router.push(`/ventas/${venta.value.id}`)
-  } catch (e: any) {
-    opError.value = e?.response?.data?.message ?? "Error al cobrar"
-  } finally {
-    isSaving.value = false
-  }
-}
-
-async function soloEmitirComprobante() {
-  if (!venta.value) return
-  isSaving.value = true
-  opError.value = ""
-  try {
-    await emitirComprobante(venta.value.id)
-    router.push(`/ventas/${venta.value.id}`)
-  } catch (e: any) {
-    opError.value = e?.response?.data?.message ?? "Error al emitir comprobante"
-  } finally {
-    isSaving.value = false
-  }
+  router.push(`/ventas/${venta.value.id}/comprobante`)
 }
 </script>
 
@@ -121,9 +100,9 @@ async function soloEmitirComprobante() {
       <div class="p-8">
 
         <button class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
-          style="color: var(--color-primary)" @click="router.push('/ventas')">
+          style="color: var(--color-primary)" @click="router.push('/ventas/cobros-pendientes')">
           <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
-          Volver a Ventas
+          Volver a Cobros Pendientes
         </button>
 
         <div v-if="isLoading" class="py-16 text-center" style="color: var(--color-outline)">Cargando…</div>
@@ -184,25 +163,18 @@ async function soloEmitirComprobante() {
                   </button>
 
                   <p class="text-sm font-semibold mt-3" style="color: var(--color-primary)">Total a registrar: {{ formatPrice(totalCobro) }}</p>
+                  <p v-if="saldo <= 0" class="mt-2 text-xs font-semibold" style="color:#166534">Esta venta ya está totalmente cobrada. Emití el comprobante para cerrarla.</p>
                   <p v-if="opError" class="mt-2 text-xs font-medium" style="color: var(--color-error)">{{ opError }}</p>
 
                   <div class="mt-4 flex gap-2 flex-wrap">
-                    <template v-if="isContado">
-                      <BaseButton variant="primary" size="lg" :disabled="isSaving" @click="cobrarContado">
-                        <span class="material-symbols-outlined" style="font-size:18px">point_of_sale</span>
-                        {{ isSaving ? "Cobrando…" : "Cobrar y emitir comprobante" }}
-                      </BaseButton>
-                    </template>
-                    <template v-else>
-                      <BaseButton variant="primary" size="lg" :disabled="isSaving" @click="registrarCobroCredito">
-                        <span class="material-symbols-outlined" style="font-size:18px">payments</span>
-                        {{ isSaving ? "Registrando…" : "Registrar cobro" }}
-                      </BaseButton>
-                      <BaseButton variant="secondary" size="lg" :disabled="isSaving" @click="soloEmitirComprobante">
-                        <span class="material-symbols-outlined" style="font-size:18px">receipt_long</span>
-                        Emitir comprobante
-                      </BaseButton>
-                    </template>
+                    <BaseButton variant="primary" size="lg" :disabled="isSaving || saldo <= 0" @click="guardarCobro">
+                      <span class="material-symbols-outlined" style="font-size:18px">payments</span>
+                      {{ isSaving ? "Registrando…" : "Registrar cobro" }}
+                    </BaseButton>
+                    <BaseButton variant="secondary" size="lg" :disabled="isSaving" @click="goEmitir">
+                      <span class="material-symbols-outlined" style="font-size:18px">receipt_long</span>
+                      Emitir comprobante
+                    </BaseButton>
                   </div>
                 </div>
 

@@ -100,9 +100,10 @@ function antiguedadColor(fechaVenta: string): { color: string; label: string } {
 
 function menuItems(v: Venta): ContextMenuItem[] {
   return [
-    { type: "item", label: "Cobrar",           icon: "payments",   action: () => goCobrar(v) },
+    { type: "item", label: "Cobrar",             icon: "payments",     action: () => goCobrar(v) },
+    { type: "item", label: "Emitir comprobante", icon: "receipt_long", action: () => router.push(`/ventas/${v.id}/comprobante`) },
     { type: "separator" },
-    { type: "item", label: "Ver detalle",      icon: "visibility", action: () => router.push(`/ventas/${v.id}`) },
+    { type: "item", label: "Ver detalle",        icon: "visibility",   action: () => router.push(`/ventas/${v.id}`) },
   ]
 }
 </script>

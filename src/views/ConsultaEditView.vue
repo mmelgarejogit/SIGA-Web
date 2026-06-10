@@ -6,87 +6,74 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import DateInput from "@/components/DateInput.vue"
-import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type CreateConsultaClinicaRequest, createConsulta } from "@/services/clinicaService"
-import { getPatients, type Patient } from "@/services/patientService"
-import { getProfessionals, type Professional } from "@/services/professionalService"
+import { type ConsultaClinica, getConsultaById, updateConsulta, createOrUpdateReceta, type UpdateConsultaClinicaRequest } from "@/services/clinicaService"
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const turnoId = ref<number | null>(
-  route.query.turnoId ? Number(route.query.turnoId) : null,
-)
+const consultaId = computed(() => Number(route.params.id))
 
-const consultaId = ref<number | null>(
-  route.query.consultaId ? Number(route.query.consultaId) : null,
-)
+// ── Datos de la consulta ─────────────────────────────────────────────────
 
-const isFromReception = computed(() => !!consultaId.value)
-
-// ── Profesionales ─────────────────────────────────────────────────────────
-
-const isProfessional = computed(() => !!auth.user?.professionalId)
-const professionals = ref<Professional[]>([])
-const selectedProfessionalId = ref<number | null>(auth.user?.professionalId ?? null)
-
-// ── Pacientes ─────────────────────────────────────────────────────────────
-
-const patients = ref<Patient[]>([])
-const selectedPatientId = ref<number | null>(null)
-
-const selectedPatient = computed(() =>
-  patients.value.find(p => p.id === selectedPatientId.value) ?? null,
-)
-
-const patientOptions = computed(() =>
-  patients.value.map(p => ({
-    value: p.id,
-    label: `${p.firstName} ${p.lastName}`,
-    code: p.ci,
-  })),
-)
+const consulta = ref<ConsultaClinica | null>(null)
+const isLoading = ref(true)
+const loadError = ref("")
 
 onMounted(async () => {
-  const tasks: Promise<unknown>[] = []
-
-  if (!isProfessional.value) {
-    tasks.push(
-      getProfessionals()
-        .then((p) => { professionals.value = p })
-        .catch(() => {}),
-    )
-  }
-
-  tasks.push(
-    getPatients({ pageSize: 500, status: "active" })
-      .then((res) => {
-        patients.value = res.items
-        const prePatientId = route.query.patientId ? Number(route.query.patientId) : null
-        if (prePatientId) selectedPatientId.value = prePatientId
-      })
-      .catch(() => {}),
-  )
-
-  await Promise.all(tasks)
-
-  if (route.query.motivo) {
-    createForm.motivo = String(route.query.motivo)
+  try {
+    consulta.value = await getConsultaById(consultaId.value)
+    populateForm()
+  } catch (err: unknown) {
+    loadError.value = err instanceof Error ? err.message : "Error al cargar la consulta."
+  } finally {
+    isLoading.value = false
   }
 })
 
+function populateForm() {
+  if (!consulta.value) return
+  editForm.fechaConsulta = consulta.value.fechaConsulta
+  editForm.motivo = consulta.value.motivo
+  editForm.anamnesis = consulta.value.anamnesis ?? ""
+  editForm.examenFisico = consulta.value.examenFisico ?? ""
+  editForm.diagnosticoPrincipal = consulta.value.diagnosticoPrincipal
+  editForm.diagnosticoSecundario = consulta.value.diagnosticoSecundario ?? ""
+  editForm.planTratamiento = consulta.value.planTratamiento ?? ""
+  editForm.observaciones = consulta.value.observaciones ?? ""
+
+  if (consulta.value.receta) {
+    withReceta.value = true
+    recetaForm.fechaEmision = consulta.value.receta.fechaEmision
+    recetaForm.odEsferico = consulta.value.receta.odEsferico?.toString() ?? ""
+    recetaForm.odCilindro = consulta.value.receta.odCilindro?.toString() ?? ""
+    recetaForm.odEje = consulta.value.receta.odEje?.toString() ?? ""
+    recetaForm.odAdicion = consulta.value.receta.odAdicion?.toString() ?? ""
+    recetaForm.oiEsferico = consulta.value.receta.oiEsferico?.toString() ?? ""
+    recetaForm.oiCilindro = consulta.value.receta.oiCilindro?.toString() ?? ""
+    recetaForm.oiEje = consulta.value.receta.oiEje?.toString() ?? ""
+    recetaForm.oiAdicion = consulta.value.receta.oiAdicion?.toString() ?? ""
+    recetaForm.distanciaInterpupilar = consulta.value.receta.distanciaInterpupilar?.toString() ?? ""
+    recetaForm.avSinCorreccion = consulta.value.receta.avSinCorreccion ?? ""
+    recetaForm.avConCorreccion = consulta.value.receta.avConCorreccion ?? ""
+    recetaForm.observaciones = consulta.value.receta.observaciones ?? ""
+  }
+
+  if (consulta.value.anamnesis || consulta.value.examenFisico || consulta.value.diagnosticoSecundario || consulta.value.planTratamiento || consulta.value.observaciones) {
+    withDetails.value = true
+  }
+}
 
 // ── Formulario ────────────────────────────────────────────────────────────
 
-const isCreating = ref(false)
-const createError = ref("")
+const isSaving = ref(false)
+const saveError = ref("")
 const withReceta = ref(false)
 const withDetails = ref(false)
 
-const createForm = reactive({
-  fechaConsulta: new Date().toISOString().slice(0, 10),
+const editForm = reactive({
+  fechaConsulta: "",
   motivo: "",
   anamnesis: "",
   examenFisico: "",
@@ -112,25 +99,20 @@ const recetaForm = reactive({
   observaciones: "",
 })
 
-type CreateErrors = {
-  patient?: string
-  professional?: string
+type EditErrors = {
   fechaConsulta?: string
   motivo?: string
   diagnosticoPrincipal?: string
 }
-const createErrors = ref<CreateErrors>({})
+const editErrors = ref<EditErrors>({})
 
-function validateCreate(): boolean {
-  const e: CreateErrors = {}
-  if (!selectedPatient.value) e.patient = "Seleccioná un paciente."
-  if (!isProfessional.value && !selectedProfessionalId.value)
-    e.professional = "Seleccioná un profesional."
-  if (!createForm.fechaConsulta) e.fechaConsulta = "La fecha es obligatoria."
-  if (!createForm.motivo.trim()) e.motivo = "El motivo es obligatorio."
-  if (!createForm.diagnosticoPrincipal.trim())
+function validateEdit(): boolean {
+  const e: EditErrors = {}
+  if (!editForm.fechaConsulta) e.fechaConsulta = "La fecha es obligatoria."
+  if (!editForm.motivo.trim()) e.motivo = "El motivo es obligatorio."
+  if (!editForm.diagnosticoPrincipal.trim())
     e.diagnosticoPrincipal = "El diagnóstico es obligatorio."
-  createErrors.value = e
+  editErrors.value = e
   return Object.keys(e).length === 0
 }
 
@@ -139,26 +121,25 @@ function parseOptional(val: string): number | null {
   return isNaN(n) ? null : n
 }
 
-async function submitCreate() {
-  if (isCreating.value || !validateCreate()) return
-  isCreating.value = true
-  createError.value = ""
+async function submitEdit() {
+  if (isSaving.value || !validateEdit()) return
+  isSaving.value = true
+  saveError.value = ""
   try {
-    const payload: CreateConsultaClinicaRequest = {
-      patientId: selectedPatient.value!.id,
-      professionalId: selectedProfessionalId.value!,
-      citaId: turnoId.value ?? undefined,
-      fechaConsulta: createForm.fechaConsulta,
-      motivo: createForm.motivo.trim(),
-      anamnesis: createForm.anamnesis.trim() || undefined,
-      examenFisico: createForm.examenFisico.trim() || undefined,
-      diagnosticoPrincipal: createForm.diagnosticoPrincipal.trim(),
-      diagnosticoSecundario: createForm.diagnosticoSecundario.trim() || undefined,
-      planTratamiento: createForm.planTratamiento.trim() || undefined,
-      observaciones: createForm.observaciones.trim() || undefined,
+    const payload: UpdateConsultaClinicaRequest = {
+      professionalId: consulta.value!.professionalId,
+      fechaConsulta: editForm.fechaConsulta,
+      motivo: editForm.motivo.trim(),
+      anamnesis: editForm.anamnesis.trim() || undefined,
+      examenFisico: editForm.examenFisico.trim() || undefined,
+      diagnosticoPrincipal: editForm.diagnosticoPrincipal.trim(),
+      diagnosticoSecundario: editForm.diagnosticoSecundario.trim() || undefined,
+      planTratamiento: editForm.planTratamiento.trim() || undefined,
+      observaciones: editForm.observaciones.trim() || undefined,
     }
+    await updateConsulta(consultaId.value, payload)
     if (withReceta.value) {
-      payload.receta = {
+      await createOrUpdateReceta(consultaId.value, {
         fechaEmision: recetaForm.fechaEmision,
         odEsferico: parseOptional(recetaForm.odEsferico),
         odCilindro: parseOptional(recetaForm.odCilindro),
@@ -172,14 +153,13 @@ async function submitCreate() {
         avSinCorreccion: recetaForm.avSinCorreccion.trim() || undefined,
         avConCorreccion: recetaForm.avConCorreccion.trim() || undefined,
         observaciones: recetaForm.observaciones.trim() || undefined,
-      }
+      })
     }
-    await createConsulta(payload)
     router.push("/clinica/consultas")
   } catch (err: unknown) {
-    createError.value = err instanceof Error ? err.message : "Error al registrar la consulta."
+    saveError.value = err instanceof Error ? err.message : "Error al guardar la consulta."
   } finally {
-    isCreating.value = false
+    isSaving.value = false
   }
 }
 
@@ -188,28 +168,6 @@ function onCancel() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(id: number) {
-  return (
-    AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
-  )
-}
-
-function initials(fn: string, ln: string) {
-  return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
-}
-
-const professionalOptions = computed(() =>
-  professionals.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })),
-)
 
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
@@ -236,6 +194,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
       <div class="p-8">
+
         <!-- Header -->
         <div class="flex items-center gap-4 mb-8">
           <BaseButton variant="ghost" size="sm" @click="onCancel">
@@ -243,62 +202,83 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
           </BaseButton>
           <div>
             <h2 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-primary)">
-              Nueva Consulta
+              Editar Consulta
             </h2>
           </div>
         </div>
 
-        <!-- Error banner -->
-        <div
-          v-if="createError"
-          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
-          style="
-            background-color: var(--color-error-container);
-            color: var(--color-on-error-container);
-          "
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
-          {{ createError }}
+        <!-- Loading -->
+        <div v-if="isLoading" class="flex items-center justify-center py-20">
+          <span class="material-symbols-outlined animate-spin text-4xl" style="color: var(--color-primary)">progress_activity</span>
         </div>
 
-        <form @submit.prevent="submitCreate" class="space-y-6">
-          <!-- Paciente -->
-          <div
-            class="rounded-2xl p-6 space-y-5"
-            style="
-              background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
-            "
-          >
-            <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">Paciente</h3>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-                Paciente *
-              </label>
-              <div
-                v-if="isFromReception"
-                class="flex items-center gap-2 px-4 h-12 text-sm"
-                style="
-                  border-radius: 12px;
-                  border: 1px solid var(--color-outline-variant);
-                  background-color: var(--color-surface-container-low);
-                  color: var(--color-on-surface-variant);
-                "
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">person</span>
-                {{ selectedPatient?.firstName }} {{ selectedPatient?.lastName }}
+        <!-- Error de carga -->
+        <div v-else-if="loadError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+          style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
+          {{ loadError }}
+        </div>
+
+        <form v-else @submit.prevent="submitEdit" class="space-y-6">
+          <!-- Paciente y Profesional (locked, en la misma fila) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              class="rounded-2xl p-6 space-y-5"
+              style="
+                background-color: var(--color-surface-container-lowest);
+                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+                outline: 1px solid rgba(196, 197, 213, 0.15);
+              "
+            >
+              <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">Paciente</h3>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+                  Paciente
+                </label>
+                <div
+                  class="flex items-center gap-2 px-4 h-12 text-sm"
+                  style="
+                    border-radius: 12px;
+                    border: 1px solid var(--color-outline-variant);
+                    background-color: var(--color-surface-container-low);
+                    color: var(--color-on-surface-variant);
+                  "
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">person</span>
+                  {{ consulta?.patientFirstName }} {{ consulta?.patientLastName }}
+                </div>
               </div>
-              <SearchableSelect
-                v-else
-                :model-value="selectedPatientId"
-                :options="patientOptions"
-                placeholder="Buscar por nombre o CI..."
-                @update:model-value="selectedPatientId = $event as number | null"
-              />
-              <p v-if="createErrors.patient && !isFromReception" class="text-xs font-medium" style="color: var(--color-error)">
-                {{ createErrors.patient }}
-              </p>
+            </div>
+
+            <div
+              class="rounded-2xl p-6 space-y-5"
+              style="
+                background-color: var(--color-surface-container-lowest);
+                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+                outline: 1px solid rgba(196, 197, 213, 0.15);
+              "
+            >
+              <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">
+                Profesional
+              </h3>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="text-xs font-bold uppercase tracking-wider"
+                  style="color: var(--color-outline)"
+                >Profesional</label>
+                <div
+                  class="flex items-center gap-2 px-4 h-12 text-sm"
+                  style="
+                    border-radius: 12px;
+                    border: 1px solid var(--color-outline-variant);
+                    background-color: var(--color-surface-container-low);
+                    color: var(--color-on-surface-variant);
+                  "
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">person</span>
+                  {{ consulta?.professionalFirstName }} {{ consulta?.professionalLastName }}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -312,49 +292,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             "
           >
             <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">
-              Consulta Clínica
+              Datos de la Consulta
             </h3>
-
-            <div class="flex flex-col gap-1.5">
-              <label
-                class="text-xs font-bold uppercase tracking-wider"
-                style="color: var(--color-outline)"
-                >Profesional</label
-              >
-
-              <!-- Profesional logueado: solo lectura -->
-              <div
-                v-if="isProfessional"
-                class="flex items-center gap-2 px-4 h-12 text-sm appearance-none shadow-none"
-                style="
-                  border-radius: 12px;
-                  border: 1px solid var(--color-outline-variant);
-                  background-color: var(--color-surface-container-low);
-                  color: var(--color-on-surface-variant);
-                "
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">person</span>
-                {{ auth.user?.firstName }} {{ auth.user?.lastName }}
-              </div>
-
-              <!-- Admin: selector -->
-              <div v-else>
-                <SearchableSelect
-                  :model-value="selectedProfessionalId"
-                  :options="professionalOptions"
-                  placeholder="Buscar profesional..."
-                  @update:model-value="selectedProfessionalId = $event as number | null"
-                />
-              </div>
-
-              <p
-                v-if="createErrors.professional"
-                class="text-xs font-medium"
-                style="color: var(--color-error)"
-              >
-                {{ createErrors.professional }}
-              </p>
-            </div>
 
             <div class="flex flex-col gap-1.5 w-48">
               <label
@@ -362,13 +301,13 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 style="color: var(--color-outline)"
                 >Fecha *</label
               >
-              <DateInput v-model="createForm.fechaConsulta" :has-error="!!createErrors.fechaConsulta" />
+              <DateInput v-model="editForm.fechaConsulta" :has-error="!!editErrors.fechaConsulta" />
               <p
-                v-if="createErrors.fechaConsulta"
+                v-if="editErrors.fechaConsulta"
                 class="text-xs font-medium"
                 style="color: var(--color-error)"
               >
-                {{ createErrors.fechaConsulta }}
+                {{ editErrors.fechaConsulta }}
               </p>
             </div>
 
@@ -379,17 +318,17 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                 >Motivo de consulta *</label
               >
               <input
-                v-model="createForm.motivo"
+                v-model="editForm.motivo"
                 type="text"
                 class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                :style="inputStyle(!!createErrors.motivo)"
+                :style="inputStyle(!!editErrors.motivo)"
               />
               <p
-                v-if="createErrors.motivo"
+                v-if="editErrors.motivo"
                 class="text-xs font-medium"
                 style="color: var(--color-error)"
               >
-                {{ createErrors.motivo }}
+                {{ editErrors.motivo }}
               </p>
             </div>
 
@@ -433,7 +372,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Anamnesis</label
                 >
                 <textarea
-                  v-model="createForm.anamnesis"
+                  v-model="editForm.anamnesis"
                   rows="4"
                   class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
@@ -446,7 +385,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Examen Físico</label
                 >
                 <textarea
-                  v-model="createForm.examenFisico"
+                  v-model="editForm.examenFisico"
                   rows="4"
                   class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
@@ -462,17 +401,17 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Diagnóstico Principal *</label
                 >
                 <input
-                  v-model="createForm.diagnosticoPrincipal"
+                  v-model="editForm.diagnosticoPrincipal"
                   type="text"
                   class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                  :style="inputStyle(!!createErrors.diagnosticoPrincipal)"
+                  :style="inputStyle(!!editErrors.diagnosticoPrincipal)"
                 />
                 <p
-                  v-if="createErrors.diagnosticoPrincipal"
+                  v-if="editErrors.diagnosticoPrincipal"
                   class="text-xs font-medium"
                   style="color: var(--color-error)"
                 >
-                  {{ createErrors.diagnosticoPrincipal }}
+                  {{ editErrors.diagnosticoPrincipal }}
                 </p>
               </div>
               <div v-if="withDetails" class="flex flex-col gap-1.5">
@@ -482,7 +421,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Diagnóstico Secundario</label
                 >
                 <input
-                  v-model="createForm.diagnosticoSecundario"
+                  v-model="editForm.diagnosticoSecundario"
                   type="text"
                   class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
                   :style="inputStyle(false)"
@@ -499,7 +438,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Plan de Tratamiento</label
                 >
                 <textarea
-                  v-model="createForm.planTratamiento"
+                  v-model="editForm.planTratamiento"
                   rows="4"
                   class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
@@ -512,7 +451,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   >Observaciones</label
                 >
                 <textarea
-                  v-model="createForm.observaciones"
+                  v-model="editForm.observaciones"
                   rows="4"
                   class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
                   :style="inputStyle(false)"
@@ -727,12 +666,25 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             </div>
           </div>
 
+          <!-- Error banner -->
+          <div
+            v-if="saveError"
+            class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+            style="
+              background-color: var(--color-error-container);
+              color: var(--color-on-error-container);
+            "
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px">error</span>
+            {{ saveError }}
+          </div>
+
           <!-- Actions -->
           <div class="flex justify-end gap-3 pt-4">
             <BaseButton variant="secondary" size="lg" @click="onCancel">Cancelar</BaseButton>
-            <BaseButton variant="primary" size="lg" type="submit" :disabled="isCreating">
+            <BaseButton variant="primary" size="lg" type="submit" :disabled="isSaving">
               <svg
-                v-if="isCreating"
+                v-if="isSaving"
                 class="animate-spin w-4 h-4"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -752,7 +704,7 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              {{ isCreating ? "Guardando..." : "Guardar Consulta" }}
+              {{ isSaving ? "Guardando..." : "Guardar Cambios" }}
             </BaseButton>
           </div>
         </form>
@@ -760,13 +712,3 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
     </main>
   </div>
 </template>
-
-<style scoped>
-:deep(.ss-trigger) {
-  height: 48px;
-  border-radius: 12px;
-  font-size: 14px;
-  background-color: var(--color-surface);
-  border-color: var(--color-outline-variant);
-}
-</style>

@@ -247,9 +247,7 @@ export interface RegistrarCobroRequest {
 
 export interface EmitirFacturaRequest {
   ventaId: number
-  numeroFactura: string
-  timbrado: string
-  establecimiento: string
+  timbradoId: number
   fechaEmision: string
   observaciones?: string
 }

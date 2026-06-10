@@ -4,12 +4,16 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
-import { type Venta, getVentas } from "@/services/ventasService"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import { type Venta, getVentas, getVentaById } from "@/services/ventasService"
+import { getConfiguracion } from "@/services/configService"
+import { useFacturaVentaPdf } from "@/composables/useFacturaVentaPdf"
 
 const ventas = ref<Venta[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
+const isDownloading = ref<number | null>(null)
 
 const ventasFiltradas = computed(() => {
   if (!search.value.trim()) return ventas.value
@@ -29,13 +33,13 @@ const columns = [
   { key: "fecha",       label: "Fecha emisión" },
   { key: "total",       label: "Total"         },
   { key: "iva",         label: "IVA total"     },
+  { key: "acciones",    label: "", align: "right" as const },
 ]
 
 async function load() {
   isLoading.value = true
   loadError.value = ""
   try {
-    // Carga todas las ventas y filtra las que tienen factura
     const result = await getVentas({ pageSize: 500 })
     ventas.value = (result.items ?? []).filter((v) => !!v.factura)
   } catch (err: unknown) {
@@ -52,6 +56,29 @@ const formatPrice = (n: number) =>
 
 const formatDate = (s?: string) =>
   s ? new Date(s).toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
+
+function menuItems(item: Venta): ContextMenuItem[] {
+  return [
+    { type: "item", label: "Descargar PDF", icon: "picture_as_pdf", action: () => descargarPdf(item) },
+  ]
+}
+
+async function descargarPdf(item: Venta) {
+  if (isDownloading.value === item.id) return
+  isDownloading.value = item.id
+  try {
+    const [ventaCompleta, config] = await Promise.all([
+      getVentaById(item.id),
+      getConfiguracion(),
+    ])
+    const { generarPdfFactura } = useFacturaVentaPdf()
+    generarPdfFactura(ventaCompleta, config)
+  } catch {
+    // silently fail — user can retry
+  } finally {
+    isDownloading.value = null
+  }
+}
 </script>
 
 <template>
@@ -64,7 +91,7 @@ const formatDate = (s?: string) =>
 
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Facturas</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas de Venta</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ ventasFiltradas.length }} factura{{ ventasFiltradas.length !== 1 ? "s" : "" }} emitida{{ ventasFiltradas.length !== 1 ? "s" : "" }}
             </p>
@@ -121,6 +148,12 @@ const formatDate = (s?: string) =>
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               {{ formatPrice((item.factura?.iva5 ?? 0) + (item.factura?.iva10 ?? 0)) }}
             </span>
+          </template>
+
+          <template #acciones="{ item }">
+            <div class="flex justify-end" @click.stop>
+              <RowContextMenu :items="menuItems(item)" />
+            </div>
           </template>
 
         </BaseTable>

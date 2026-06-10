@@ -37,13 +37,6 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_pacientes",
   },
   {
-    id: "clientes",
-    label: "Clientes",
-    icon: "badge",
-    route: "/clientes",
-    permission: "ver_clientes",
-  },
-  {
     id: "agenda",
     label: "Agenda",
     icon: "calendar_month",
@@ -260,6 +253,18 @@ export const menuConfig: MenuItem[] = [
     children: [
       // ── Orden según el proceso de venta ──────────────────────────────
       {
+        label: "Timbrados",
+        icon: "verified",
+        route: "/ventas/timbrados",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Clientes",
+        icon: "badge",
+        route: "/clientes",
+        permission: "ver_clientes",
+      },
+      {
         label: "Presupuestos",
         icon: "description",
         route: "/ventas/presupuestos",
@@ -272,22 +277,21 @@ export const menuConfig: MenuItem[] = [
         permission: "registrar_venta",
       },
       {
+        label: "Lista de Ventas",
+        icon: "list_alt",
+        route: "/ventas",
+        permission: "ver_ventas",
+      },
+      {
         label: "Cobros Pendientes",
         icon: "pending_actions",
         route: "/ventas/cobros-pendientes",
         permission: "ver_ventas",
       },
       {
-        label: "Historial Facturas",
+        label: "Facturas de Venta",
         icon: "folder_open",
         route: "/ventas/facturas",
-        permission: "ver_ventas",
-      },
-      // ── Reporte / consulta (solo lectura) al final ──────────────────
-      {
-        label: "Historial de Ventas",
-        icon: "history",
-        route: "/ventas",
         permission: "ver_ventas",
       },
     ],
