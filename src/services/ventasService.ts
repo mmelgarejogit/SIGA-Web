@@ -247,9 +247,7 @@ export interface RegistrarCobroRequest {
 
 export interface EmitirFacturaRequest {
   ventaId: number
-  numeroFactura: string
-  timbrado: string
-  establecimiento: string
+  timbradoId: number
   fechaEmision: string
   observaciones?: string
 }
@@ -259,6 +257,7 @@ export interface CancelarVentaRequest {
 }
 
 export interface CrearTrabajoPedidoRequest {
+  ventaId: number
   recetaId: number
   tipoLenteId: number
   tratamientoIds: number[]
@@ -338,11 +337,7 @@ export const emitirComprobante = (id: number) =>
 export const emitirFactura = (data: EmitirFacturaRequest) =>
   post<Venta>("/api/ventas/facturas", data)
 
-// Trabajo a pedido — desde venta
-export const crearTrabajoPedido = (ventaId: number, data: CrearTrabajoPedidoRequest) =>
-  post<Venta>(`/api/ventas/${ventaId}/trabajo-pedido`, data)
-
-// Trabajo a pedido — vistas globales
+// Trabajo a pedido — tipos (el flujo vive en laboratorioService)
 export interface FacturaLaboratorioDto {
   id: number
   numeroFactura: string
@@ -385,29 +380,6 @@ export interface EmitirFacturaLaboratorioRequest {
   observaciones?: string
 }
 
-export const getTrabajosPedido = (estado?: string) => {
-  const q = estado ? `?estado=${estado}` : ""
-  return get<TrabajoPedidoListDto[]>(`/api/ventas/trabajos-pedido${q}`)
-}
-
-export const gestionarAprobacionTP = (id: number, data: GestionarTrabajoPedidoRequest) =>
-  post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/gestionar`, data)
-
-export const registrarEnvioLab = (id: number) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/enviar`, {})
-
-export const registrarRecepcionLab = (id: number) =>
-  put<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/recibir`, {})
-
-// Envío/recepción a laboratorio desde el detalle de la venta (devuelve la venta actualizada)
-export const registrarEnvioLabVenta = (ventaId: number, data: { observacion?: string }) =>
-  put<Venta>(`/api/ventas/${ventaId}/trabajo-pedido/enviar`, data)
-
-export const registrarRecepcionLabVenta = (ventaId: number, data: { observacion?: string }) =>
-  put<Venta>(`/api/ventas/${ventaId}/trabajo-pedido/recibir`, data)
-
-export const emitirFacturaLaboratorio = (id: number, data: EmitirFacturaLaboratorioRequest) =>
-  post<TrabajoPedidoListDto>(`/api/ventas/trabajos-pedido/${id}/factura`, data)
 
 // Devoluciones
 export const solicitarDevolucion = (ventaId: number, data: SolicitarDevolucionRequest) =>

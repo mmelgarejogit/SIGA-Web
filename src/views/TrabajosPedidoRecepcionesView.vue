@@ -9,7 +9,8 @@ import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type TrabajoPedidoListDto, getTrabajosPedido, registrarEnvioLab, registrarRecepcionLab } from "@/services/ventasService"
+import { type TrabajoPedidoListDto } from "@/services/ventasService"
+import { getPedidos, registrarEnvio, registrarRecepcion } from "@/services/laboratorioService"
 
 const router = useRouter()
 
@@ -35,8 +36,8 @@ async function load() {
   isLoading.value = true
   try {
     const [pendEnvio, enviados] = await Promise.all([
-      getTrabajosPedido("PendienteEnvio"),
-      getTrabajosPedido("Enviado"),
+      getPedidos("PendienteEnvio"),
+      getPedidos("Enviado"),
     ])
     const all = [...pendEnvio, ...enviados]
     if (estadoFiltro.value.includes("PendienteEnvio") && estadoFiltro.value.includes("Enviado"))
@@ -82,9 +83,9 @@ async function submitAction() {
   actionError.value  = ""
   try {
     if (actionType.value === "enviar")
-      await registrarEnvioLab(selectedItem.value.id)
+      await registrarEnvio(selectedItem.value.id)
     else
-      await registrarRecepcionLab(selectedItem.value.id)
+      await registrarRecepcion(selectedItem.value.id)
     showConfirm.value = false
     await load()
   } catch (e: any) {

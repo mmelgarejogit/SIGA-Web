@@ -415,7 +415,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
       type: "item",
       label: "Editar consulta",
       icon: "edit",
-      action: () => openEditModal(c),
+      action: () => router.push(`/clinica/consultas/${c.id}/editar`),
       hidden: !canEdit,
     },
     // ── Transiciones de estado ──

@@ -37,13 +37,6 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_pacientes",
   },
   {
-    id: "clientes",
-    label: "Clientes",
-    icon: "badge",
-    route: "/clientes",
-    permission: "ver_clientes",
-  },
-  {
     id: "agenda",
     label: "Agenda",
     icon: "calendar_month",
@@ -133,6 +126,24 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_inventario",
     children: [
       {
+        label: "Motivos",
+        icon: "list_alt",
+        route: "/stock/motivos",
+        permission: "ver_inventario",
+      },
+      {
+        label: "Registrar Conteo",
+        icon: "add_task",
+        route: "/stock/conteo/nuevo",
+        permission: "gestionar_inventario",
+      },
+      {
+        label: "Inventario Físico",
+        icon: "fact_check",
+        route: "/stock/conteos",
+        permission: "ver_inventario",
+      },
+      {
         label: "Niveles de Stock",
         icon: "bar_chart",
         route: "/stock",
@@ -145,21 +156,9 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
-        label: "Motivos",
-        icon: "list_alt",
-        route: "/stock/motivos",
-        permission: "ver_inventario",
-      },
-      {
-        label: "Aprobaciones Mov.",
+        label: "Aprobaciones",
         icon: "task_alt",
         route: "/stock/aprobaciones",
-        permission: "gestionar_inventario",
-      },
-      {
-        label: "Historial",
-        icon: "history",
-        route: "/stock/conteos",
         permission: "gestionar_inventario",
       },
     ],
@@ -254,6 +253,18 @@ export const menuConfig: MenuItem[] = [
     children: [
       // ── Orden según el proceso de venta ──────────────────────────────
       {
+        label: "Timbrados",
+        icon: "verified",
+        route: "/ventas/timbrados",
+        permission: "ver_ventas",
+      },
+      {
+        label: "Clientes",
+        icon: "badge",
+        route: "/clientes",
+        permission: "ver_clientes",
+      },
+      {
         label: "Presupuestos",
         icon: "description",
         route: "/ventas/presupuestos",
@@ -266,28 +277,10 @@ export const menuConfig: MenuItem[] = [
         permission: "registrar_venta",
       },
       {
-        label: "Pedidos a Lab",
-        icon: "science",
-        route: "/ventas/trabajos-pedido",
+        label: "Lista de Ventas",
+        icon: "list_alt",
+        route: "/ventas",
         permission: "ver_ventas",
-      },
-      {
-        label: "Aprobaciones Lab",
-        icon: "task_alt",
-        route: "/ventas/trabajos-pedido/aprobacion",
-        permission: "gestionar_ventas",
-      },
-      {
-        label: "Recepciones Lab",
-        icon: "inventory",
-        route: "/ventas/trabajos-pedido/recepciones",
-        permission: "registrar_venta",
-      },
-      {
-        label: "Facturas Lab",
-        icon: "receipt_long",
-        route: "/ventas/trabajos-pedido/facturas",
-        permission: "registrar_venta",
       },
       {
         label: "Cobros Pendientes",
@@ -296,18 +289,23 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_ventas",
       },
       {
-        label: "Historial Facturas",
+        label: "Facturas de Venta",
         icon: "folder_open",
         route: "/ventas/facturas",
         permission: "ver_ventas",
       },
-      // ── Reporte / consulta (solo lectura) al final ──────────────────
-      {
-        label: "Historial de Ventas",
-        icon: "history",
-        route: "/ventas",
-        permission: "ver_ventas",
-      },
+    ],
+  },
+  {
+    id: "laboratorio",
+    label: "Laboratorio",
+    icon: "biotech",
+    permission: "ver_laboratorio",
+    children: [
+      { label: "Pedidos",      icon: "science",      route: "/laboratorio/pedidos",      permission: "ver_laboratorio" },
+      { label: "Aprobaciones", icon: "task_alt",     route: "/laboratorio/aprobaciones", permission: "gestionar_laboratorio" },
+      { label: "Recepciones",  icon: "inventory",    route: "/laboratorio/recepciones",  permission: "gestionar_laboratorio" },
+      { label: "Facturas",     icon: "receipt_long", route: "/laboratorio/facturas",     permission: "gestionar_laboratorio" },
     ],
   },
   {

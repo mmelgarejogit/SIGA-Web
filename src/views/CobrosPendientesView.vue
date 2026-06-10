@@ -4,11 +4,9 @@ import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import BaseModal from "@/components/BaseModal.vue"
-import BaseButton from "@/components/BaseButton.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type Venta, type MetodoPago, getCobrosPendientes, registrarCobro } from "@/services/ventasService"
+import { type Venta, getCobrosPendientes } from "@/services/ventasService"
 
 const router = useRouter()
 const route  = useRoute()
@@ -38,56 +36,15 @@ async function load() {
 
 onMounted(async () => {
   await load()
-  // Si venimos de generar una venta, abrir directo el cobro de esa venta
+  // Si venimos con ?venta, ir directo a la pantalla de cobro de esa venta
   const ventaId = Number(route.query.venta)
-  if (ventaId) {
-    const v = ventas.value.find(x => x.id === ventaId)
-    if (v) openCobro(v)
-  }
+  if (ventaId) goCobrar({ id: ventaId } as Venta)
 })
 
-// ── Registrar cobro ─────────────────────────────────────────────────────────────
+// ── Cobro (pantalla dedicada) ────────────────────────────────────────────────────
 
-const showCobro      = ref(false)
-const isCobro        = ref(false)
-const cobroError     = ref("")
-const selectedVenta  = ref<Venta | null>(null)
-const cobroLineas    = ref<{ metodoPago: MetodoPago; monto: number }[]>([{ metodoPago: "Efectivo", monto: 0 }])
-const cobroFecha     = ref(new Date().toISOString().slice(0, 10))
-const cobroTipo      = ref<"Seña" | "Cuota">("Cuota")
-
-function openCobro(v: Venta) {
-  selectedVenta.value = v
-  cobroLineas.value   = [{ metodoPago: "Efectivo", monto: v.saldoPendiente }]
-  cobroFecha.value    = new Date().toISOString().slice(0, 10)
-  cobroTipo.value     = v.estado === "EnProceso" ? "Seña" : "Cuota"
-  cobroError.value    = ""
-  showCobro.value     = true
-}
-
-function addCobroLinea()              { cobroLineas.value.push({ metodoPago: "Efectivo", monto: 0 }) }
-function removeCobroLinea(i: number)  { cobroLineas.value.splice(i, 1) }
-const totalCobro = computed(() => cobroLineas.value.reduce((s, l) => s + (l.monto || 0), 0))
-
-async function submitCobro() {
-  if (!selectedVenta.value) return
-  if (totalCobro.value <= 0) { cobroError.value = "El monto total debe ser mayor a 0"; return }
-  isCobro.value    = true
-  cobroError.value = ""
-  try {
-    await registrarCobro({
-      ventaId: selectedVenta.value.id,
-      tipo:    cobroTipo.value,
-      fecha:   cobroFecha.value,
-      lineas:  cobroLineas.value.filter(l => l.monto > 0),
-    })
-    showCobro.value = false
-    await load()
-  } catch (e: any) {
-    cobroError.value = e?.response?.data?.message ?? "Error al registrar cobro"
-  } finally {
-    isCobro.value = false
-  }
+function goCobrar(v: Venta) {
+  router.push(`/ventas/${v.id}/cobrar`)
 }
 
 // ── Filtro y agrupación ────────────────────────────────────────────────────────
@@ -143,9 +100,10 @@ function antiguedadColor(fechaVenta: string): { color: string; label: string } {
 
 function menuItems(v: Venta): ContextMenuItem[] {
   return [
-    { type: "item", label: "Registrar cobro",  icon: "payments",   action: () => openCobro(v) },
+    { type: "item", label: "Cobrar",             icon: "payments",     action: () => goCobrar(v) },
+    { type: "item", label: "Emitir comprobante", icon: "receipt_long", action: () => router.push(`/ventas/${v.id}/comprobante`) },
     { type: "separator" },
-    { type: "item", label: "Ver detalle",      icon: "visibility", action: () => router.push(`/ventas/${v.id}`) },
+    { type: "item", label: "Ver detalle",        icon: "visibility",   action: () => router.push(`/ventas/${v.id}`) },
   ]
 }
 </script>
@@ -201,7 +159,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
                     :key="v.id"
                     class="hover:bg-surface-container-low cursor-pointer"
                     style="border-bottom: 1px solid rgba(196,197,213,0.12)"
-                    @click="openCobro(v)"
+                    @click="goCobrar(v)"
                   >
                     <td class="px-6 py-4">
                       <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
@@ -269,62 +227,5 @@ function menuItems(v: Venta): ContextMenuItem[] {
       </div>
     </main>
 
-    <!-- ── Modal: Registrar cobro ────────────────────────────────────────────── -->
-    <BaseModal :open="showCobro" size="lg" title="Registrar Cobro" @close="showCobro = false">
-      <template #body>
-        <div class="space-y-5">
-          <div v-if="selectedVenta" class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
-            <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedVenta.numeroComprobante }} · {{ selectedVenta.clienteNombre }}</p>
-            <p style="color:var(--color-on-surface-variant)">Saldo pendiente: <strong style="color:#92400E">{{ formatPrice(selectedVenta.saldoPendiente) }}</strong></p>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Tipo *</label>
-              <select v-model="cobroTipo" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)">
-                <option value="Cuota">Cuota</option>
-                <option value="Seña">Seña</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Fecha *</label>
-              <input v-model="cobroFecha" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-            </div>
-          </div>
-
-          <!-- Líneas de pago -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color:var(--color-outline)">Métodos de pago *</label>
-              <button class="text-xs font-semibold flex items-center gap-1" style="color:var(--color-primary)" @click="addCobroLinea">
-                <span class="material-symbols-outlined" style="font-size:14px">add</span> Agregar método
-              </button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="(l, i) in cobroLineas" :key="i" class="flex gap-3 items-center">
-                <select v-model="l.metodoPago" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)">
-                  <option>Efectivo</option>
-                  <option>Tarjeta</option>
-                  <option>Transferencia</option>
-                  <option>Cheque</option>
-                </select>
-                <input v-model.number="l.monto" type="number" min="0" placeholder="Monto" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-                <button v-if="cobroLineas.length > 1" class="w-8 h-8 rounded-full flex items-center justify-center" style="background:#FEE2E2;color:#991B1B" @click="removeCobroLinea(i)">
-                  <span class="material-symbols-outlined" style="font-size:14px">close</span>
-                </button>
-              </div>
-            </div>
-            <p class="text-sm font-semibold mt-2" style="color:var(--color-primary)">Total: {{ formatPrice(totalCobro) }}</p>
-          </div>
-
-          <p v-if="cobroError" class="text-xs font-medium" style="color:var(--color-error)">{{ cobroError }}</p>
-        </div>
-      </template>
-      <template #footer>
-        <BaseButton variant="secondary" class="flex-1" @click="showCobro = false">Cancelar</BaseButton>
-        <BaseButton variant="primary" class="flex-1" :disabled="isCobro" @click="submitCobro">
-          {{ isCobro ? "Registrando…" : "Registrar cobro" }}
-        </BaseButton>
-      </template>
-    </BaseModal>
   </div>
 </template>

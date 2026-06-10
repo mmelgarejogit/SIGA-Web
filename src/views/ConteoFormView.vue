@@ -148,14 +148,6 @@ async function submit() {
 
           <!-- Header -->
           <div class="mb-8">
-            <button
-              @click="router.push('/stock')"
-              class="flex items-center gap-1.5 text-sm font-semibold mb-4 transition-all hover:opacity-75"
-              style="color: var(--color-primary)"
-            >
-              <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
-              Niveles de Stock
-            </button>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nuevo Conteo de Inventario</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               Seleccioná las categorías a contar, ingresá las cantidades físicas y dejá en blanco los productos que no contaste.

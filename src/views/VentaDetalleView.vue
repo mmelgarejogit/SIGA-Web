@@ -9,10 +9,9 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type Venta, type TipoDevolucion,
   getVentaById, confirmarVenta, cancelarVenta,
-  emitirComprobante, emitirFactura,
-  crearTrabajoPedido, registrarEnvioLabVenta, registrarRecepcionLabVenta,
   solicitarDevolucion, gestionarDevolucion,
 } from "@/services/ventasService"
+import { crearPedido, registrarEnvio, registrarRecepcion } from "@/services/laboratorioService"
 import { getLaboratorios, type ProveedorSimple } from "@/services/comprasService"
 import { getTiposLente, getTratamientos, type TipoLente, type Tratamiento } from "@/services/inventarioService"
 
@@ -84,13 +83,11 @@ function estadoDevBadge(estado: string) {
 
 const puedeCancelar         = computed(() => ["Borrador", "Confirmada", "EnProceso"].includes(venta.value?.estado ?? ""))
 const puedeConfirmar        = computed(() => venta.value?.estado === "Borrador")
-const puedeEmitirComp       = computed(() => venta.value?.estado === "ListaParaCobrar" && !venta.value?.comprobante)
-const puedeRegistrarCobro   = computed(() => (venta.value?.saldoPendiente ?? 0) > 0 && !["Cancelada", "Borrador", "ComprobanteEmitido"].includes(venta.value?.estado ?? ""))
-const puedeCrearTP          = computed(() => venta.value?.tipo === "TrabajoAPedido" && venta.value?.estado === "EnProceso" && !venta.value?.trabajoPedido)
+const puedeCrearTP          = computed(() => venta.value?.tipo === "TrabajoAPedido" && !["Borrador", "Cancelada"].includes(venta.value?.estado ?? "") && !venta.value?.trabajoPedido)
 const puedeEnviarLab        = computed(() => venta.value?.trabajoPedido?.estado === "PendienteEnvio")
 const puedeRecibirLab       = computed(() => venta.value?.trabajoPedido?.estado === "Enviado")
 const puedeDevolver         = computed(() => venta.value?.estado === "ComprobanteEmitido")
-const puedeEmitirFactura    = computed(() => venta.value?.estado === "ComprobanteEmitido" && !venta.value?.factura)
+const puedeEmitirDoc        = computed(() => venta.value?.estado === "ListaParaCobrar" && !venta.value?.comprobante && !venta.value?.factura)
 
 // ── Modal: Confirmar ──────────────────────────────────────────────────────────
 
@@ -126,26 +123,6 @@ async function submitCancelar() {
     cancelError.value = e?.response?.data?.message ?? "Error al cancelar"
   } finally {
     isCancelando.value = false
-  }
-}
-
-// ── Modal: Emitir comprobante ─────────────────────────────────────────────────
-
-const showComprobante  = ref(false)
-const isEmitComp       = ref(false)
-const compError        = ref("")
-
-async function submitComprobante() {
-  if (!venta.value) return
-  isEmitComp.value  = true
-  compError.value   = ""
-  try {
-    venta.value = await emitirComprobante(venta.value.id)
-    showComprobante.value = false
-  } catch (e: any) {
-    compError.value = e?.response?.data?.message ?? "Error al emitir comprobante"
-  } finally {
-    isEmitComp.value = false
   }
 }
 
@@ -261,13 +238,15 @@ async function submitTP() {
   isCreandoTP.value = true
   tpError.value     = ""
   try {
-    venta.value = await crearTrabajoPedido(venta.value.id, {
+    await crearPedido({
+      ventaId:                venta.value.id,
       recetaId:               tpForm.recetaId || (venta.value.recetaId ?? 0),
       tipoLenteId:            tpForm.tipoLenteId,
       tratamientoIds:         tpForm.tratamientoIds,
       laboratorioProveedorId: tpForm.laboratorioProveedorId,
       observacion:            tpForm.observacion || undefined,
     })
+    await load()
     showTP.value = false
   } catch (e: any) {
     tpError.value = e?.response?.data?.message ?? "Error al crear pedido"
@@ -287,7 +266,8 @@ async function submitEnvioLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarEnvioLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarEnvio(venta.value.trabajoPedido!.id)
+    await load()
     showEnvioLab.value = false
   } finally {
     isLabOp.value = false
@@ -298,44 +278,11 @@ async function submitRecepcionLab() {
   if (!venta.value) return
   isLabOp.value = true
   try {
-    venta.value = await registrarRecepcionLabVenta(venta.value.id, { observacion: labObservacion.value || undefined })
+    await registrarRecepcion(venta.value.trabajoPedido!.id)
+    await load()
     showRecepcionLab.value = false
   } finally {
     isLabOp.value = false
-  }
-}
-
-// ── Modal: Emitir factura ─────────────────────────────────────────────────────
-
-const showFactura  = ref(false)
-const isEmitFact   = ref(false)
-const factError    = ref("")
-const factForm     = reactive({
-  numeroFactura: "", timbrado: "", establecimiento: "",
-  fechaEmision: new Date().toISOString().slice(0, 10), observaciones: "",
-})
-
-async function submitFactura() {
-  if (!venta.value) return
-  if (!factForm.numeroFactura || !factForm.timbrado || !factForm.establecimiento) {
-    factError.value = "Completá los campos obligatorios"; return
-  }
-  isEmitFact.value = true
-  factError.value  = ""
-  try {
-    venta.value = await emitirFactura({
-      ventaId: venta.value.id,
-      numeroFactura:   factForm.numeroFactura,
-      timbrado:        factForm.timbrado,
-      establecimiento: factForm.establecimiento,
-      fechaEmision:    factForm.fechaEmision,
-      observaciones:   factForm.observaciones || undefined,
-    })
-    showFactura.value = false
-  } catch (e: any) {
-    factError.value = e?.response?.data?.message ?? "Error al emitir factura"
-  } finally {
-    isEmitFact.value = false
   }
 }
 
@@ -411,16 +358,16 @@ async function submitGestionDev() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8 max-w-5xl">
+      <div class="p-8">
 
         <!-- Volver -->
         <button
           class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
           style="color: var(--color-primary)"
-          @click="router.push('/ventas')"
+          @click="router.back()"
         >
           <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
-          Volver a Ventas
+          Volver
         </button>
 
         <!-- Loading / Error -->
@@ -468,21 +415,13 @@ async function submitGestionDev() {
                 <span class="material-symbols-outlined" style="font-size:18px">inventory</span>
                 Registrar recepción
               </BaseButton>
-              <BaseButton v-if="puedeRegistrarCobro" variant="primary" @click="router.push(`/ventas/cobros-pendientes?venta=${venta!.id}`)">
-                <span class="material-symbols-outlined" style="font-size:18px">payments</span>
-                Registrar cobro
-              </BaseButton>
-              <BaseButton v-if="puedeEmitirComp" variant="primary" @click="showComprobante = true">
-                <span class="material-symbols-outlined" style="font-size:18px">receipt_long</span>
-                Emitir comprobante
-              </BaseButton>
               <BaseButton v-if="puedeDevolver" variant="secondary" @click="devMotivo = ''; devLineas = [{ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined, cantidadNueva: undefined }]; showDevolucion = true">
                 <span class="material-symbols-outlined" style="font-size:18px">undo</span>
                 Devolver / Cambiar
               </BaseButton>
-              <BaseButton v-if="puedeEmitirFactura" variant="secondary" @click="showFactura = true">
-                <span class="material-symbols-outlined" style="font-size:18px">receipt</span>
-                Emitir factura
+              <BaseButton v-if="puedeEmitirDoc" variant="primary" @click="router.push(`/ventas/${venta!.id}/comprobante`)">
+                <span class="material-symbols-outlined" style="font-size:18px">receipt_long</span>
+                Emitir comprobante
               </BaseButton>
               <BaseButton v-if="puedeCancelar" variant="danger" @click="motivoCancel = ''; cancelError = ''; showCancelar = true">
                 <span class="material-symbols-outlined" style="font-size:18px">cancel</span>
@@ -760,25 +699,6 @@ async function submitGestionDev() {
     </template>
   </BaseModal>
 
-  <!-- ── Modal: Emitir comprobante ────────────────────────────────────────── -->
-  <BaseModal :open="showComprobante" size="sm" title="Emitir Comprobante" @close="showComprobante = false">
-    <template #body>
-      <div class="space-y-3">
-        <p class="text-sm" style="color:var(--color-on-surface-variant)">
-          Se emitirá un <strong>Recibo Simple</strong> para la venta {{ venta?.numeroComprobante }}.
-          Esto generará los movimientos de stock y caja correspondientes. Esta acción no se puede deshacer.
-        </p>
-        <p v-if="compError" class="text-xs font-medium" style="color:var(--color-error)">{{ compError }}</p>
-      </div>
-    </template>
-    <template #footer>
-      <BaseButton variant="secondary" class="flex-1" @click="showComprobante = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" class="flex-1" :disabled="isEmitComp" @click="submitComprobante">
-        {{ isEmitComp ? "Emitiendo…" : "Emitir comprobante" }}
-      </BaseButton>
-    </template>
-  </BaseModal>
-
   <!-- ── Modal: Enviar al laboratorio ─────────────────────────────────────── -->
   <BaseModal :open="showEnvioLab" size="sm" title="Registrar Envío al Laboratorio" @close="showEnvioLab = false">
     <template #body>
@@ -1001,42 +921,6 @@ async function submitGestionDev() {
     </template>
   </BaseModal>
 
-  <!-- ── Modal: Emitir factura ─────────────────────────────────────────────── -->
-  <BaseModal :open="showFactura" size="lg" title="Emitir Factura" @close="showFactura = false">
-    <template #body>
-      <div class="space-y-4">
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">N° Factura *</label>
-          <input v-model="factForm.numeroFactura" type="text" placeholder="001-001-0000001" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Timbrado *</label>
-            <input v-model="factForm.timbrado" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-          </div>
-          <div>
-            <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Establecimiento *</label>
-            <input v-model="factForm.establecimiento" type="text" placeholder="001-001" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-          </div>
-        </div>
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Fecha de Emisión *</label>
-          <input v-model="factForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
-        </div>
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observaciones</label>
-          <textarea v-model="factForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
-        </div>
-        <p v-if="factError" class="text-xs font-medium" style="color:var(--color-error)">{{ factError }}</p>
-      </div>
-    </template>
-    <template #footer>
-      <BaseButton variant="secondary" class="flex-1" @click="showFactura = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" class="flex-1" :disabled="isEmitFact" @click="submitFactura">
-        {{ isEmitFact ? "Emitiendo…" : "Emitir factura" }}
-      </BaseButton>
-    </template>
-  </BaseModal>
 
   <!-- ── Modal: Solicitar devolución ──────────────────────────────────────── -->
   <BaseModal :open="showDevolucion" size="lg" title="Devolución / Cambio" @close="showDevolucion = false">

@@ -9,7 +9,8 @@ import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type TrabajoPedidoListDto, type EmitirFacturaLaboratorioRequest, getTrabajosPedido, emitirFacturaLaboratorio } from "@/services/ventasService"
+import { type TrabajoPedidoListDto, type EmitirFacturaLaboratorioRequest } from "@/services/ventasService"
+import { getPedidos, emitirFactura } from "@/services/laboratorioService"
 
 const router = useRouter()
 
@@ -33,7 +34,7 @@ const filtroOptions = [
 
 async function load() {
   isLoading.value = true
-  try { items.value = await getTrabajosPedido("Recibido") }
+  try { items.value = await getPedidos("Recibido") }
   catch { items.value = [] }
   finally { isLoading.value = false }
 }
@@ -91,7 +92,7 @@ async function submitFactura() {
   isEmitiendo.value = true
   emitError.value   = ""
   try {
-    await emitirFacturaLaboratorio(selectedItem.value.id, {
+    await emitirFactura(selectedItem.value.id, {
       numeroFactura: factForm.numeroFactura.trim(),
       timbrado:      factForm.timbrado?.trim() || undefined,
       fechaEmision:  factForm.fechaEmision,

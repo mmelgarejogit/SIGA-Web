@@ -45,6 +45,7 @@ const bajoStockCount = computed(() => productos.value.filter((p) => p.bajoStock)
 const columns = [
   { key: "producto", label: "Producto" },
   { key: "categoria", label: "Categoría" },
+  { key: "stockActual", label: "Stock actual" },
   { key: "minimo", label: "Stock mín." },
   { key: "maximo", label: "Stock máx." },
   { key: "estado", label: "Estado" },
@@ -194,10 +195,6 @@ function menuItems(p: Producto): ContextMenuItem[] {
               <span class="material-symbols-outlined" style="font-size: 20px">download</span>
               Descargar planilla
             </BaseButton>
-            <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/stock/conteo/nuevo')">
-              <span class="material-symbols-outlined" style="font-size: 20px">fact_check</span>
-              Registrar conteo
-            </BaseButton>
           </div>
         </div>
 
@@ -230,6 +227,10 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
           <template #categoria="{ item }">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.categoria || "—" }}</span>
+          </template>
+
+          <template #stockActual="{ item }">
+            <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.stockActual }}</span>
           </template>
 
           <template #minimo="{ item }">

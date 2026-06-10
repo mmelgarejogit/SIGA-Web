@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue"
+import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
-import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import { type Venta, getVentas } from "@/services/ventasService"
+
+const router = useRouter()
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
@@ -109,17 +111,11 @@ function tipoBadge(tipo: string) {
     : { bg: "#EFF6FF", text: "#1D4ED8",  label: "Directa" }
 }
 
-// ── Detalle solo-lectura ────────────────────────────────────────────────────
+// ── Navegación al detalle ────────────────────────────────────────────────────
 
-const showDetalle    = ref(false)
-const detalle        = ref<Venta | null>(null)
-
-function openDetalle(v: Venta) {
-  detalle.value     = v
-  showDetalle.value = true
+function goDetalle(v: Venta) {
+  router.push(`/ventas/${v.id}`)
 }
-
-const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado")
 </script>
 
 <template>
@@ -132,7 +128,7 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
         <!-- Encabezado -->
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Ventas</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Lista de Ventas</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} venta{{ totalCount !== 1 ? "s" : "" }} registrada{{ totalCount !== 1 ? "s" : "" }} · solo consulta
             </p>
@@ -166,7 +162,7 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
                 :key="v.id"
                 class="hover:bg-surface-container-low cursor-pointer"
                 style="border-bottom: 1px solid rgba(196,197,213,0.12)"
-                @click="openDetalle(v)"
+                @click="goDetalle(v)"
               >
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
@@ -235,119 +231,5 @@ const condicionLabel = (c?: string) => (c === "Credito" ? "Crédito" : "Contado"
 
       </div>
     </main>
-
-    <!-- ── Modal: Detalle (solo lectura) ──────────────────────────────────────── -->
-    <BaseModal :open="showDetalle" size="lg" :title="detalle ? `Venta ${detalle.numeroComprobante}` : 'Detalle'" @close="showDetalle = false">
-      <template #body>
-        <div v-if="detalle" class="space-y-6">
-
-          <!-- Resumen superior -->
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-              :style="`background-color: ${estadoBadge(detalle.estado).bg}; color: ${estadoBadge(detalle.estado).text}`">{{ estadoBadge(detalle.estado).label }}</span>
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-              :style="`background-color: ${tipoBadge(detalle.tipo).bg}; color: ${tipoBadge(detalle.tipo).text}`">{{ tipoBadge(detalle.tipo).label }}</span>
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style="background:#F3F4F6;color:#374151">{{ condicionLabel(detalle.condicionVenta) }}</span>
-          </div>
-
-          <!-- Datos generales -->
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Cliente</p>
-              <p class="font-medium" style="color:var(--color-on-surface)">{{ detalle.clienteNombre }}</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Fecha de venta</p>
-              <p style="color:var(--color-on-surface)">{{ formatDate(detalle.fechaVenta) }}</p>
-            </div>
-            <div v-if="detalle.fechaConfirmacion">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Confirmada</p>
-              <p style="color:var(--color-on-surface)">{{ formatDate(detalle.fechaConfirmacion) }}</p>
-            </div>
-            <div v-if="detalle.fechaComprobante">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Comprobante</p>
-              <p style="color:var(--color-on-surface)">{{ formatDate(detalle.fechaComprobante) }}</p>
-            </div>
-          </div>
-
-          <!-- Líneas -->
-          <div>
-            <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--color-outline)">Detalle</p>
-            <div class="rounded-xl overflow-hidden" style="border:1px solid rgba(196,197,213,0.2)">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr style="background:var(--color-surface-container-low)">
-                    <th class="text-left px-3 py-2 text-xs font-bold uppercase" style="color:var(--color-outline)">Descripción</th>
-                    <th class="text-center px-3 py-2 text-xs font-bold uppercase" style="color:var(--color-outline)">Cant.</th>
-                    <th class="text-right px-3 py-2 text-xs font-bold uppercase" style="color:var(--color-outline)">P. Unit.</th>
-                    <th class="text-right px-3 py-2 text-xs font-bold uppercase" style="color:var(--color-outline)">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="l in detalle.lineas" :key="l.id" style="border-top:1px solid rgba(196,197,213,0.15)">
-                    <td class="px-3 py-2" style="color:var(--color-on-surface)">{{ l.descripcion }}</td>
-                    <td class="px-3 py-2 text-center" style="color:var(--color-on-surface-variant)">{{ l.cantidad }}</td>
-                    <td class="px-3 py-2 text-right" style="color:var(--color-on-surface-variant)">{{ formatPrice(l.precioUnitario) }}</td>
-                    <td class="px-3 py-2 text-right font-semibold" style="color:var(--color-on-surface)">{{ formatPrice(l.subtotal) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Totales -->
-          <div class="flex justify-end">
-            <div class="w-64 space-y-1 text-sm">
-              <div v-if="detalle.montoExento > 0" class="flex justify-between"><span style="color:var(--color-on-surface-variant)">Exento</span><span style="color:var(--color-on-surface)">{{ formatPrice(detalle.montoExento) }}</span></div>
-              <div v-if="detalle.montoGravado5 > 0" class="flex justify-between"><span style="color:var(--color-on-surface-variant)">Gravado 5%</span><span style="color:var(--color-on-surface)">{{ formatPrice(detalle.montoGravado5) }}</span></div>
-              <div v-if="detalle.montoGravado10 > 0" class="flex justify-between"><span style="color:var(--color-on-surface-variant)">Gravado 10%</span><span style="color:var(--color-on-surface)">{{ formatPrice(detalle.montoGravado10) }}</span></div>
-              <div class="flex justify-between font-bold text-base pt-1" style="border-top:1px solid rgba(196,197,213,0.2)"><span style="color:var(--color-on-surface)">Total</span><span style="color:var(--color-primary)">{{ formatPrice(detalle.total) }}</span></div>
-              <div class="flex justify-between"><span style="color:var(--color-on-surface-variant)">Cobrado</span><span style="color:#166534">{{ formatPrice(detalle.totalCobrado) }}</span></div>
-              <div v-if="detalle.saldoPendiente > 0" class="flex justify-between font-semibold"><span style="color:#92400E">Saldo</span><span style="color:#92400E">{{ formatPrice(detalle.saldoPendiente) }}</span></div>
-            </div>
-          </div>
-
-          <!-- Cobros -->
-          <div v-if="detalle.cobros.length">
-            <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--color-outline)">Cobros</p>
-            <div class="space-y-1.5">
-              <div v-for="c in detalle.cobros" :key="c.id" class="flex items-center justify-between text-sm px-3 py-2 rounded-lg" style="background:var(--color-surface-container-low)" :style="c.anulado ? 'opacity:0.5;text-decoration:line-through' : ''">
-                <span style="color:var(--color-on-surface-variant)">{{ c.tipo }} · {{ formatDate(c.fecha) }} · {{ c.lineas.map(x => x.metodoPago).join(', ') }}</span>
-                <span class="font-semibold" style="color:var(--color-on-surface)">{{ formatPrice(c.montoTotal) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Comprobante / Factura -->
-          <div v-if="detalle.comprobante || detalle.factura" class="grid grid-cols-2 gap-4 text-sm">
-            <div v-if="detalle.comprobante" class="p-3 rounded-xl" style="background:#F0FDF4;border:1px solid #BBF7D0">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:#166534">Comprobante</p>
-              <p style="color:var(--color-on-surface)">{{ detalle.comprobante.tipo }} · {{ detalle.comprobante.estado }}</p>
-            </div>
-            <div v-if="detalle.factura" class="p-3 rounded-xl" style="background:#EFF6FF;border:1px solid #BFDBFE">
-              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:#1D4ED8">Factura</p>
-              <p style="color:var(--color-on-surface)">{{ detalle.factura.numeroFactura }} · {{ formatPrice(detalle.factura.total) }}</p>
-            </div>
-          </div>
-
-          <!-- Trabajo a pedido -->
-          <div v-if="detalle.trabajoPedido" class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color:var(--color-outline)">Trabajo a pedido</p>
-            <p style="color:var(--color-on-surface)">
-              {{ detalle.trabajoPedido.tipoLenteNombre }}
-              <span v-if="detalle.trabajoPedido.tratamientos.length"> · {{ detalle.trabajoPedido.tratamientos.map(t => t.nombre).join(', ') }}</span>
-            </p>
-            <p style="color:var(--color-on-surface-variant)">Lab: {{ detalle.trabajoPedido.laboratorioNombre }} · Estado: {{ detalle.trabajoPedido.estado }}</p>
-          </div>
-
-          <!-- Observaciones -->
-          <div v-if="detalle.observaciones">
-            <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color:var(--color-outline)">Observaciones</p>
-            <p class="text-sm" style="color:var(--color-on-surface-variant)">{{ detalle.observaciones }}</p>
-          </div>
-
-        </div>
-      </template>
-    </BaseModal>
   </div>
 </template>
