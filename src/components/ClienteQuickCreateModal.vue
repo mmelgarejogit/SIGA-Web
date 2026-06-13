@@ -160,7 +160,6 @@ function reset() {
 watch(() => props.show, (open) => { if (open) reset() })
 
 watch(modo, () => {
-  // Al cambiar de modo se limpian los datos de persona (no la facturación)
   errors.value = {}
   formError.value = ""
   selectedPaciente.value = null

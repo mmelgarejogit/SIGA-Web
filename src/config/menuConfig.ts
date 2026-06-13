@@ -265,6 +265,12 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_clientes",
       },
       {
+        label: "Servicios",
+        icon: "medical_services",
+        route: "/ventas/servicios",
+        permission: "ver_ventas",
+      },
+      {
         label: "Presupuestos",
         icon: "description",
         route: "/ventas/presupuestos",

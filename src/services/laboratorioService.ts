@@ -3,20 +3,17 @@ import type {
   TrabajoPedidoListDto,
   GestionarTrabajoPedidoRequest,
   EmitirFacturaLaboratorioRequest,
-  CrearTrabajoPedidoRequest,
 } from "@/services/ventasService"
 
 const { get, post, put } = useHttp()
 
 // El ciclo del trabajo a pedido (laboratorio) vive en su propio módulo: /api/laboratorio/*
+// El pedido se crea junto con la venta a pedido (VentaService); acá solo se gestiona su ciclo.
 
 export const getPedidos = (estado?: string) => {
   const q = estado ? `?estado=${estado}` : ""
   return get<TrabajoPedidoListDto[]>(`/api/laboratorio/pedidos${q}`)
 }
-
-export const crearPedido = (data: CrearTrabajoPedidoRequest) =>
-  post<TrabajoPedidoListDto>("/api/laboratorio/pedidos", data)
 
 export const gestionarAprobacion = (id: number, data: GestionarTrabajoPedidoRequest) =>
   post<TrabajoPedidoListDto>(`/api/laboratorio/pedidos/${id}/gestionar`, data)

@@ -414,6 +414,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_ventas", label: "Timbrados" },
     },
     {
+      path: "/ventas/servicios",
+      name: "ventas-servicios",
+      component: () => import("@/views/ServiciosView.vue"),
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Servicios" },
+    },
+    {
       path: "/ventas/cierre",
       name: "ventas-cierre",
       component: () => import("@/views/VentasCierreView.vue"),

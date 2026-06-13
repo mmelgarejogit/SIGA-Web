@@ -9,11 +9,13 @@ import ClienteSelector from "@/components/ClienteSelector.vue"
 import RecetaSelector from "@/components/RecetaSelector.vue"
 import TrabajoOpticoCard from "@/components/TrabajoOpticoCard.vue"
 import {
-  type AgregarLineaRequest, type CategoriaFiscal, type CondicionVenta, type TipoVenta, type Venta,
-  crearVenta, confirmarVenta, getPresupuestos, getVentaById,
+  type AgregarLineaRequest, type CategoriaFiscal, type CondicionVenta, type TipoVenta, type Venta, type Servicio,
+  crearVenta, confirmarVenta, getPresupuestos, getVentaById, getServicios, resolvePrecioServicio,
 } from "@/services/ventasService"
 import { type Cliente, getClienteById } from "@/services/clienteService"
 import { getProductos, type Producto } from "@/services/inventarioService"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import { http } from "@/api/http"
 import { emptyOptica, opticaLineas, opticaTrabajoPedido, type LineaUI } from "@/composables/optica"
 
 const props = defineProps<{ esPresupuesto: boolean }>()
@@ -62,6 +64,85 @@ function addProducto(p: Producto) {
   showProductoDrop.value = false
 }
 function hideProductoDrop() { setTimeout(() => { showProductoDrop.value = false }, 150) }
+
+// ── Servicios (catálogo: consulta, ajuste, reparación…) ───────────────────────────
+const servicios = ref<Servicio[]>([])
+const buscadorTipo = ref<"Producto" | "Servicio">("Producto")
+const servicioSearch = ref("")
+const showServicioDrop = ref(false)
+const filteredServicios = computed(() =>
+  servicioSearch.value.trim()
+    ? servicios.value.filter(s => s.nombre.toLowerCase().includes(servicioSearch.value.toLowerCase()))
+    : servicios.value.slice(0, 20),
+)
+function pushServicioLinea(s: Servicio, precio: number, profesionalNombre?: string) {
+  lineas.value.push({
+    tipo: "Servicio", servicioId: s.id,
+    descripcion: profesionalNombre ? `${s.nombre} — ${profesionalNombre}` : s.nombre,
+    cantidad: 1, precioUnitario: precio, descuento: 0, categoriaFiscal: "Gravado10",
+  })
+}
+function addServicio(s: Servicio) {
+  servicioSearch.value = ""
+  showServicioDrop.value = false
+  if (s.tarifas && s.tarifas.length) {
+    // Tiene precios por profesional/especialidad → pedir profesional y resolver
+    abrirTarifaServicio(s)
+  } else {
+    pushServicioLinea(s, s.precio)
+  }
+}
+function hideServicioDrop() { setTimeout(() => { showServicioDrop.value = false }, 150) }
+
+// ── Servicio con tarifas: elegir profesional y resolver precio ─────────────────────
+interface ProfLite { id: number; firstName: string; lastName: string; isActive: boolean }
+const profesionales = ref<ProfLite[]>([])
+const profesionalOptions = computed(() => profesionales.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })))
+
+const showTarifaServicio   = ref(false)
+const servicioPendiente    = ref<Servicio | null>(null)
+const tarifaProfesionalId  = ref<number | null>(null)
+const precioResuelto       = ref<number>(0)
+const origenPrecio         = ref<"profesional" | "especialidad" | "base">("base")
+const isResolviendoPrecio  = ref(false)
+
+function abrirTarifaServicio(s: Servicio) {
+  servicioPendiente.value   = s
+  tarifaProfesionalId.value = null
+  precioResuelto.value      = s.precio
+  origenPrecio.value        = "base"
+  showTarifaServicio.value  = true
+}
+
+watch(tarifaProfesionalId, async (profId) => {
+  if (!servicioPendiente.value) return
+  isResolviendoPrecio.value = true
+  try {
+    const r = await resolvePrecioServicio(servicioPendiente.value.id, profId ?? undefined)
+    precioResuelto.value = r.precio
+    origenPrecio.value   = r.origen
+  } catch {
+    precioResuelto.value = servicioPendiente.value.precio
+    origenPrecio.value   = "base"
+  } finally {
+    isResolviendoPrecio.value = false
+  }
+})
+
+const origenPrecioLabel = computed(() =>
+  origenPrecio.value === "profesional" ? "Tarifa del profesional"
+  : origenPrecio.value === "especialidad" ? "Tarifa de la especialidad"
+  : "Precio base",
+)
+
+function confirmarServicioConTarifa() {
+  if (!servicioPendiente.value) return
+  const prof = profesionales.value.find(p => p.id === tarifaProfesionalId.value)
+  const nombre = prof ? `${prof.firstName} ${prof.lastName}` : undefined
+  pushServicioLinea(servicioPendiente.value, precioResuelto.value, nombre)
+  showTarifaServicio.value = false
+  servicioPendiente.value  = null
+}
 
 // ── Línea manual ──────────────────────────────────────────────────────────────────
 const showLineaManual = ref(false)
@@ -121,6 +202,12 @@ onMounted(async () => {
   if (props.esPresupuesto) tipoVenta.value = "TrabajoAPedido"
   const prodsRes = await getProductos({ pageSize: 300 }).catch(() => null)
   if (prodsRes) productos.value = prodsRes.items.filter(p => p.isActive)
+  const servsRes = await getServicios().catch(() => null)
+  if (servsRes) servicios.value = servsRes.filter(s => s.isActive)
+  try {
+    const { data } = await http.get<{ items: ProfLite[] }>("/api/professionals?pageSize=200")
+    profesionales.value = (data.items ?? []).filter(p => p.isActive)
+  } catch { /* no crítico */ }
 
   // Precarga desde un presupuesto (solo en modo venta)
   const presupuestoId = Number(route.query.presupuesto)
@@ -139,6 +226,10 @@ onMounted(async () => {
 // ── Guardar ────────────────────────────────────────────────────────────────────────
 const isSaving  = ref(false)
 const saveError = ref("")
+
+const opticaLinesCount = computed(() =>
+  esPedido.value && !presupuestoCargado.value ? opticaLineas(optica).length : 0
+)
 
 const canSave = computed(() => lineasFinales.value.length > 0 && total.value > 0)
 
@@ -182,7 +273,7 @@ async function guardar() {
     // Tras confirmar se va a la pantalla de cobro de la venta (cobro independiente del laboratorio).
     router.push(`/ventas/${ventaId}/cobrar`)
   } catch (e: any) {
-    saveError.value = e?.response?.data?.message ?? "Error al guardar"
+    saveError.value = e instanceof Error ? e.message : "Error al guardar"
   } finally {
     isSaving.value = false
   }
@@ -261,24 +352,7 @@ const guardarLabel = computed(() =>
               <TrabajoOpticoCard :state="optica" />
             </template>
 
-            <!-- ── DIRECTA ── -->
-            <div v-if="!esPedido && !presupuestoCargado" class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-              <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Productos</h3>
-              <div class="relative mb-4">
-                <input v-model="productoSearch" type="text" placeholder="Buscá un producto por nombre o SKU…" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
-                  @focus="showProductoDrop = true" @blur="hideProductoDrop" />
-                <div v-if="showProductoDrop && filteredProductos.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
-                  style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
-                  <button v-for="p in filteredProductos" :key="p.id" type="button" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.1)" @mousedown.prevent="addProducto(p)">
-                    <span class="font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</span>
-                    <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Líneas (extras manuales en a pedido / productos+manual en directa / cargadas del presupuesto) -->
+            <!-- ── LÍNEAS / ÍTEMS ADICIONALES ── -->
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">{{ esPedido ? "Ítems adicionales" : "Líneas" }}</h3>
@@ -287,8 +361,50 @@ const guardarLabel = computed(() =>
                 </button>
               </div>
 
+              <!-- Buscador de productos / servicios -->
+              <div v-if="!presupuestoCargado" class="mb-4">
+                <!-- Toggle -->
+                <div class="inline-flex p-1 rounded-xl mb-2" style="background-color: var(--color-surface-container-high)">
+                  <button type="button" @click="buscadorTipo = 'Producto'" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    :style="buscadorTipo === 'Producto' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'color: var(--color-on-surface-variant)'">Producto</button>
+                  <button type="button" @click="buscadorTipo = 'Servicio'" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    :style="buscadorTipo === 'Servicio' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'color: var(--color-on-surface-variant)'">Servicio</button>
+                </div>
+
+                <!-- Buscador de productos -->
+                <div v-if="buscadorTipo === 'Producto'" class="relative">
+                  <input v-model="productoSearch" type="text" placeholder="Buscá un producto por nombre o SKU…" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                    style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
+                    @focus="showProductoDrop = true" @blur="hideProductoDrop" />
+                  <div v-if="showProductoDrop && filteredProductos.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
+                    style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
+                    <button v-for="p in filteredProductos" :key="p.id" type="button" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.1)" @mousedown.prevent="addProducto(p)">
+                      <span class="font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</span>
+                      <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Buscador de servicios -->
+                <div v-else class="relative">
+                  <input v-model="servicioSearch" type="text" placeholder="Buscá un servicio (consulta, ajuste…)" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                    style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
+                    @focus="showServicioDrop = true" @blur="hideServicioDrop" />
+                  <div v-if="showServicioDrop && filteredServicios.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
+                    style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
+                    <button v-for="s in filteredServicios" :key="s.id" type="button" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.1)" @mousedown.prevent="addServicio(s)">
+                      <span class="font-medium" style="color: var(--color-on-surface)">{{ s.nombre }}</span>
+                      <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(s.precio) }}</span>
+                    </button>
+                  </div>
+                  <p v-if="servicios.length === 0" class="mt-1.5 text-xs" style="color: var(--color-outline)">
+                    No hay servicios cargados. Creá uno en Ventas → Servicios.
+                  </p>
+                </div>
+              </div>
+
               <div v-if="lineasFinales.length === 0" class="py-6 text-center rounded-xl" style="border: 1.5px dashed var(--color-outline-variant)">
-                <p class="text-sm" style="color: var(--color-outline)">{{ esPedido ? "Agregá armazón y cristal arriba" : "Buscá un producto o agregá una línea manual" }}</p>
+                <p class="text-sm" style="color: var(--color-outline)">{{ esPedido ? "Buscá un producto o agregá una línea manual" : "Buscá un producto o agregá una línea manual" }}</p>
               </div>
 
               <div v-else class="space-y-2">
@@ -298,6 +414,15 @@ const guardarLabel = computed(() =>
                     <p class="text-xs mt-0.5" style="color: var(--color-outline)">{{ l.cantidad }} × {{ formatPrice(l.precioUnitario) }}{{ l.descuento ? " − " + formatPrice(l.descuento) : "" }}</p>
                   </div>
                   <p class="text-sm font-bold" style="color: var(--color-primary)">{{ formatPrice(subtotalLinea(l)) }}</p>
+                  <button
+                    v-if="!presupuestoCargado && i >= opticaLinesCount"
+                    @click="removeLinea(i - opticaLinesCount)"
+                    class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all hover:scale-105"
+                    style="background-color: var(--color-error-container)"
+                    title="Eliminar"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 14px; color: var(--color-error)">close</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -388,6 +513,36 @@ const guardarLabel = computed(() =>
     <template #footer>
       <BaseButton variant="secondary" class="flex-1" @click="showLineaManual = false">Cancelar</BaseButton>
       <BaseButton variant="primary" class="flex-1" @click="addLineaManual">Agregar</BaseButton>
+    </template>
+  </BaseModal>
+
+  <!-- Modal Servicio con tarifas -->
+  <BaseModal :open="showTarifaServicio" size="sm" title="Precio del servicio" @close="showTarifaServicio = false">
+    <template #body>
+      <div v-if="servicioPendiente" class="space-y-4">
+        <div>
+          <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ servicioPendiente.nombre }}</p>
+          <p class="text-xs" style="color: var(--color-outline)">Este servicio tiene precios según el profesional. Elegí el profesional que atendió.</p>
+        </div>
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Profesional</label>
+          <SearchableSelect
+            :model-value="tarifaProfesionalId" :options="profesionalOptions"
+            null-label="Sin profesional (precio base)"
+            @update:model-value="tarifaProfesionalId = $event as number | null" />
+        </div>
+        <div class="flex items-center justify-between rounded-xl px-4 py-3" style="background-color: var(--color-surface-container-low)">
+          <div>
+            <p class="text-xs font-semibold" style="color: var(--color-outline)">{{ origenPrecioLabel }}</p>
+            <p class="text-lg font-extrabold" style="color: var(--color-primary)">{{ formatPrice(precioResuelto) }}</p>
+          </div>
+          <span v-if="isResolviendoPrecio" class="material-symbols-outlined animate-spin" style="font-size: 20px; color: var(--color-outline)">progress_activity</span>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <BaseButton variant="secondary" class="flex-1" @click="showTarifaServicio = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" class="flex-1" :disabled="isResolviendoPrecio" @click="confirmarServicioConTarifa">Agregar</BaseButton>
     </template>
   </BaseModal>
 </template>

@@ -6,7 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import {
   type Venta, type MetodoPago, type TipoCobro,
-  getVentaById, registrarCobro,
+  getVentaById, registrarCobro, getSesionActual,
 } from "@/services/ventasService"
 
 const route  = useRoute()
@@ -20,6 +20,7 @@ const formatDate = (s?: string) =>
 const venta     = ref<Venta | null>(null)
 const isLoading = ref(false)
 const error     = ref("")
+const cajaAbierta = ref(false)
 
 const isContado  = computed(() => venta.value?.condicionVenta === "Contado")
 const saldo      = computed(() => venta.value?.saldoPendiente ?? 0)
@@ -50,6 +51,8 @@ async function load() {
     venta.value = await getVentaById(Number(route.params.id))
     tipo.value  = venta.value.estado === "EnProceso" ? "Seña" : "Cuota"
     resetFormToSaldo()
+    // Hay caja disponible solo si la sesión actual está Abierta (PendienteAprobacion no acepta cobros).
+    cajaAbierta.value = (await getSesionActual().catch(() => null))?.estado === "Abierta"
   } catch {
     error.value = "No se pudo cargar la venta"
   } finally {
@@ -81,7 +84,11 @@ async function doRegistrarCobro(): Promise<boolean> {
 async function guardarCobro() {
   isSaving.value = true
   try { await doRegistrarCobro() }
-  catch (e: any) { opError.value = e?.response?.data?.message ?? "Error al registrar el cobro" }
+  catch (e) {
+    opError.value = e instanceof Error ? e.message : "Error al registrar el cobro"
+    // Si el backend rechazó por falta de caja, refrescamos el aviso proactivo.
+    if (opError.value.toLowerCase().includes("caja")) cajaAbierta.value = false
+  }
   finally { isSaving.value = false }
 }
 
@@ -129,6 +136,21 @@ function goEmitir() {
               </div>
 
               <template v-else>
+                <!-- Aviso: no hay caja abierta (los cobros en efectivo se rechazan) -->
+                <div v-if="!cajaAbierta" class="rounded-2xl p-5 flex items-start justify-between gap-4 flex-wrap" style="background:#FEF3C7;border:1.5px solid #FDE68A">
+                  <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined" style="font-size:24px;color:#92400E">point_of_sale</span>
+                    <div>
+                      <p class="font-bold text-sm" style="color:#92400E">No hay una caja abierta</p>
+                      <p class="text-xs mt-0.5" style="color:#B45309">Para registrar cobros en efectivo primero tenés que abrir la caja. Tarjeta, transferencia y cheque sí se pueden registrar.</p>
+                    </div>
+                  </div>
+                  <BaseButton variant="primary" size="sm" @click="router.push('/ventas/cierre')">
+                    <span class="material-symbols-outlined" style="font-size:16px">lock_open</span>
+                    Abrir caja
+                  </BaseButton>
+                </div>
+
                 <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
                   <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Pago</h3>
 

@@ -6,11 +6,8 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type Cliente,
   type GetClientesParams,
-  type PersonLookup,
   type TipoFacturacion,
   getClientes,
-  buscarPersonaPorCi,
-  createCliente,
   updateCliente,
   desactivarCliente,
   activarCliente,
@@ -23,6 +20,7 @@ import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import BirthDateInput from "@/components/BirthDateInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
+import ClienteQuickCreateModal from "@/components/ClienteQuickCreateModal.vue"
 
 const SEXO_OPTIONS = [
   { value: "Masculino", label: "Masculino" },
@@ -230,143 +228,14 @@ function validatePersona(f: ClienteForm, e: FormErrors, requireCi: boolean) {
 // ── Modal Crear ───────────────────────────────────────────────────────────────
 
 const showCreateModal = ref(false)
-const createForm = reactive<ClienteForm>(emptyForm())
-const createErrors = ref<FormErrors>({})
-const createError = ref("")
-const isSavingCreate = ref(false)
-
-// Estado de la búsqueda de persona por CI
-const ciLookup = ref("")
-const isSearching = ref(false)
-const lookupDone = ref(false)
-const lookupBanner = ref<{ type: "new" | "existing" | "error"; text: string } | null>(null)
-const yaEsCliente = ref(false)
-
-const isExistingPerson = computed(() => createForm.personId != null)
 
 function openCreateModal() {
-  Object.assign(createForm, emptyForm())
-  createErrors.value = {}
-  createError.value = ""
-  ciLookup.value = ""
-  isSearching.value = false
-  lookupDone.value = false
-  lookupBanner.value = null
-  yaEsCliente.value = false
   showCreateModal.value = true
 }
 
-function resetLookup() {
-  lookupDone.value = false
-  lookupBanner.value = null
-  yaEsCliente.value = false
-  createForm.personId = undefined
-  createForm.ci = ""
-  createForm.firstName = ""
-  createForm.lastName = ""
-  createForm.birthDate = ""
-  createForm.sexo = ""
-  createForm.phoneNumber = ""
-  createForm.personEmail = ""
-}
-
-async function buscarPersona() {
-  const ci = ciLookup.value.trim()
-  if (!ci || isSearching.value) return
-  isSearching.value = true
-  createError.value = ""
-  try {
-    const res: PersonLookup | null = await buscarPersonaPorCi(ci)
-    lookupDone.value = true
-    if (res === null) {
-      yaEsCliente.value = false
-      createForm.personId = undefined
-      createForm.ci = ci
-      createForm.firstName = ""
-      createForm.lastName = ""
-      createForm.birthDate = ""
-      createForm.sexo = ""
-      createForm.phoneNumber = ""
-      createForm.personEmail = ""
-      lookupBanner.value = {
-        type: "new",
-        text: "No existe una persona con esa cédula. Completá los datos para registrarla.",
-      }
-    } else if (res.yaEsCliente) {
-      yaEsCliente.value = true
-      createForm.personId = undefined
-      lookupBanner.value = {
-        type: "error",
-        text: `${res.firstName} ${res.lastName} ya está registrado como cliente.`,
-      }
-    } else {
-      yaEsCliente.value = false
-      createForm.personId = res.personId
-      createForm.ci = res.ci
-      createForm.firstName = res.firstName
-      createForm.lastName = res.lastName
-      createForm.birthDate = res.birthDate
-      createForm.sexo = res.sexo ?? ""
-      createForm.phoneNumber = res.phoneNumber ?? ""
-      createForm.personEmail = res.email ?? ""
-      lookupBanner.value = {
-        type: "existing",
-        text: `Persona encontrada: ${res.firstName} ${res.lastName}. Se reutilizarán sus datos.`,
-      }
-    }
-  } catch (err: unknown) {
-    createError.value = err instanceof Error ? err.message : "Error al buscar la persona."
-  } finally {
-    isSearching.value = false
-  }
-}
-
-function validateCreate(): boolean {
-  const e: FormErrors = {}
-  if (!isExistingPerson.value) validatePersona(createForm, e, true)
-  validateFacturacion(createForm, e)
-  createErrors.value = e
-  return Object.keys(e).length === 0
-}
-
-async function submitCreate() {
-  if (isSavingCreate.value) return
-  if (!lookupDone.value) {
-    createError.value = "Primero buscá la cédula del cliente."
-    return
-  }
-  if (yaEsCliente.value) {
-    createError.value = "Esta persona ya está registrada como cliente."
-    return
-  }
-  if (!validateCreate()) return
-  createError.value = ""
-  isSavingCreate.value = true
-  try {
-    await createCliente({
-      personId: createForm.personId,
-      ci: isExistingPerson.value ? undefined : createForm.ci || undefined,
-      firstName: isExistingPerson.value ? undefined : createForm.firstName || undefined,
-      lastName: isExistingPerson.value ? undefined : createForm.lastName || undefined,
-      birthDate: isExistingPerson.value ? undefined : createForm.birthDate || undefined,
-      sexo: isExistingPerson.value ? undefined : createForm.sexo || undefined,
-      phoneNumber: isExistingPerson.value ? undefined : createForm.phoneNumber || undefined,
-      personEmail: isExistingPerson.value ? undefined : createForm.personEmail || undefined,
-      tipoFacturacion: createForm.tipoFacturacion,
-      razonSocial: createForm.razonSocial || undefined,
-      rucCiFiscal: createForm.rucCiFiscal || undefined,
-      direccion: createForm.direccion || undefined,
-      email: createForm.email || undefined,
-      telefono: createForm.telefono || undefined,
-    })
-    showCreateModal.value = false
-    currentPage.value = 1
-    await loadClientes()
-  } catch (err: unknown) {
-    createError.value = err instanceof Error ? err.message : "Error al crear cliente."
-  } finally {
-    isSavingCreate.value = false
-  }
+async function onClienteCreado() {
+  currentPage.value = 1
+  await loadClientes()
 }
 
 // ── Modal Editar ──────────────────────────────────────────────────────────────
@@ -697,232 +566,11 @@ async function confirmEstado() {
     </main>
 
     <!-- MODAL: CREAR CLIENTE -->
-    <BaseModal :show="showCreateModal" title="Nuevo Cliente" size="lg" @close="showCreateModal = false">
-      <form @submit.prevent="submitCreate" class="space-y-5">
-        <div
-          v-if="createError"
-          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-          style="background-color: var(--color-error-container); color: var(--color-on-error-container)"
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px">error</span>
-          {{ createError }}
-        </div>
-
-        <!-- Paso 1: buscar persona por CI -->
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nro. de Cédula *</label>
-          <div class="flex items-stretch gap-2">
-            <input
-              v-model="ciLookup"
-              type="text"
-              placeholder="12345678"
-              :disabled="isExistingPerson"
-              class="flex-1 px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60"
-              :style="inputStyle(false)"
-              @keydown.enter.prevent="buscarPersona"
-              @input="lookupDone && resetLookup()"
-            />
-            <BaseButton variant="secondary" :disabled="isSearching || !ciLookup.trim() || isExistingPerson" @click="buscarPersona">
-              <span v-if="isSearching" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
-              <span v-else class="material-symbols-outlined" style="font-size: 18px">search</span>
-              Buscar
-            </BaseButton>
-          </div>
-        </div>
-
-        <!-- Banner del resultado de la búsqueda -->
-        <div
-          v-if="lookupBanner"
-          class="flex items-start gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-          :style="lookupBanner.type === 'error'
-            ? 'background-color: var(--color-error-container); color: var(--color-on-error-container);'
-            : lookupBanner.type === 'existing'
-              ? 'background-color: rgba(0,103,128,0.10); color: var(--color-secondary);'
-              : 'background-color: #fff0c2; color: #7a5000;'"
-        >
-          <span class="material-symbols-outlined" style="font-size: 18px">
-            {{ lookupBanner.type === "error" ? "block" : lookupBanner.type === "existing" ? "person_check" : "person_add" }}
-          </span>
-          {{ lookupBanner.text }}
-        </div>
-
-        <!-- Datos de la persona (visibles una vez buscada la cédula y si no es ya cliente) -->
-        <template v-if="lookupDone && !yaEsCliente">
-          <div class="flex items-center gap-2 pt-1">
-            <span class="material-symbols-outlined" style="color: var(--color-primary); font-size: 18px">person</span>
-            <h3 class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Datos personales</h3>
-            <span v-if="isExistingPerson" class="text-xs font-medium" style="color: var(--color-secondary)">(persona existente)</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
-              <input
-                v-model="createForm.firstName"
-                type="text"
-                placeholder="Ana"
-                :disabled="isExistingPerson"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60"
-                :style="inputStyle(!!createErrors.firstName)"
-              />
-              <p v-if="createErrors.firstName" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.firstName }}</p>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Apellido *</label>
-              <input
-                v-model="createForm.lastName"
-                type="text"
-                placeholder="García"
-                :disabled="isExistingPerson"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60"
-                :style="inputStyle(!!createErrors.lastName)"
-              />
-              <p v-if="createErrors.lastName" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.lastName }}</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Nacimiento *</label>
-              <BirthDateInput v-model="createForm.birthDate" :has-error="!!createErrors.birthDate" :disabled="isExistingPerson" />
-              <p v-if="createErrors.birthDate" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.birthDate }}</p>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sexo</label>
-              <SearchableSelect
-                :model-value="createForm.sexo || null"
-                :options="SEXO_OPTIONS"
-                :searchable="false"
-                :disabled="isExistingPerson"
-                null-label="Sin especificar"
-                @update:model-value="createForm.sexo = ($event as string) ?? ''"
-              />
-            </div>
-          </div>
-
-          <div v-if="createErrors.contact" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium" style="background-color: #fff0c2; color: #7a5000">
-            <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
-            {{ createErrors.contact }}
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
-              <input
-                v-model="createForm.phoneNumber"
-                type="tel"
-                placeholder="0972123456"
-                :disabled="isExistingPerson"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60"
-                :style="inputStyle(!!createErrors.contact)"
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email</label>
-              <input
-                v-model="createForm.personEmail"
-                type="email"
-                placeholder="cliente@email.com"
-                :disabled="isExistingPerson"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60"
-                :style="inputStyle(!!createErrors.personEmail || !!createErrors.contact)"
-              />
-              <p v-if="createErrors.personEmail" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.personEmail }}</p>
-            </div>
-          </div>
-
-          <!-- Datos de facturación -->
-          <div class="flex items-center gap-2 pt-1">
-            <span class="material-symbols-outlined" style="color: var(--color-primary); font-size: 18px">receipt_long</span>
-            <h3 class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Datos de facturación</h3>
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo de Facturación *</label>
-            <SearchableSelect
-              :model-value="createForm.tipoFacturacion"
-              :options="TIPO_OPTIONS"
-              :searchable="false"
-              @update:model-value="createForm.tipoFacturacion = ($event as TipoFacturacion)"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-                Razón Social <span v-if="createForm.tipoFacturacion === 'Juridica'">*</span>
-              </label>
-              <input
-                v-model="createForm.razonSocial"
-                type="text"
-                placeholder="Empresa S.A."
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-                :style="inputStyle(!!createErrors.razonSocial)"
-              />
-              <p v-if="createErrors.razonSocial" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.razonSocial }}</p>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-                RUC / CI Fiscal <span v-if="createForm.tipoFacturacion === 'Juridica'">*</span>
-              </label>
-              <input
-                v-model="createForm.rucCiFiscal"
-                type="text"
-                placeholder="80012345-6"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-                :style="inputStyle(!!createErrors.rucCiFiscal)"
-              />
-              <p v-if="createErrors.rucCiFiscal" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.rucCiFiscal }}</p>
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Dirección de Facturación</label>
-            <input
-              v-model="createForm.direccion"
-              type="text"
-              placeholder="Av. Mariscal López 1234, Asunción"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(false)"
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email de Facturación</label>
-              <input
-                v-model="createForm.email"
-                type="email"
-                placeholder="facturacion@empresa.com"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-                :style="inputStyle(!!createErrors.email)"
-              />
-              <p v-if="createErrors.email" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.email }}</p>
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono de Facturación</label>
-              <input
-                v-model="createForm.telefono"
-                type="tel"
-                placeholder="0981234567"
-                class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-                :style="inputStyle(false)"
-              />
-            </div>
-          </div>
-        </template>
-      </form>
-
-      <template #footer>
-        <div class="flex justify-between w-full">
-          <BaseButton variant="secondary" @click="showCreateModal = false">Cancelar</BaseButton>
-          <BaseButton variant="primary" :disabled="isSavingCreate || !lookupDone || yaEsCliente" @click="submitCreate">
-            <span v-if="isSavingCreate" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
-            {{ isSavingCreate ? "Guardando..." : "Guardar Cliente" }}
-          </BaseButton>
-        </div>
-      </template>
-    </BaseModal>
+    <ClienteQuickCreateModal
+      :show="showCreateModal"
+      @close="showCreateModal = false"
+      @created="onClienteCreado"
+    />
 
     <!-- MODAL: EDITAR CLIENTE -->
     <BaseModal :show="showEditModal" title="Editar Cliente" size="lg" @close="showEditModal = false">

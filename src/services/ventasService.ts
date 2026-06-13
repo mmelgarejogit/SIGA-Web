@@ -190,12 +190,22 @@ export interface VentasPagedResult {
   totalPages: number
 }
 
+export interface ServicioTarifa {
+  id: number
+  professionalId?: number
+  professionalNombre?: string
+  especialidadId?: number
+  especialidadNombre?: string
+  precio: number
+}
+
 export interface Servicio {
   id: number
   nombre: string
   descripcion?: string
   precio: number
   isActive: boolean
+  tarifas: ServicioTarifa[]
 }
 
 // ── Requests ──────────────────────────────────────────────────────────────────
@@ -349,6 +359,20 @@ export interface FacturaLaboratorioDto {
   createdAt: string
 }
 
+export interface RecetaRef {
+  fechaEmision: string
+  odEsferico?: number
+  odCilindro?: number
+  odEje?: number
+  odAdicion?: number
+  oiEsferico?: number
+  oiCilindro?: number
+  oiEje?: number
+  oiAdicion?: number
+  distanciaInterpupilar?: number
+  observaciones?: string
+}
+
 export interface TrabajoPedidoListDto {
   id: number
   ventaId: number
@@ -365,6 +389,11 @@ export interface TrabajoPedidoListDto {
   observacion?: string
   factura?: FacturaLaboratorioDto
   createdAt: string
+  // Referencia de la venta (datos que el laboratorio necesita para fabricar)
+  cristalNombre?: string
+  armazonNombre?: string
+  armazonDelCliente: boolean
+  receta?: RecetaRef
 }
 
 export interface GestionarTrabajoPedidoRequest {
@@ -400,6 +429,48 @@ export const getResumenCaja = (fecha: string) =>
 
 export const getServicios = () =>
   get<Servicio[]>("/api/servicios")
+
+export interface CreateServicioRequest {
+  nombre: string
+  descripcion?: string
+  precio: number
+}
+
+export interface UpdateServicioRequest {
+  nombre: string
+  descripcion?: string
+  precio: number
+  isActive: boolean
+}
+
+export const createServicio = (data: CreateServicioRequest) =>
+  post<Servicio>("/api/servicios", data)
+
+export const updateServicio = (id: number, data: UpdateServicioRequest) =>
+  put<Servicio>(`/api/servicios/${id}`, data)
+
+export const deactivateServicio = (id: number) =>
+  del(`/api/servicios/${id}`)
+
+export interface CreateServicioTarifaRequest {
+  professionalId?: number
+  especialidadId?: number
+  precio: number
+}
+
+export interface PrecioResuelto {
+  precio: number
+  origen: "profesional" | "especialidad" | "base"
+}
+
+export const addServicioTarifa = (servicioId: number, data: CreateServicioTarifaRequest) =>
+  post<Servicio>(`/api/servicios/${servicioId}/tarifas`, data)
+
+export const removeServicioTarifa = (tarifaId: number) =>
+  del(`/api/servicios/tarifas/${tarifaId}`)
+
+export const resolvePrecioServicio = (servicioId: number, professionalId?: number) =>
+  get<PrecioResuelto>(`/api/servicios/${servicioId}/precio${professionalId ? `?professionalId=${professionalId}` : ""}`)
 
 // ── Sesiones de caja ──────────────────────────────────────────────────────────
 
@@ -461,8 +532,13 @@ export interface SesionesPagedResult {
 export const getSesionActual = () =>
   get<SesionCaja | null>("/api/caja/sesion-actual")
 
-export const abrirSesion = (montoInicial: number) =>
-  post<SesionCaja>("/api/caja/sesiones", { montoInicial })
+// Sin monto → apertura automática (el backend toma el efectivo del último cierre).
+export const abrirSesion = (montoInicial?: number) =>
+  post<SesionCaja>("/api/caja/sesiones", { montoInicial: montoInicial ?? null })
+
+// Efectivo sugerido para abrir (= efectivo contado del último cierre).
+export const getAperturaSugerida = () =>
+  get<number>("/api/caja/apertura-sugerida")
 
 export const cerrarSesion = (id: number, efectivoContado: number, observacion?: string) =>
   post<SesionCaja>(`/api/caja/sesiones/${id}/cerrar`, { efectivoContado, observacion })

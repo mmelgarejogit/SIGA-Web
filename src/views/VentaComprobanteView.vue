@@ -85,7 +85,7 @@ async function emitir() {
     }
     router.push(`/ventas/${venta.value.id}`)
   } catch (e: any) {
-    opError.value = e?.response?.data?.message ?? "Error al emitir el documento"
+    opError.value = e instanceof Error ? e.message : "Error al emitir el documento"
   } finally {
     isSaving.value = false
   }

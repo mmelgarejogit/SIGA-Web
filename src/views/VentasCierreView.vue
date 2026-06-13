@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/auth"
 import {
   type SesionCaja,
   getSesionActual,
+  getAperturaSugerida,
   abrirSesion,
   cerrarSesion,
 } from "@/services/ventasService"
@@ -70,22 +71,44 @@ function metodoPagoIcon(m: string) {
 
 // ── Modal abrir ───────────────────────────────────────────────────────────────
 
-const showAbrir  = ref(false)
-const montoInput = ref("0")
-const isAbrir    = ref(false)
-const abrirError = ref("")
+const showAbrir       = ref(false)
+const montoInput      = ref("0")
+const isAbrir         = ref(false)
+const abrirError      = ref("")
+const aperturaSugerida = ref(0)
+const ajusteManual    = ref(false)
+const loadingSugerido = ref(false)
+
+// La apertura es automática: tomamos el efectivo del último cierre. El cajero solo confirma.
+async function openAbrir() {
+  abrirError.value   = ""
+  ajusteManual.value = false
+  loadingSugerido.value = true
+  showAbrir.value    = true
+  try {
+    aperturaSugerida.value = await getAperturaSugerida()
+  } catch {
+    aperturaSugerida.value = 0
+  } finally {
+    montoInput.value = String(aperturaSugerida.value)
+    loadingSugerido.value = false
+  }
+}
 
 async function submitAbrir() {
-  const monto = Number(montoInput.value)
-  if (isNaN(monto) || monto < 0) { abrirError.value = "Ingresá un monto válido"; return }
-  isAbrir.value  = true
+  let monto: number | undefined
+  if (ajusteManual.value) {
+    monto = Number(montoInput.value)
+    if (isNaN(monto) || monto < 0) { abrirError.value = "Ingresá un monto válido"; return }
+  }
+  isAbrir.value    = true
   abrirError.value = ""
   try {
-    sesion.value = await abrirSesion(monto)
+    sesion.value = await abrirSesion(monto)   // undefined → apertura automática
     showAbrir.value = false
-    montoInput.value = "0"
-  } catch (e: any) {
-    abrirError.value = e?.message ?? "Error al abrir la caja"
+    ajusteManual.value = false
+  } catch (e) {
+    abrirError.value = e instanceof Error ? e.message : "Error al abrir la caja"
   } finally {
     isAbrir.value = false
   }
@@ -100,8 +123,20 @@ const isCerrar        = ref(false)
 const cerrarError     = ref("")
 const cierreResult    = ref<SesionCaja | null>(null)
 
+// Efectivo esperado = inicial + ingresos efectivo − egresos efectivo (mismo cálculo que el backend).
+const egresosEfectivo = computed(() =>
+  sesion.value?.movimientos
+    .filter(m => m.tipo === "Egreso" && m.metodoPago === "Efectivo")
+    .reduce((s, m) => s + m.monto, 0) ?? 0,
+)
+const efectivoEsperado = computed(() =>
+  Math.max(0, (sesion.value?.montoInicial ?? 0) + (sesion.value?.efectivoIngresos ?? 0) - egresosEfectivo.value),
+)
+const diferenciaPreview = computed(() => Number(efectivoContado.value || 0) - efectivoEsperado.value)
+
 function abrirCerrar() {
-  efectivoContado.value = "0"
+  // Pre-cargamos el conteo con el efectivo esperado: si cuadra, el cajero solo confirma.
+  efectivoContado.value = String(efectivoEsperado.value)
   observacion.value     = ""
   cerrarError.value     = ""
   cierreResult.value    = null
@@ -163,7 +198,7 @@ function confirmarCierreYSalir() {
               Historial
             </BaseButton>
             <template v-if="canManage">
-              <BaseButton v-if="!sesion && !isLoading" variant="primary" size="lg" @click="showAbrir = true">
+              <BaseButton v-if="!sesion && !isLoading" variant="primary" size="lg" @click="openAbrir">
                 <span class="material-symbols-outlined" style="font-size:20px">lock_open</span>
                 Abrir caja
               </BaseButton>
@@ -196,7 +231,7 @@ function confirmarCierreYSalir() {
             <p class="text-xl font-bold mb-1" style="color: var(--color-on-surface)">No hay una caja abierta</p>
             <p style="color: var(--color-on-surface-variant)">Abrí la caja para poder registrar cobros y movimientos</p>
           </div>
-          <BaseButton v-if="canManage" variant="primary" size="lg" @click="showAbrir = true">
+          <BaseButton v-if="canManage" variant="primary" size="lg" @click="openAbrir">
             <span class="material-symbols-outlined" style="font-size:20px">lock_open</span>
             Abrir caja
           </BaseButton>
@@ -323,13 +358,31 @@ function confirmarCierreYSalir() {
   <!-- Modal abrir caja -->
   <BaseModal :show="showAbrir" title="Abrir caja" size="sm" @close="showAbrir = false">
     <div class="space-y-5">
-      <p class="text-sm" style="color: var(--color-on-surface-variant)">
-        Ingresá el monto inicial (fondo fijo) con el que arranca la sesión.
-      </p>
-      <div class="space-y-1">
-        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-          Monto inicial (Gs.)
-        </label>
+
+      <!-- Monto automático -->
+      <div v-if="!ajusteManual" class="space-y-3">
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          La caja arranca automáticamente con el efectivo del último cierre. Confirmá para abrir.
+        </p>
+        <div class="rounded-xl p-4" style="background-color: var(--color-surface-container-low)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto inicial (automático)</p>
+          <p v-if="loadingSugerido" class="text-sm" style="color: var(--color-outline)">Calculando…</p>
+          <template v-else>
+            <p class="text-2xl font-extrabold" style="color: var(--color-primary)">{{ fmt(aperturaSugerida) }}</p>
+            <p class="text-xs mt-1" style="color: var(--color-on-surface-variant)">
+              {{ aperturaSugerida > 0 ? "Efectivo contado en el último cierre de caja." : "No hay cierres previos: la caja arranca en cero." }}
+            </p>
+          </template>
+        </div>
+        <button class="text-xs font-semibold flex items-center gap-1" style="color: var(--color-primary)" @click="ajusteManual = true">
+          <span class="material-symbols-outlined" style="font-size:14px">edit</span>
+          Ajustar manualmente
+        </button>
+      </div>
+
+      <!-- Ajuste manual (excepción) -->
+      <div v-else class="space-y-1">
+        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Monto inicial (Gs.)</label>
         <input
           v-model="montoInput"
           type="number"
@@ -337,12 +390,18 @@ function confirmarCierreYSalir() {
           class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
           style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
         />
+        <button class="text-xs font-semibold flex items-center gap-1 mt-1.5" style="color: var(--color-outline)"
+          @click="ajusteManual = false; montoInput = String(aperturaSugerida)">
+          <span class="material-symbols-outlined" style="font-size:14px">undo</span>
+          Usar monto automático
+        </button>
       </div>
+
       <p v-if="abrirError" class="text-xs font-medium" style="color: var(--color-error)">{{ abrirError }}</p>
     </div>
     <template #footer>
       <BaseButton variant="secondary" @click="showAbrir = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" :disabled="isAbrir" @click="submitAbrir">
+      <BaseButton variant="primary" :disabled="isAbrir || loadingSugerido" @click="submitAbrir">
         {{ isAbrir ? "Abriendo…" : "Abrir caja" }}
       </BaseButton>
     </template>
@@ -381,7 +440,7 @@ function confirmarCierreYSalir() {
     <!-- Formulario de conteo ciego -->
     <div v-else class="space-y-5">
       <p class="text-sm" style="color: var(--color-on-surface-variant)">
-        Contá el efectivo físico que hay en caja e ingresá el total. El sistema verificará si cuadra con lo registrado.
+        El monto viene pre-cargado con el efectivo esperado. Si coincide con el conteo físico, confirmá; si hay diferencia, ajustalo.
       </p>
 
       <div class="rounded-xl p-4 grid grid-cols-3 gap-3"
@@ -401,7 +460,10 @@ function confirmarCierreYSalir() {
       </div>
 
       <div class="space-y-1">
-        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
+          <span class="text-xs font-semibold" style="color: var(--color-outline)">Esperado: {{ fmt(efectivoEsperado) }}</span>
+        </div>
         <input
           v-model="efectivoContado"
           type="number"
@@ -409,6 +471,11 @@ function confirmarCierreYSalir() {
           class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
           style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
         />
+        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:#065F46' : 'color:#92400E'">
+          {{ diferenciaPreview === 0
+              ? "✓ Coincide con lo esperado"
+              : `Diferencia: ${diferenciaPreview > 0 ? "+" : "−"}${fmt(diferenciaPreview)}` }}
+        </p>
       </div>
 
       <div class="space-y-1">
