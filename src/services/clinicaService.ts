@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface PagedResult<T> {
   items: T[]
@@ -11,7 +11,9 @@ export interface PagedResult<T> {
 
 export interface Receta {
   id: number
-  consultaClinicaId: number
+  consultaClinicaId?: number
+  personId?: number
+  esExterna?: boolean
   fechaEmision: string
   odEsferico?: number
   odCilindro?: number
@@ -47,6 +49,9 @@ export interface ConsultaClinica {
   diagnosticoSecundario?: string
   planTratamiento?: string
   observaciones?: string
+  estadoId?: number
+  estadoNombre?: string
+  estadoColor?: string
   receta?: Receta
   createdAt: string
   updatedAt: string
@@ -76,10 +81,11 @@ export interface CreateConsultaClinicaRequest {
   motivo: string
   anamnesis?: string
   examenFisico?: string
-  diagnosticoPrincipal: string
+  diagnosticoPrincipal?: string
   diagnosticoSecundario?: string
   planTratamiento?: string
   observaciones?: string
+  estadoConfigId?: number
   receta?: CreateRecetaRequest
 }
 
@@ -103,13 +109,15 @@ export interface GetConsultasParams {
   professionalId?: number
 }
 
-export async function getConsultas(params: GetConsultasParams = {}): Promise<PagedResult<ConsultaClinica>> {
+export async function getConsultas(
+  params: GetConsultasParams = {},
+): Promise<PagedResult<ConsultaClinica>> {
   const query = new URLSearchParams()
-  if (params.page)           query.set('page',           String(params.page))
-  if (params.pageSize)       query.set('pageSize',       String(params.pageSize))
-  if (params.search)         query.set('search',         params.search)
-  if (params.patientId)      query.set('patientId',      String(params.patientId))
-  if (params.professionalId) query.set('professionalId', String(params.professionalId))
+  if (params.page) query.set("page", String(params.page))
+  if (params.pageSize) query.set("pageSize", String(params.pageSize))
+  if (params.search) query.set("search", params.search)
+  if (params.patientId) query.set("patientId", String(params.patientId))
+  if (params.professionalId) query.set("professionalId", String(params.professionalId))
   const { data } = await http.get<PagedResult<ConsultaClinica>>(`/api/consultas?${query}`)
   return data
 }
@@ -124,12 +132,17 @@ export async function getConsultaById(id: number): Promise<ConsultaClinica> {
   return data
 }
 
-export async function createConsulta(request: CreateConsultaClinicaRequest): Promise<ConsultaClinica> {
-  const { data } = await http.post<ConsultaClinica>('/api/consultas', request)
+export async function createConsulta(
+  request: CreateConsultaClinicaRequest,
+): Promise<ConsultaClinica> {
+  const { data } = await http.post<ConsultaClinica>("/api/consultas", request)
   return data
 }
 
-export async function updateConsulta(id: number, request: UpdateConsultaClinicaRequest): Promise<ConsultaClinica> {
+export async function updateConsulta(
+  id: number,
+  request: UpdateConsultaClinicaRequest,
+): Promise<ConsultaClinica> {
   const { data } = await http.put<ConsultaClinica>(`/api/consultas/${id}`, request)
   return data
 }
@@ -138,7 +151,81 @@ export async function deleteConsulta(id: number): Promise<void> {
   await http.delete(`/api/consultas/${id}`)
 }
 
-export async function createOrUpdateReceta(consultaId: number, request: CreateRecetaRequest): Promise<Receta> {
+export async function createOrUpdateReceta(
+  consultaId: number,
+  request: CreateRecetaRequest,
+): Promise<Receta> {
   const { data } = await http.post<Receta>(`/api/consultas/${consultaId}/receta`, request)
+  return data
+}
+
+export interface ProfessionalDashboardStats {
+  consultasHoy: number
+  consultasEstaSemana: number
+  consultasEsteMes: number
+  pacientesUnicosEsteMes: number
+  recetasEmitidasEsteMes: number
+  ultimasConsultas: ConsultaClinica[]
+}
+
+export async function getProfessionalStats(): Promise<ProfessionalDashboardStats> {
+  const { data } = await http.get<ProfessionalDashboardStats>("/api/consultas/profesional/stats")
+  return data
+}
+
+export async function downloadRecetaPdf(consultaId: number, patientLastName: string): Promise<void> {
+  try {
+    const { data } = await http.get(`/api/consultas/${consultaId}/receta/pdf`, { responseType: "blob" })
+    const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `receta_${patientLastName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    if (err?.response?.data instanceof Blob) {
+      const text = await err.response.data.text()
+      try {
+        const json = JSON.parse(text)
+        throw new Error(json.message ?? text)
+      } catch {
+        throw new Error(text)
+      }
+    }
+    throw err
+  }
+}
+
+export async function cambiarEstadoConsulta(id: number, estadoConfigId: number): Promise<ConsultaClinica> {
+  const { data } = await http.patch<ConsultaClinica>(`/api/consultas/${id}/estado`, { estadoConfigId })
+  return data
+}
+
+// ── Recetas (flujo de venta a pedido) ───────────────────────────────────────────
+
+export interface CreateRecetaManualRequest {
+  clienteId: number
+  fechaEmision: string
+  odEsferico?: number | null
+  odCilindro?: number | null
+  odEje?: number | null
+  odAdicion?: number | null
+  oiEsferico?: number | null
+  oiCilindro?: number | null
+  oiEje?: number | null
+  oiAdicion?: number | null
+  distanciaInterpupilar?: number | null
+  avSinCorreccion?: string
+  avConCorreccion?: string
+  observaciones?: string
+}
+
+export async function getRecetasByCliente(clienteId: number): Promise<Receta[]> {
+  const { data } = await http.get<Receta[]>(`/api/recetas?clienteId=${clienteId}`)
+  return data
+}
+
+export async function crearRecetaManual(request: CreateRecetaManualRequest): Promise<Receta> {
+  const { data } = await http.post<Receta>("/api/recetas", request)
   return data
 }

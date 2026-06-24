@@ -25,7 +25,13 @@ src/
 ├── components/
 │   ├── AppHeader.vue         # Header fijo superior (64px)
 │   ├── AppSidebar.vue        # Sidebar fijo izquierdo (280px)
-│   └── KpiCard.vue           # Card reutilizable para métricas
+│   ├── BaseButton.vue        # Botón con variantes y tamaños
+│   ├── BaseModal.vue         # Shell de modal con overlay, header, body scrollable, footer
+│   ├── BaseTable.vue         # Tabla con header, filas hover, estado vacío, skeleton
+│   ├── FilterTabs.vue        # [DEPRECADO] No usar en vistas nuevas — ver patrón de FilterChips
+│   ├── FilterChips.vue       # Dropdown multi-select con chips — patrón estándar de filtros
+│   ├── KpiCard.vue           # Card reutilizable para métricas
+│   └── SearchInput.vue       # Input de búsqueda con icono y botón limpiar
 ├── composables/
 │   └── useHttp.ts            # Wrapper de axios → retorna .data directamente
 ├── router/
@@ -51,6 +57,8 @@ src/
 --font-body:     "Manrope"             /* body text, UI */
 ```
 
+> **Regla:** `main.css` aplica las fuentes globales vía `body` y `h1–h6`. **No declarar `font-family` inline en vistas ni componentes.** Usar `var(--font-headline)` solo en casos excepcionales donde Tailwind no alcance.
+
 ### Paleta de colores (CSS variables en main.css)
 ```css
 /* Primarios */
@@ -71,6 +79,8 @@ src/
 --color-error:           #BA1A1A
 --color-error-container: #FFDAD6
 ```
+
+> **Regla:** usar Tailwind utilities (`bg-primary`, `text-on-surface`, etc.) siempre que existan. Cuando Tailwind no alcance, usar `var(--color-*)` en `style` binding. **Prohibido hardcodear hexes** (`#181c20`, `#444653`, etc.) fuera de `main.css`.
 
 ### Border radius
 ```css
@@ -105,7 +115,239 @@ Todas las vistas autenticadas usan este layout fijo:
 └──────────┴──────────────────────────────────────┘
 ```
 
-Cada vista define su propio `<main class="ml-[280px] pt-16 ...">`.
+### Wrapper obligatorio
+
+```html
+<div class="min-h-screen" style="background-color: var(--color-background)">
+  <AppSidebar />
+  <AppHeader />
+  <main style="margin-left: 280px; padding-top: 64px">
+    <div class="p-8">
+      <!-- contenido de la vista -->
+    </div>
+  </main>
+</div>
+```
+
+> **Reglas:**
+> - Usar **inline `style`** en `<main>`, no `class="ml-[280px] pt-16"`.
+> - El `<div class="p-8">` interior **no debe tener `max-w-*` ni `mx-auto`**. El contenido es edge-to-edge con `padding: 32px`.
+> - **No declarar `font-family` ni `color` en `<main>`** — confiar en `main.css`.
+> - `DashboardView` puede usar su propio layout hero; el resto sigue este wrapper estrictamente.
+
+---
+
+## Design System
+
+### Tipografía
+
+| Rol | Tag | Clases Tailwind | Style binding (si es necesario) |
+|-----|-----|-----------------|--------------------------------|
+| Título de página | `<h1>` | `text-4xl font-extrabold tracking-tight mb-2` | — (hereda de `main.css`, no usar inline style) |
+| Subtítulo | `<p>` | `font-medium` | `color: var(--color-on-surface-variant)` (sin `text-sm` ni `mt-*`) |
+| Título de sección | `<h3>` | `text-xl font-extrabold` | `color: var(--color-primary)` |
+| Label de formulario | `<label>` | `text-xs font-bold uppercase tracking-wider` | `color: var(--color-outline)` |
+| Body / tabla | — | — | Hereda de `main.css` |
+| Dashboard hero | `<h1>` | `text-5xl font-extrabold tracking-tight leading-tight` | `color: var(--color-on-surface)` |
+
+> **Nota:** `text-4xl` es el estándar para todas las vistas de listado. Solo `DashboardView` usa `text-5xl` como excepción.
+
+### Botones (`BaseButton`)
+
+| Variante | Fondo | Texto | Radio | Sombra |
+|----------|-------|-------|-------|--------|
+| `primary` | `bg-primary` | `text-on-primary` | `rounded-full` | `0 4px 20px rgba(0, 40, 142, 0.2)` |
+| `secondary` | `bg-surface-container-high` | `text-on-surface-variant` | `rounded-full` | — |
+| `danger` | `bg-error` | `text-on-error` | `rounded-full` | — |
+| `ghost` | transparent | `text-on-surface-variant` | `rounded-full` | — |
+
+| Tamaño | Padding | Altura |
+|--------|---------|--------|
+| `sm` | `px-5` | `h-10` |
+| `default` | `px-6 py-3` | — |
+| `lg` | `px-8 py-4` | — |
+
+> **Regla:** todos los botones llevan `font-bold`, `transition-all`, `active:scale-95`. Los botones de acción principal en listados usan tamaño `lg`.
+
+### Barra de filtros — patrón estándar
+
+Toda vista de listado usa **una única fila** de filtros con este layout:
+
+```html
+<div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+  <!-- Izquierda: FilterChips + filtros adicionales -->
+  <div class="flex items-center gap-3 flex-wrap">
+    <FilterChips
+      :model-value="filtroActivo"
+      :options="opciones"
+      placeholder="Etiqueta del filtro"
+      @update:model-value="onFiltroChange"
+    />
+    <!-- Filtro booleano adicional (ej: Bajo stock, Solo activos) -->
+    <button
+      @click="toggleFiltro"
+      class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+      :style="filtroActivo
+        ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+        : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'"
+    >
+      <span class="material-symbols-outlined" style="font-size: 18px">icono</span>
+      Label
+    </button>
+  </div>
+
+  <!-- Derecha: SearchInput -->
+  <SearchInput
+    :model-value="search"
+    placeholder="Buscar por…"
+    class="w-72"
+    @update:model-value="onSearch"
+  />
+</div>
+```
+
+**Reglas:**
+- Usar siempre `FilterChips` (no `FilterTabs`) — muestra un dropdown con checkbox y chips para los seleccionados.
+- `FilterChips` acepta `string[]` (multi-select). Si el backend solo soporta un valor, usar `filtro.value[0]`.
+- `SearchInput` siempre a la **derecha** con `class="w-72"`.
+- Filtros adicionales booleanos (como "Bajo stock") van a la **izquierda** junto al `FilterChips`, usando el estilo de botón con borde `outline-variant`.
+- Una sola fila con `justify-between`. Si hay muchos filtros se wrappean con `flex-wrap`.
+- `mb-6` entre la barra de filtros y la tabla.
+- **Nunca** usar `FilterTabs` en nuevas vistas — está deprecado.
+
+**Opciones para `FilterChips`:**
+```ts
+const opciones = [
+  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
+]
+```
+El campo `dot` es opcional — usarlo cuando el valor tiene un color semántico (estados, prioridades).
+
+### Input de búsqueda (`SearchInput`)
+
+```html
+<input
+  class="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition-all"
+  style="background-color: var(--color-surface-container-lowest);
+         border: 1px solid var(--color-outline-variant);
+         color: var(--color-on-surface);"
+/>
+```
+
+> **Regla:** forma `rounded-xl` (no `rounded-full`), fondo `surface-container-lowest`, borde sólido `outline-variant`.
+
+### Tablas (`BaseTable`)
+
+- **Wrapper:** `rounded-2xl overflow-hidden` + `bg-surface-container-lowest` + shadow suave
+- **Header:** `bg-surface-container-low`, `py-5`, `text-xs font-bold uppercase tracking-widest`, `color: var(--color-outline)`
+- **Filas:** `border-bottom: 1px solid rgba(196, 197, 213, 0.12)`, hover `hover:bg-surface-container-low` (Tailwind class)
+- **Celdas:** `px-6 py-4`
+
+> **Regla:** usar **siempre** `hover:bg-surface-container-low` como clase Tailwind. Prohibido `onmouseover="this.style.backgroundColor = '...'"`.
+
+### Botones de acción en tabla
+
+Botones de ícono dentro de filas (editar, eliminar, confirmar, etc.). **No usar `BaseButton`** para estas acciones — usar el patrón directo:
+
+```html
+<button
+  class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+  style="background-color: var(--color-surface-container-high)"
+  title="Editar"
+>
+  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">edit</span>
+</button>
+```
+
+**Paleta semántica:**
+
+| Tipo de acción | Clase / Style fondo | Clase / Style ícono |
+|---------------|---------------------|---------------------|
+| Editar | `style="background-color: var(--color-surface-container-high)"` | `style="color: var(--color-on-surface-variant)"` |
+| Eliminar / Desactivar | `style="background-color: var(--color-error-container)"` | `style="color: var(--color-error)"` |
+| Acción positiva (confirmar, aprobar) | `class="bg-violet-100"` | `class="text-violet-700"` |
+| Alerta / Gestionar | `class="bg-amber-50"` | `class="text-amber-800"` |
+| Ver / Navegar | `class="bg-blue-100"` | `class="text-blue-700"` |
+
+> **Reglas:**
+> - Tamaño fijo `w-9 h-9` — nunca `w-7` ni `w-8`
+> - Siempre `title` con descripción legible de la acción
+> - Ícono siempre `font-size: 18px`
+> - Hover: `hover:scale-105 active:scale-95` — nunca `hover:opacity-80`
+> - Fondo semántico siempre visible (nunca transparente)
+> - Usar CSS vars con `style=` para colores del design system; Tailwind para colores semánticos externos (amber, violet, blue)
+
+### Modales (`BaseModal`)
+
+```html
+<Teleport to="body">
+  <Transition name="fade">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <!-- overlay -->
+      <div class="absolute inset-0" style="background-color: rgba(24, 28, 32, 0.5)"
+           @click.self="close" />
+      <!-- panel -->
+      <div class="relative w-full rounded-3xl overflow-hidden"
+           style="background-color: var(--color-surface-container-lowest);
+                  box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);">
+        <!-- header -->
+        <div class="flex items-center justify-between px-8 pt-8 pb-6"
+             style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)">
+          <h3 class="text-xl font-extrabold"
+              style="font-family: var(--font-headline); color: var(--color-primary)">Título</h3>
+          <button class="p-1 rounded-full transition-colors" style="color: var(--color-outline)">
+            <span class="material-symbols-outlined" style="font-size: 22px">close</span>
+          </button>
+        </div>
+        <!-- body (scrollable) -->
+        <form class="px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto">...</form>
+        <!-- footer -->
+        <div class="px-8 py-6 flex justify-end gap-3"
+             style="border-top: 1px solid rgba(196, 197, 213, 0.2)">...</div>
+      </div>
+    </div>
+  </Transition>
+</Teleport>
+```
+
+| Tamaño | `max-w` | Uso |
+|--------|---------|-----|
+| `sm` | `max-w-sm` | **Siempre** para confirmaciones y alertas destructivas |
+| `lg` | `max-w-2xl` | **Siempre** para cualquier formulario CRUD (crear, editar, gestionar) |
+| `md` / `xl` | — | Reservados — no usar salvo caso excepcional documentado |
+
+> **Reglas:**
+> - Siempre `rounded-3xl overflow-hidden`.
+> - Siempre header con borde inferior `rgba(196, 197, 213, 0.2)`.
+> - Título del modal en `color: var(--color-primary)`.
+> - Body scrollable con `max-h-[70vh] overflow-y-auto`.
+> - Footer con borde superior.
+> - No usar `backdrop-blur-sm` en el overlay (inconsistente con el resto del sistema).
+> - **Nunca usar `size="md"` o `size="xl"` para formularios nuevos** — elegir entre `sm` (confirmación) o `lg` (formulario).
+
+### Formularios
+
+- **Input estándar:**
+  ```html
+  <input
+    class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+    :style="inputStyle(hasError)"
+  />
+  ```
+- **Helper `inputStyle`:**
+  ```ts
+  function inputStyle(hasError: boolean) {
+    return hasError
+      ? 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+      : 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);'
+  }
+  ```
+- **Select:** igual que input pero con `appearance-none`.
+- **Label:** `<label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">`
+- **Error text:** `<p class="text-xs font-medium" style="color: var(--color-error)">...</p>`
+
+> **Regla:** todos los inputs usan `px-4 py-3`. No mezclar `px-3 py-2.5` (estilo antiguo de AgendaView).
 
 ---
 
@@ -244,18 +486,18 @@ Toda vista de listado + CRUD sigue este patrón:
 ### Estructura del template
 ```
 <main layout>
-  ├── Encabezado (título + botón "Añadir X")
-  ├── Filtros opcionales (Todos / Activos / Inactivos)
-  ├── Tabla responsive
+  ├── Encabezado (`flex items-start justify-between mb-8` — h1 text-4xl mb-2 + botón primary lg con ícono 20px — ver design-system.md §11)
+  ├── Filtros (FilterChips + SearchInput — ver "Barra de filtros — patrón estándar")
+  ├── Tabla responsive (BaseTable)
   │   └── Filas con: avatar/icono · datos · estado badge · acciones (edit/delete)
   ├── Footer "Mostrando X de Y registros"
   ├── Bento cards insight (métricas rápidas)
   └── FAB button (esquina inferior derecha)
 
   <!-- Fuera del layout, con Teleport -->
-  ├── Modal Crear
-  ├── Modal Editar
-  └── Modal Eliminar (confirmación)
+  ├── Modal Crear   (BaseModal size="lg")
+  ├── Modal Editar  (BaseModal size="lg")
+  └── Modal Eliminar (BaseModal size="sm")
 ```
 
 ### Estado reactivo en `<script setup>`

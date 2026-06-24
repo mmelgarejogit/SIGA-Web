@@ -1,58 +1,63 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import VueHcaptcha from '@hcaptcha/vue3-hcaptcha'
-import { registerPatient } from '@/services/authService'
+import { ref } from "vue"
+import { useRouter } from "vue-router"
+import VueHcaptcha from "@hcaptcha/vue3-hcaptcha"
+import { registerPatient } from "@/services/authService"
+import BaseButton from "@/components/BaseButton.vue"
 
 const router = useRouter()
 
-const firstName        = ref('')
-const lastName         = ref('')
-const ci               = ref('')
-const birthDate        = ref('')
-const phoneNumber      = ref('')
-const email            = ref('')
-const password         = ref('')
-const confirmPassword  = ref('')
-const showPassword     = ref(false)
-const showConfirmPwd   = ref(false)
-const isLoading        = ref(false)
-const hasError         = ref(false)
-const errorMessage     = ref('')
-const success          = ref(false)
-const hcaptchaToken    = ref('')
-const hcaptchaRef      = ref<InstanceType<typeof VueHcaptcha> | null>(null)
-const siteKey          = import.meta.env.VITE_HCAPTCHA_SITE_KEY as string
+const firstName = ref("")
+const lastName = ref("")
+const ci = ref("")
+const birthDate = ref("")
+const phoneNumber = ref("")
+const email = ref("")
+const password = ref("")
+const confirmPassword = ref("")
+const showPassword = ref(false)
+const showConfirmPwd = ref(false)
+const isLoading = ref(false)
+const hasError = ref(false)
+const errorMessage = ref("")
+const success = ref(false)
+const hcaptchaToken = ref("")
+const hcaptchaRef = ref<InstanceType<typeof VueHcaptcha> | null>(null)
+const siteKey = import.meta.env.VITE_HCAPTCHA_SITE_KEY as string
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const today    = new Date().toISOString().split('T')[0]
+const today = new Date().toISOString().split("T")[0]
 
-function onCaptchaVerify(token: string) { hcaptchaToken.value = token }
-function onCaptchaExpire()              { hcaptchaToken.value = '' }
+function onCaptchaVerify(token: string) {
+  hcaptchaToken.value = token
+}
+function onCaptchaExpire() {
+  hcaptchaToken.value = ""
+}
 
 function validate(): string | null {
-  if (!firstName.value.trim())        return 'El nombre es obligatorio.'
-  if (!lastName.value.trim())         return 'El apellido es obligatorio.'
-  if (!ci.value.trim())               return 'El documento (CI) es obligatorio.'
-  if (!birthDate.value)               return 'La fecha de nacimiento es obligatoria.'
-  if (!email.value.trim())            return 'El email es obligatorio.'
-  if (!EMAIL_RE.test(email.value.trim())) return 'Ingresá un email válido.'
-  if (!password.value)                return 'La contraseña es obligatoria.'
-  if (password.value.length < 8)     return 'La contraseña debe tener al menos 8 caracteres.'
-  if (password.value !== confirmPassword.value) return 'Las contraseñas no coinciden.'
-  if (!hcaptchaToken.value)           return 'Por favor completá el captcha de seguridad.'
+  if (!firstName.value.trim()) return "El nombre es obligatorio."
+  if (!lastName.value.trim()) return "El apellido es obligatorio."
+  if (!ci.value.trim()) return "El documento (CI) es obligatorio."
+  if (!birthDate.value) return "La fecha de nacimiento es obligatoria."
+  if (!email.value.trim()) return "El email es obligatorio."
+  if (!EMAIL_RE.test(email.value.trim())) return "Ingresá un email válido."
+  if (!password.value) return "La contraseña es obligatoria."
+  if (password.value.length < 8) return "La contraseña debe tener al menos 8 caracteres."
+  if (password.value !== confirmPassword.value) return "Las contraseñas no coinciden."
+  if (!hcaptchaToken.value) return "Por favor completá el captcha de seguridad."
   return null
 }
 
 async function handleSubmit() {
   if (isLoading.value) return
-  hasError.value    = false
-  errorMessage.value = ''
+  hasError.value = false
+  errorMessage.value = ""
 
   const error = validate()
   if (error) {
     errorMessage.value = error
-    hasError.value     = true
+    hasError.value = true
     return
   }
 
@@ -60,29 +65,31 @@ async function handleSubmit() {
 
   try {
     await registerPatient({
-      ci:            ci.value.trim(),
-      firstName:     firstName.value.trim(),
-      lastName:      lastName.value.trim(),
-      birthDate:     birthDate.value,
-      phoneNumber:   phoneNumber.value.trim() || undefined,
-      email:         email.value.trim(),
-      password:      password.value,
+      ci: ci.value.trim(),
+      firstName: firstName.value.trim(),
+      lastName: lastName.value.trim(),
+      birthDate: birthDate.value,
+      phoneNumber: phoneNumber.value.trim() || undefined,
+      email: email.value.trim(),
+      password: password.value,
       hCaptchaToken: hcaptchaToken.value,
     })
     success.value = true
-    setTimeout(() => router.push({ name: 'login' }), 2500)
+    setTimeout(() => router.push({ name: "login" }), 2500)
   } catch (err: unknown) {
     hcaptchaRef.value?.reset()
-    hcaptchaToken.value = ''
+    hcaptchaToken.value = ""
     hasError.value = true
     if (err instanceof Error) {
       const e = err as Error & { status?: number }
-      if (e.status === 409)      errorMessage.value = e.message || 'El CI o email ya está registrado.'
-      else if (e.status === 400) errorMessage.value = e.message || 'Los datos ingresados no son válidos.'
-      else if (!e.status)        errorMessage.value = 'No se pudo conectar con el servidor. Verificá tu conexión.'
-      else                       errorMessage.value = 'Ocurrió un error inesperado. Intentá más tarde.'
+      if (e.status === 409) errorMessage.value = e.message || "El CI o email ya está registrado."
+      else if (e.status === 400)
+        errorMessage.value = e.message || "Los datos ingresados no son válidos."
+      else if (!e.status)
+        errorMessage.value = "No se pudo conectar con el servidor. Verificá tu conexión."
+      else errorMessage.value = "Ocurrió un error inesperado. Intentá más tarde."
     } else {
-      errorMessage.value = 'Ocurrió un error inesperado. Intentá más tarde.'
+      errorMessage.value = "Ocurrió un error inesperado. Intentá más tarde."
     }
   } finally {
     isLoading.value = false
@@ -93,60 +100,74 @@ async function handleSubmit() {
 <template>
   <main
     class="min-h-screen flex flex-col md:flex-row"
-    style="font-family: 'Manrope', system-ui, sans-serif; background-color: #F7F9FE; color: #181C20;"
+    style="background-color: var(--color-surface); color: var(--color-on-surface)"
   >
     <!-- ── LEFT PANEL ── -->
     <section
       class="hidden md:flex md:w-[55%] relative overflow-hidden items-center justify-center"
-      style="background-color: #1E40AF;"
+      style="background-color: var(--color-primary-container)"
     >
       <div class="absolute inset-0 z-0">
         <img
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB316X6IevMlGCue86yPBEHEtWRntvBzkXBlUqImB4RKgBaS2T9139462GjkuVAQjtmTJEGZkyd7N81l5Wq09m9vTDSS6YAKqWKquTlepD5qqjabt_hvhR2jjTz_VLg15HM_lX8RrqhWOQO70O3CVHt3q_Ci8DG1qF-ev67n9zA7mRn6v9auHmg9DqK-iBx8ATd1UHET5_ko3LskskKQeG9xt1_Ut46H1aOOHZfu9f2ehzY3DLaWTG1h9V1UgB3HGEb0raHHIeyw"
           alt=""
           class="w-full h-full object-cover"
-          style="opacity: 0.6; mix-blend-mode: overlay;"
+          style="opacity: 0.6; mix-blend-mode: overlay"
         />
         <div
           class="absolute inset-0"
-          style="background: linear-gradient(to top right, #00288E, transparent); opacity: 0.8;"
+          style="
+            background: linear-gradient(to top right, var(--color-primary), transparent);
+            opacity: 0.8;
+          "
         ></div>
       </div>
 
       <div
         class="absolute bottom-[-10%] right-[-10%] w-96 h-96 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255,255,255,0.1);"
+        style="border: 1px solid rgba(255, 255, 255, 0.1)"
       ></div>
       <div
         class="absolute bottom-[-5%] right-[-5%] w-64 h-64 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255,255,255,0.18);"
+        style="border: 1px solid rgba(255, 255, 255, 0.18)"
       ></div>
 
       <div class="relative z-10 p-12 lg:p-24 max-w-2xl w-full">
         <div class="mb-14">
           <span
             class="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase mb-8"
-            style="background-color: #B7EAFF; color: #001F28;"
-          >Portal de Pacientes</span>
-
-          <h1
-            class="text-5xl lg:text-7xl font-extrabold text-white leading-tight tracking-tighter"
-            style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;"
+            style="
+              background-color: var(--color-secondary-fixed);
+              color: var(--color-on-secondary-fixed);
+            "
+            >Portal de Pacientes</span
           >
+
+          <h1 class="text-5xl lg:text-7xl font-extrabold text-white leading-tight tracking-tighter">
             Tu salud visual, en tus
-            <span style="color: #76DCFF;"> manos.</span>
+            <span style="color: var(--color-secondary-container)"> manos.</span>
           </h1>
         </div>
 
         <div class="grid grid-cols-2 gap-8">
           <div class="space-y-2">
-            <p class="text-xs uppercase tracking-widest font-bold" style="color: rgba(255,255,255,0.5);">Acceso</p>
+            <p
+              class="text-xs uppercase tracking-widest font-bold"
+              style="color: rgba(255, 255, 255, 0.5)"
+            >
+              Acceso
+            </p>
             <p class="text-white text-base font-medium leading-snug">
               Gestioná tus turnos desde cualquier lugar.
             </p>
           </div>
           <div class="space-y-2">
-            <p class="text-xs uppercase tracking-widest font-bold" style="color: rgba(255,255,255,0.5);">Seguimiento</p>
+            <p
+              class="text-xs uppercase tracking-widest font-bold"
+              style="color: rgba(255, 255, 255, 0.5)"
+            >
+              Seguimiento
+            </p>
             <p class="text-white text-base font-medium leading-snug">
               Consultá tu historial de citas y recetas.
             </p>
@@ -158,59 +179,63 @@ async function handleSubmit() {
     <!-- ── RIGHT PANEL ── -->
     <section
       class="flex-1 flex flex-col justify-center px-6 py-12 lg:px-24 relative"
-      style="background-color: #F7F9FE;"
+      style="background-color: var(--color-surface)"
     >
       <!-- Mobile logo -->
       <div class="absolute top-8 left-8 md:hidden">
-        <span
-          class="text-2xl font-black tracking-tight"
-          style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #00288E;"
-        >SIGA-Óptica</span>
+        <span class="text-2xl font-black tracking-tight" style="color: var(--color-primary)"
+          >SIGA-Óptica</span
+        >
       </div>
 
       <div class="max-w-md w-full mx-auto">
         <!-- Desktop brand -->
         <div class="mb-8 hidden md:block">
-          <span
-            class="text-3xl font-black tracking-tight"
-            style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #00288E;"
-          >SIGA-Óptica</span>
+          <span class="text-3xl font-black tracking-tight" style="color: var(--color-primary)"
+            >SIGA-Óptica</span
+          >
         </div>
 
         <!-- ── SUCCESS STATE ── -->
         <div v-if="success" class="text-center py-8">
           <div
             class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style="background-color: #D1FAE5;"
+            style="background-color: #d1fae5"
           >
-            <span class="material-symbols-outlined" style="color: #065F46; font-size: 32px;">check_circle</span>
+            <span class="material-symbols-outlined" style="color: #065f46; font-size: 32px"
+              >check_circle</span
+            >
           </div>
-          <h3
-            class="text-2xl font-bold mb-3"
-            style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #181C20;"
-          >¡Cuenta creada exitosamente!</h3>
-          <p class="font-medium mb-8" style="color: #444653;">
+          <h3 class="text-2xl font-bold mb-3" style="color: var(--color-on-surface)">
+            ¡Cuenta creada exitosamente!
+          </h3>
+          <p class="font-medium mb-8" style="color: var(--color-on-surface-variant)">
             Podés iniciar sesión con tu email y contraseña.<br />
-            <span class="text-sm" style="color: #757684;">Redirigiendo al login...</span>
+            <span class="text-sm" style="color: var(--color-outline)"
+              >Redirigiendo al login...</span
+            >
           </p>
           <RouterLink
             to="/login"
             class="inline-flex items-center gap-2 h-14 px-8 rounded-full font-bold text-lg transition-all"
-            style="background-color: #00288E; color: white; box-shadow: 0 8px 24px rgba(0,40,142,0.25);"
+            style="
+              background-color: var(--color-primary);
+              color: white;
+              box-shadow: 0 8px 24px rgba(0, 40, 142, 0.25);
+            "
           >
             Iniciar sesión
-            <span class="material-symbols-outlined" style="font-size: 22px;">arrow_forward</span>
+            <span class="material-symbols-outlined" style="font-size: 22px">arrow_forward</span>
           </RouterLink>
         </div>
 
         <!-- ── FORM ── -->
         <template v-else>
           <div class="mb-8">
-            <h2
-              class="text-3xl font-bold mb-3 leading-snug"
-              style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #181C20;"
-            >Crear cuenta</h2>
-            <p class="font-medium" style="color: #444653;">
+            <h2 class="text-3xl font-bold mb-3 leading-snug" style="color: var(--color-on-surface)">
+              Crear cuenta
+            </h2>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               Registrate para gestionar tus turnos en SIGA-Óptica.
             </p>
           </div>
@@ -227,37 +252,64 @@ async function handleSubmit() {
             <div
               v-if="hasError"
               class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-6 text-sm font-medium"
-              style="background-color: #FFDAD6; color: #93000A;"
+              style="
+                background-color: var(--color-error-container);
+                color: var(--color-on-error-container);
+              "
             >
-              <span class="material-symbols-outlined flex-shrink-0" style="width:18px;height:18px;font-size:18px;">error</span>
+              <span
+                class="material-symbols-outlined flex-shrink-0"
+                style="width: 18px; height: 18px; font-size: 18px"
+                >error</span
+              >
               {{ errorMessage }}
             </div>
           </Transition>
 
           <form @submit.prevent="handleSubmit" class="space-y-5" novalidate>
-
             <!-- Nombre / Apellido -->
             <div class="grid grid-cols-2 gap-4">
               <!-- Nombre -->
               <div class="relative">
                 <label
                   class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                  :style="`background-color: #F7F9FE; color: ${hasError && !firstName ? '#93000A' : '#757684'};`"
-                >Nombre</label>
+                  :style="`background-color: var(--color-surface); color: ${hasError && !firstName ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                  >Nombre</label
+                >
                 <div
                   class="flex items-center gap-2 px-3 py-3.5 rounded-2xl"
-                  :style="`background-color: #ffffff; border: 1px solid ${hasError && !firstName ? '#BA1A1A' : '#C4C5D5'};`"
+                  :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !firstName ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
                 >
-                  <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:18px;height:18px;font-size:18px;">person</span>
+                  <span
+                    class="material-symbols-outlined flex-shrink-0"
+                    style="color: var(--color-outline); width: 18px; height: 18px; font-size: 18px"
+                    >person</span
+                  >
                   <input
                     v-model="firstName"
                     type="text"
                     placeholder="Juan"
                     autocomplete="given-name"
-                    class="block w-full bg-transparent text-sm outline-none placeholder-[#C4C5D5]"
-                    style="border: none; color: #181C20;"
-                    @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                    @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                    class="block w-full bg-transparent text-sm outline-none placeholder-[var(--color-outline-variant)]"
+                    style="border: none; color: var(--color-on-surface)"
+                    @focus="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                        )
+                    "
+                    @blur="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                        )
+                    "
                   />
                 </div>
               </div>
@@ -266,22 +318,43 @@ async function handleSubmit() {
               <div class="relative">
                 <label
                   class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                  :style="`background-color: #F7F9FE; color: ${hasError && !lastName ? '#93000A' : '#757684'};`"
-                >Apellido</label>
+                  :style="`background-color: var(--color-surface); color: ${hasError && !lastName ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                  >Apellido</label
+                >
                 <div
                   class="flex items-center gap-2 px-3 py-3.5 rounded-2xl"
-                  :style="`background-color: #ffffff; border: 1px solid ${hasError && !lastName ? '#BA1A1A' : '#C4C5D5'};`"
+                  :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !lastName ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
                 >
-                  <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:18px;height:18px;font-size:18px;">person</span>
+                  <span
+                    class="material-symbols-outlined flex-shrink-0"
+                    style="color: var(--color-outline); width: 18px; height: 18px; font-size: 18px"
+                    >person</span
+                  >
                   <input
                     v-model="lastName"
                     type="text"
                     placeholder="Pérez"
                     autocomplete="family-name"
-                    class="block w-full bg-transparent text-sm outline-none placeholder-[#C4C5D5]"
-                    style="border: none; color: #181C20;"
-                    @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                    @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                    class="block w-full bg-transparent text-sm outline-none placeholder-[var(--color-outline-variant)]"
+                    style="border: none; color: var(--color-on-surface)"
+                    @focus="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                        )
+                    "
+                    @blur="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                        )
+                    "
                   />
                 </div>
               </div>
@@ -293,21 +366,42 @@ async function handleSubmit() {
               <div class="relative">
                 <label
                   class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                  :style="`background-color: #F7F9FE; color: ${hasError && !ci ? '#93000A' : '#757684'};`"
-                >Cédula (CI)</label>
+                  :style="`background-color: var(--color-surface); color: ${hasError && !ci ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                  >Cédula (CI)</label
+                >
                 <div
                   class="flex items-center gap-2 px-3 py-3.5 rounded-2xl"
-                  :style="`background-color: #ffffff; border: 1px solid ${hasError && !ci ? '#BA1A1A' : '#C4C5D5'};`"
+                  :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !ci ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
                 >
-                  <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:18px;height:18px;font-size:18px;">badge</span>
+                  <span
+                    class="material-symbols-outlined flex-shrink-0"
+                    style="color: var(--color-outline); width: 18px; height: 18px; font-size: 18px"
+                    >badge</span
+                  >
                   <input
                     v-model="ci"
                     type="text"
                     placeholder="12345678"
-                    class="block w-full bg-transparent text-sm outline-none placeholder-[#C4C5D5]"
-                    style="border: none; color: #181C20;"
-                    @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                    @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                    class="block w-full bg-transparent text-sm outline-none placeholder-[var(--color-outline-variant)]"
+                    style="border: none; color: var(--color-on-surface)"
+                    @focus="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                        )
+                    "
+                    @blur="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                        )
+                    "
                   />
                 </div>
               </div>
@@ -316,21 +410,42 @@ async function handleSubmit() {
               <div class="relative">
                 <label
                   class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                  :style="`background-color: #F7F9FE; color: ${hasError && !birthDate ? '#93000A' : '#757684'};`"
-                >Nacimiento</label>
+                  :style="`background-color: var(--color-surface); color: ${hasError && !birthDate ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                  >Nacimiento</label
+                >
                 <div
                   class="flex items-center gap-2 px-3 py-3.5 rounded-2xl"
-                  :style="`background-color: #ffffff; border: 1px solid ${hasError && !birthDate ? '#BA1A1A' : '#C4C5D5'};`"
+                  :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !birthDate ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
                 >
-                  <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:18px;height:18px;font-size:18px;">calendar_today</span>
+                  <span
+                    class="material-symbols-outlined flex-shrink-0"
+                    style="color: var(--color-outline); width: 18px; height: 18px; font-size: 18px"
+                    >calendar_today</span
+                  >
                   <input
                     v-model="birthDate"
                     type="date"
                     :max="today"
                     class="block w-full bg-transparent text-sm outline-none"
-                    style="border: none; color: #181C20;"
-                    @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                    @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                    style="border: none; color: var(--color-on-surface)"
+                    @focus="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                        )
+                    "
+                    @blur="
+                      ($event.target as HTMLElement)
+                        .closest('.relative')
+                        ?.querySelector('label')
+                        ?.setAttribute(
+                          'style',
+                          'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                        )
+                    "
                   />
                 </div>
               </div>
@@ -340,22 +455,49 @@ async function handleSubmit() {
             <div class="relative">
               <label
                 class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                style="background-color: #F7F9FE; color: #757684;"
-              >Teléfono <span class="font-normal" style="color: #C4C5D5;">(opcional)</span></label>
+                style="background-color: var(--color-surface); color: var(--color-outline)"
+                >Teléfono
+                <span class="font-normal" style="color: var(--color-outline-variant)"
+                  >(opcional)</span
+                ></label
+              >
               <div
                 class="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-                style="background-color: #ffffff; border: 1px solid #C4C5D5;"
+                style="
+                  background-color: var(--color-surface-container-lowest);
+                  border: 1px solid var(--color-outline-variant);
+                "
               >
-                <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:20px;height:20px;font-size:20px;">phone</span>
+                <span
+                  class="material-symbols-outlined flex-shrink-0"
+                  style="color: var(--color-outline); width: 20px; height: 20px; font-size: 20px"
+                  >phone</span
+                >
                 <input
                   v-model="phoneNumber"
                   type="tel"
                   placeholder="099 123 456"
                   autocomplete="tel"
-                  class="block w-full bg-transparent text-base outline-none placeholder-[#C4C5D5]"
-                  style="border: none; color: #181C20;"
-                  @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                  @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                  class="block w-full bg-transparent text-base outline-none placeholder-[var(--color-outline-variant)]"
+                  style="border: none; color: var(--color-on-surface)"
+                  @focus="
+                    ($event.target as HTMLElement)
+                      .closest('.relative')
+                      ?.querySelector('label')
+                      ?.setAttribute(
+                        'style',
+                        'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                      )
+                  "
+                  @blur="
+                    ($event.target as HTMLElement)
+                      .closest('.relative')
+                      ?.querySelector('label')
+                      ?.setAttribute(
+                        'style',
+                        'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                      )
+                  "
                 />
               </div>
             </div>
@@ -364,22 +506,43 @@ async function handleSubmit() {
             <div class="relative">
               <label
                 class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                :style="`background-color: #F7F9FE; color: ${hasError && !email ? '#93000A' : '#757684'};`"
-              >Correo electrónico</label>
+                :style="`background-color: var(--color-surface); color: ${hasError && !email ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                >Correo electrónico</label
+              >
               <div
                 class="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-                :style="`background-color: #ffffff; border: 1px solid ${hasError && !email ? '#BA1A1A' : '#C4C5D5'};`"
+                :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !email ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
               >
-                <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:20px;height:20px;font-size:20px;">alternate_email</span>
+                <span
+                  class="material-symbols-outlined flex-shrink-0"
+                  style="color: var(--color-outline); width: 20px; height: 20px; font-size: 20px"
+                  >alternate_email</span
+                >
                 <input
                   v-model="email"
                   type="email"
                   placeholder="juan@ejemplo.com"
                   autocomplete="email"
-                  class="block w-full bg-transparent text-base outline-none placeholder-[#C4C5D5]"
-                  style="border: none; color: #181C20;"
-                  @focus="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #00288E; z-index:10;')"
-                  @blur="($event.target as HTMLElement).closest('.relative')?.querySelector('label')?.setAttribute('style', 'background-color: #F7F9FE; color: #757684; z-index:10;')"
+                  class="block w-full bg-transparent text-base outline-none placeholder-[var(--color-outline-variant)]"
+                  style="border: none; color: var(--color-on-surface)"
+                  @focus="
+                    ($event.target as HTMLElement)
+                      .closest('.relative')
+                      ?.querySelector('label')
+                      ?.setAttribute(
+                        'style',
+                        'background-color: var(--color-surface); color: var(--color-primary); z-index:10;',
+                      )
+                  "
+                  @blur="
+                    ($event.target as HTMLElement)
+                      .closest('.relative')
+                      ?.querySelector('label')
+                      ?.setAttribute(
+                        'style',
+                        'background-color: var(--color-surface); color: var(--color-outline); z-index:10;',
+                      )
+                  "
                 />
               </div>
             </div>
@@ -388,30 +551,38 @@ async function handleSubmit() {
             <div class="relative">
               <label
                 class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                :style="`background-color: #F7F9FE; color: ${hasError && !password ? '#93000A' : '#757684'};`"
-              >Contraseña</label>
+                :style="`background-color: var(--color-surface); color: ${hasError && !password ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                >Contraseña</label
+              >
               <div
                 class="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-                :style="`background-color: #ffffff; border: 1px solid ${hasError && !password ? '#BA1A1A' : '#C4C5D5'};`"
+                :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && !password ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
               >
-                <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:20px;height:20px;font-size:20px;">lock</span>
+                <span
+                  class="material-symbols-outlined flex-shrink-0"
+                  style="color: var(--color-outline); width: 20px; height: 20px; font-size: 20px"
+                  >lock</span
+                >
                 <input
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="Mínimo 8 caracteres"
                   autocomplete="new-password"
-                  class="block w-full bg-transparent text-base outline-none flex-1 placeholder-[#C4C5D5]"
-                  style="border: none; color: #181C20;"
+                  class="block w-full bg-transparent text-base outline-none flex-1 placeholder-[var(--color-outline-variant)]"
+                  style="border: none; color: var(--color-on-surface)"
                 />
                 <button
                   type="button"
                   @click="showPassword = !showPassword"
                   class="flex-shrink-0 transition-colors"
-                  style="color: #C4C5D5;"
+                  style="color: var(--color-outline-variant)"
                   :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 >
-                  <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px;">
-                    {{ showPassword ? 'visibility_off' : 'visibility' }}
+                  <span
+                    class="material-symbols-outlined"
+                    style="width: 20px; height: 20px; font-size: 20px"
+                  >
+                    {{ showPassword ? "visibility_off" : "visibility" }}
                   </span>
                 </button>
               </div>
@@ -421,30 +592,38 @@ async function handleSubmit() {
             <div class="relative">
               <label
                 class="absolute -top-2.5 left-4 px-1 text-xs font-semibold z-10"
-                :style="`background-color: #F7F9FE; color: ${hasError && password !== confirmPassword ? '#93000A' : '#757684'};`"
-              >Confirmar contraseña</label>
+                :style="`background-color: var(--color-surface); color: ${hasError && password !== confirmPassword ? 'var(--color-on-error-container)' : 'var(--color-outline)'};`"
+                >Confirmar contraseña</label
+              >
               <div
                 class="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-                :style="`background-color: #ffffff; border: 1px solid ${hasError && password !== confirmPassword ? '#BA1A1A' : '#C4C5D5'};`"
+                :style="`background-color: var(--color-surface-container-lowest); border: 1px solid ${hasError && password !== confirmPassword ? 'var(--color-error)' : 'var(--color-outline-variant)'};`"
               >
-                <span class="material-symbols-outlined flex-shrink-0" style="color: #757684; width:20px;height:20px;font-size:20px;">lock</span>
+                <span
+                  class="material-symbols-outlined flex-shrink-0"
+                  style="color: var(--color-outline); width: 20px; height: 20px; font-size: 20px"
+                  >lock</span
+                >
                 <input
                   v-model="confirmPassword"
                   :type="showConfirmPwd ? 'text' : 'password'"
                   placeholder="Repetí tu contraseña"
                   autocomplete="new-password"
-                  class="block w-full bg-transparent text-base outline-none flex-1 placeholder-[#C4C5D5]"
-                  style="border: none; color: #181C20;"
+                  class="block w-full bg-transparent text-base outline-none flex-1 placeholder-[var(--color-outline-variant)]"
+                  style="border: none; color: var(--color-on-surface)"
                 />
                 <button
                   type="button"
                   @click="showConfirmPwd = !showConfirmPwd"
                   class="flex-shrink-0 transition-colors"
-                  style="color: #C4C5D5;"
+                  style="color: var(--color-outline-variant)"
                   :aria-label="showConfirmPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 >
-                  <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px;">
-                    {{ showConfirmPwd ? 'visibility_off' : 'visibility' }}
+                  <span
+                    class="material-symbols-outlined"
+                    style="width: 20px; height: 20px; font-size: 20px"
+                  >
+                    {{ showConfirmPwd ? "visibility_off" : "visibility" }}
                   </span>
                 </button>
               </div>
@@ -463,11 +642,12 @@ async function handleSubmit() {
 
             <!-- Submit -->
             <div class="pt-2">
-              <button
+              <BaseButton
+                variant="primary"
+                size="lg"
                 type="submit"
                 :disabled="isLoading"
-                class="w-full h-14 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
-                style="background-color: #00288E; color: white; box-shadow: 0 8px 24px rgba(0,40,142,0.25);"
+                class="w-full"
               >
                 <svg
                   v-if="isLoading"
@@ -476,28 +656,41 @@ async function handleSubmit() {
                   fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
-                <span>{{ isLoading ? 'Creando cuenta...' : 'Crear cuenta' }}</span>
+                <span>{{ isLoading ? "Creando cuenta..." : "Registrarse" }}</span>
                 <span
                   v-if="!isLoading"
                   class="material-symbols-outlined"
-                  style="width:22px;height:22px;font-size:22px;"
-                >arrow_forward</span>
-              </button>
+                  style="width: 22px; height: 22px; font-size: 22px"
+                  >arrow_forward</span
+                >
+              </BaseButton>
             </div>
           </form>
 
           <!-- Link to login -->
           <div class="mt-8 text-center">
-            <p class="text-sm font-medium" style="color: #444653;">
+            <p class="text-sm font-medium" style="color: var(--color-on-surface-variant)">
               ¿Ya tenés cuenta?
               <RouterLink
                 to="/login"
                 class="font-bold ml-1 hover:underline underline-offset-2 transition-colors"
-                style="color: #00288E;"
-              >Iniciá sesión</RouterLink>
+                style="color: var(--color-primary)"
+                >Iniciá sesión</RouterLink
+              >
             </p>
           </div>
         </template>
@@ -506,12 +699,12 @@ async function handleSubmit() {
       <!-- Footer -->
       <footer
         class="absolute bottom-8 left-0 right-0 px-12 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest"
-        style="color: #C4C5D5;"
+        style="color: var(--color-outline-variant)"
       >
         <span>© 2024 SIGA-Óptica</span>
         <div class="flex gap-6">
-          <a href="#" class="hover:text-[#00288E] transition-colors">Privacidad</a>
-          <a href="#" class="hover:text-[#00288E] transition-colors">Términos</a>
+          <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Privacidad</a>
+          <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Términos</a>
         </div>
       </footer>
     </section>

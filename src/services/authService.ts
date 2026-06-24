@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface LoginCredentials {
   email: string
@@ -34,15 +34,15 @@ export interface RegisterResponse {
 }
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
-  const { data } = await http.post<LoginResponse>('/api/auth/login', credentials)
+  const { data } = await http.post<LoginResponse>("/api/auth/login", credentials)
   return data
 }
 
 export async function registerPatient(data: RegisterPatientRequest): Promise<RegisterResponse> {
-  const { data: response } = await http.post<RegisterResponse>('/api/auth/register/patient', data)
+  const { data: response } = await http.post<RegisterResponse>("/api/auth/register/patient", data)
   return response
 }
 
 export async function verifyEmail(token: string): Promise<void> {
-  await http.get('/api/auth/verify-email', { params: { token } })
+  await http.get("/api/auth/verify-email", { params: { token } })
 }

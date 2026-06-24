@@ -1,6 +1,6 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
-export type UserType = 'Profesional' | 'Paciente' | 'Administrador' | 'Usuario'
+export type UserType = "Profesional" | "Paciente" | "Administrador" | "Usuario"
 
 let _cache: AppUser[] | null = null
 
@@ -21,7 +21,7 @@ export interface AppUser {
 export async function getAppUsers(forceRefresh = false): Promise<AppUser[]> {
   if (_cache && !forceRefresh) return _cache
 
-  const { data } = await http.get<AppUser[]>('/api/users')
+  const { data } = await http.get<AppUser[]>("/api/users")
   _cache = data
   return _cache
 }

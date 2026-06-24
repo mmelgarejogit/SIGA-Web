@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 /**
  * Wrapper sobre la instancia axios centralizada.
@@ -10,9 +10,9 @@ import { http } from '@/api/http'
  */
 export function useHttp() {
   return {
-    get:    <T>(path: string)                => http.get<T>(path).then((r) => r.data),
-    post:   <T>(path: string, body: unknown) => http.post<T>(path, body).then((r) => r.data),
-    put:    <T>(path: string, body: unknown) => http.put<T>(path, body).then((r) => r.data),
-    delete: <T>(path: string)               => http.delete<T>(path).then((r) => r.data),
+    get: <T>(path: string) => http.get<T>(path).then((r) => r.data),
+    post: <T>(path: string, body: unknown) => http.post<T>(path, body).then((r) => r.data),
+    put: <T>(path: string, body: unknown) => http.put<T>(path, body).then((r) => r.data),
+    delete: <T>(path: string) => http.delete<T>(path).then((r) => r.data),
   }
 }

@@ -1,4 +1,4 @@
-import { http } from '@/api/http'
+import { http } from "@/api/http"
 
 export interface PagedResult<T> {
   items: T[]
@@ -13,7 +13,7 @@ export interface GetPatientsParams {
   page?: number
   pageSize?: number
   search?: string
-  status?: 'active' | 'inactive'
+  status?: "active" | "inactive"
 }
 
 export interface Patient {
@@ -23,6 +23,7 @@ export interface Patient {
   firstName: string
   lastName: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
   isActive: boolean
@@ -35,6 +36,7 @@ export interface CreatePatientRequest {
   firstName: string
   lastName: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
 }
@@ -42,8 +44,8 @@ export interface CreatePatientRequest {
 export interface UpdatePatientRequest {
   firstName: string
   lastName: string
-  ci: string
   birthDate: string
+  sexo?: string
   phoneNumber?: string
   email?: string
   isActive: boolean
@@ -51,10 +53,10 @@ export interface UpdatePatientRequest {
 
 export async function getPatients(params: GetPatientsParams = {}): Promise<PagedResult<Patient>> {
   const query = new URLSearchParams()
-  if (params.page)     query.set('page',     String(params.page))
-  if (params.pageSize) query.set('pageSize', String(params.pageSize))
-  if (params.search)   query.set('search',   params.search)
-  if (params.status)   query.set('status',   params.status)
+  if (params.page) query.set("page", String(params.page))
+  if (params.pageSize) query.set("pageSize", String(params.pageSize))
+  if (params.search) query.set("search", params.search)
+  if (params.status) query.set("status", params.status)
   const { data } = await http.get<PagedResult<Patient>>(`/api/patients?${query}`)
   return data
 }
@@ -65,7 +67,7 @@ export async function getPatientById(id: number): Promise<Patient> {
 }
 
 export async function createPatient(request: CreatePatientRequest): Promise<Patient> {
-  const { data } = await http.post<Patient>('/api/patients', request)
+  const { data } = await http.post<Patient>("/api/patients", request)
   return data
 }
 
