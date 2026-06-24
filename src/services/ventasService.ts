@@ -19,7 +19,7 @@ export type TipoCobro      = "Seña" | "Cuota"
 export type TipoDevolucion = "Devolucion" | "Cambio"
 export type EstadoDevolucion = "Pendiente" | "Confirmada" | "Rechazada"
 export type CategoriaFiscal = "Exento" | "Gravado5" | "Gravado10"
-export type TipoLinea       = "Producto" | "Servicio"
+export type TipoLinea       = "Producto" | "Servicio" | "Lente"
 export type TipoMovCaja     = "Ingreso" | "Egreso"
 export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado"
 
@@ -86,8 +86,6 @@ export interface TrabajoPedido {
   recetaId?: number
   tipoLenteId?: number
   tipoLenteNombre?: string
-  cristalProductoId?: number
-  cristalProductoNombre?: string
   tratamientos: TrabajoPedidoTratamiento[]
   armazonProductoId?: number
   armazonProductoNombre?: string
@@ -222,7 +220,6 @@ export interface AgregarLineaRequest {
 }
 
 export interface CrearVentaTrabajoPedidoRequest {
-  cristalProductoId?: number | null
   tipoLenteId?: number | null
   tratamientoIds: number[]
   armazonProductoId?: number | null
@@ -241,6 +238,14 @@ export interface CrearVentaRequest {
   observaciones?: string
   lineas: AgregarLineaRequest[]
   trabajoPedido?: CrearVentaTrabajoPedidoRequest
+}
+
+export interface ActualizarVentaRequest {
+  condicionVenta: CondicionVenta
+  fechaVenta: string
+  observaciones?: string
+  lineas: AgregarLineaRequest[]
+  laboratorioProveedorId?: number | null
 }
 
 export interface CobroLineaRequest {
@@ -323,6 +328,9 @@ export const getVentaById = (id: number) =>
 export const crearVenta = (data: CrearVentaRequest) =>
   post<Venta>("/api/ventas", data)
 
+export const actualizarVenta = (id: number, data: ActualizarVentaRequest) =>
+  put<Venta>(`/api/ventas/${id}`, data)
+
 export const confirmarVenta = (id: number) =>
   put<Venta>(`/api/ventas/${id}/confirmar`, {})
 
@@ -389,8 +397,8 @@ export interface TrabajoPedidoListDto {
   observacion?: string
   factura?: FacturaLaboratorioDto
   createdAt: string
-  // Referencia de la venta (datos que el laboratorio necesita para fabricar)
-  cristalNombre?: string
+  // Referencia de la venta (datos que el laboratorio necesita para fabricar).
+  // El lente se describe por tipoLenteNombre (diseño) + tratamientos.
   armazonNombre?: string
   armazonDelCliente: boolean
   receta?: RecetaRef

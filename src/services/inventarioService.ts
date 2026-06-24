@@ -266,6 +266,10 @@ export async function deactivateProducto(id: number): Promise<void> {
   await http.delete(`/api/productos/${id}`)
 }
 
+export async function deleteProducto(id: number): Promise<void> {
+  await http.delete(`/api/productos/${id}/permanente`)
+}
+
 export async function updateStockConfig(id: number, request: UpdateStockConfigRequest): Promise<Producto> {
   const { data } = await http.put<Producto>(`/api/productos/${id}/stock-config`, request)
   return data
@@ -436,6 +440,10 @@ export async function deactivateCategoria(id: number): Promise<void> {
   await http.delete(`/api/productos/categorias/${id}`)
 }
 
+export async function deleteCategoria(id: number): Promise<void> {
+  await http.delete(`/api/productos/categorias/${id}/permanente`)
+}
+
 // ── Marcas ─────────────────────────────────────────────────────────────────────
 
 export async function getMarcas(): Promise<Marca[]> {
@@ -594,12 +602,13 @@ export async function deactivateMotivoMovimiento(id: number): Promise<void> {
 export interface TipoLente {
   id: number
   nombre: string
+  precioBase: number
   isActive: boolean
   createdAt: string
 }
 
-export interface CreateTipoLenteRequest { nombre: string }
-export interface UpdateTipoLenteRequest { nombre: string; isActive: boolean }
+export interface CreateTipoLenteRequest { nombre: string; precioBase: number }
+export interface UpdateTipoLenteRequest { nombre: string; precioBase: number; isActive: boolean }
 
 export async function getTiposLente(): Promise<TipoLente[]> {
   const { data } = await http.get<TipoLente[]>("/api/tipos-lente")
@@ -618,6 +627,10 @@ export async function updateTipoLente(id: number, request: UpdateTipoLenteReques
 
 export async function deactivateTipoLente(id: number): Promise<void> {
   await http.delete(`/api/tipos-lente/${id}`)
+}
+
+export async function deleteTipoLente(id: number): Promise<void> {
+  await http.delete(`/api/tipos-lente/${id}/permanente`)
 }
 
 // ── Tratamientos ───────────────────────────────────────────────────────────────

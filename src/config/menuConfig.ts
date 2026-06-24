@@ -310,7 +310,7 @@ export const menuConfig: MenuItem[] = [
     children: [
       { label: "Pedidos",      icon: "science",      route: "/laboratorio/pedidos",      permission: "ver_laboratorio" },
       { label: "Aprobaciones", icon: "task_alt",     route: "/laboratorio/aprobaciones", permission: "gestionar_laboratorio" },
-      { label: "Recepciones",  icon: "inventory",    route: "/laboratorio/recepciones",  permission: "gestionar_laboratorio" },
+      { label: "Envíos y Recepciones", icon: "import_export", route: "/laboratorio/recepciones", permission: "gestionar_laboratorio" },
       { label: "Facturas",     icon: "receipt_long", route: "/laboratorio/facturas",     permission: "gestionar_laboratorio" },
     ],
   },

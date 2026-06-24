@@ -130,7 +130,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
 
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas — Lab</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ filtered.filter(i => i.factura).length }} factura{{ filtered.filter(i => i.factura).length !== 1 ? "s" : "" }} registrada{{ filtered.filter(i => i.factura).length !== 1 ? "s" : "" }}
             </p>

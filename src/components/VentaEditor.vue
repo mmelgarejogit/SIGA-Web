@@ -10,9 +10,10 @@ import RecetaSelector from "@/components/RecetaSelector.vue"
 import TrabajoOpticoCard from "@/components/TrabajoOpticoCard.vue"
 import {
   type AgregarLineaRequest, type CategoriaFiscal, type CondicionVenta, type TipoVenta, type Venta, type Servicio,
-  crearVenta, confirmarVenta, getPresupuestos, getVentaById, getServicios, resolvePrecioServicio,
+  crearVenta, actualizarVenta, confirmarVenta, getPresupuestos, getVentaById, getServicios, resolvePrecioServicio,
 } from "@/services/ventasService"
 import { type Cliente, getClienteById } from "@/services/clienteService"
+import { type ProveedorSimple, getLaboratorios } from "@/services/comprasService"
 import { getProductos, type Producto } from "@/services/inventarioService"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import { http } from "@/api/http"
@@ -174,6 +175,11 @@ const fechaVencimiento = computed(() => {
 const presupuestosDelCliente = ref<Venta[]>([])
 const presupuestoCargado     = ref<Venta | null>(null)
 
+// Laboratorio para asignar al convertir un presupuesto a pedido (la óptica queda bloqueada).
+const laboratorios       = ref<ProveedorSimple[]>([])
+const labSeleccionadoId  = ref<number | null>(null)
+const laboratorioOptions = computed(() => laboratorios.value.map(l => ({ value: l.id, label: l.nombre })))
+
 watch(selectedCliente, async (c) => {
   if (props.esPresupuesto) return
   presupuestosDelCliente.value = []
@@ -190,6 +196,7 @@ function cargarPresupuesto(v: Venta) {
   condicionVenta.value = v.condicionVenta
   observaciones.value  = v.observaciones ?? ""
   recetaId.value       = v.recetaId ?? null
+  labSeleccionadoId.value = v.trabajoPedido?.laboratorioProveedorId ?? null
   presupuestosDelCliente.value = []
   lineas.value = v.lineas.map(l => ({ tipo: l.tipo, productoId: l.productoId, servicioId: l.servicioId, descripcion: l.descripcion, cantidad: l.cantidad, precioUnitario: l.precioUnitario, descuento: l.descuento, categoriaFiscal: l.categoriaFiscal }))
 }
@@ -204,6 +211,8 @@ onMounted(async () => {
   if (prodsRes) productos.value = prodsRes.items.filter(p => p.isActive)
   const servsRes = await getServicios().catch(() => null)
   if (servsRes) servicios.value = servsRes.filter(s => s.isActive)
+  const labsRes = await getLaboratorios().catch(() => null)
+  if (labsRes) laboratorios.value = labsRes
   try {
     const { data } = await http.get<{ items: ProfLite[] }>("/api/professionals?pageSize=200")
     profesionales.value = (data.items ?? []).filter(p => p.isActive)
@@ -254,6 +263,10 @@ async function guardar() {
     if (!recetaId.value) { saveError.value = "La receta es obligatoria para una venta a pedido."; return }
     if (!optica.laboratorio) { saveError.value = "Seleccioná el laboratorio para la venta a pedido."; return }
   }
+  // Presupuesto a pedido cargado: el laboratorio se asigna en su selector dedicado.
+  if (!props.esPresupuesto && esPedido.value && presupuestoCargado.value && !labSeleccionadoId.value) {
+    saveError.value = "Seleccioná el laboratorio para la venta a pedido."; return
+  }
   isSaving.value = true
   saveError.value = ""
   try {
@@ -264,7 +277,15 @@ async function guardar() {
     }
     let ventaId: number
     if (presupuestoCargado.value) {
+      // Persistir los ajustes hechos sobre el presupuesto (líneas/precios/condición) antes de confirmar.
       ventaId = presupuestoCargado.value.id
+      await actualizarVenta(ventaId, {
+        condicionVenta:         condicionVenta.value,
+        fechaVenta:             fechaVenta.value,
+        observaciones:          observaciones.value || undefined,
+        lineas:                 lineasFinales.value.map(l => ({ ...l }) as AgregarLineaRequest),
+        laboratorioProveedorId: esPedido.value ? (labSeleccionadoId.value ?? undefined) : undefined,
+      })
     } else {
       const v = await crearVenta(buildPayload())
       ventaId = v.id
@@ -301,7 +322,7 @@ const guardarLabel = computed(() =>
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">{{ titulo }}</h1>
             <p class="mt-0.5 font-medium" style="color: var(--color-on-surface-variant)">
-              {{ esPedido ? "Trabajo a pedido: receta, armazón y cristal" : "Venta directa de productos en mostrador" }}
+              {{ esPedido ? "Trabajo a pedido: receta, armazón y lente" : "Venta directa de productos en mostrador" }}
             </p>
           </div>
         </div>
@@ -346,6 +367,16 @@ const guardarLabel = computed(() =>
               <button @click="limpiarPresupuesto" class="p-1 rounded-full hover:bg-green-100"><span class="material-symbols-outlined" style="font-size:16px;color:#166534">close</span></button>
             </div>
 
+            <!-- Laboratorio (presupuesto a pedido): la óptica queda bloqueada, pero el laboratorio es obligatorio para confirmar -->
+            <div v-if="presupuestoCargado && esPedido" class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Laboratorio</label>
+              <SearchableSelect
+                :model-value="labSeleccionadoId" :options="laboratorioOptions"
+                null-label="Seleccioná un laboratorio"
+                @update:model-value="labSeleccionadoId = $event as number | null" />
+              <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Obligatorio para confirmar una venta a pedido.</p>
+            </div>
+
             <!-- ── A PEDIDO ── -->
             <template v-if="esPedido && !presupuestoCargado">
               <RecetaSelector :cliente-id="selectedCliente?.id ?? null" v-model="recetaId" />
@@ -356,13 +387,13 @@ const guardarLabel = computed(() =>
             <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">{{ esPedido ? "Ítems adicionales" : "Líneas" }}</h3>
-                <button v-if="!presupuestoCargado" @click="showLineaManual = true" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105" style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)">
+                <button @click="showLineaManual = true" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105" style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)">
                   <span class="material-symbols-outlined" style="font-size: 16px">add</span> Línea manual
                 </button>
               </div>
 
               <!-- Buscador de productos / servicios -->
-              <div v-if="!presupuestoCargado" class="mb-4">
+              <div class="mb-4">
                 <!-- Toggle -->
                 <div class="inline-flex p-1 rounded-xl mb-2" style="background-color: var(--color-surface-container-high)">
                   <button type="button" @click="buscadorTipo = 'Producto'" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
@@ -411,11 +442,35 @@ const guardarLabel = computed(() =>
                 <div v-for="(l, i) in lineasFinales" :key="i" class="rounded-xl p-3 flex items-start gap-3" style="background: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.15)">
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ l.descripcion }}</p>
-                    <p class="text-xs mt-0.5" style="color: var(--color-outline)">{{ l.cantidad }} × {{ formatPrice(l.precioUnitario) }}{{ l.descuento ? " − " + formatPrice(l.descuento) : "" }}</p>
+
+                    <!-- Editable: líneas reales (productos/servicios/manual). Permite ajustar cantidad, precio y descuento. -->
+                    <div v-if="i >= opticaLinesCount" class="flex items-center gap-2 mt-2">
+                      <label class="flex items-center gap-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cant</span>
+                        <input v-model.number="l.cantidad" type="number" min="1"
+                          class="w-14 px-2 py-1 rounded-lg text-xs outline-none"
+                          style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface)" />
+                      </label>
+                      <label class="flex items-center gap-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">P.Unit</span>
+                        <input v-model.number="l.precioUnitario" type="number" min="0"
+                          class="w-24 px-2 py-1 rounded-lg text-xs outline-none"
+                          style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface)" />
+                      </label>
+                      <label class="flex items-center gap-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">Desc</span>
+                        <input v-model.number="l.descuento" type="number" min="0"
+                          class="w-20 px-2 py-1 rounded-lg text-xs outline-none"
+                          style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface)" />
+                      </label>
+                    </div>
+
+                    <!-- Read-only: líneas derivadas de la óptica (modo a pedido sin presupuesto cargado) -->
+                    <p v-else class="text-xs mt-0.5" style="color: var(--color-outline)">{{ l.cantidad }} × {{ formatPrice(l.precioUnitario) }}{{ l.descuento ? " − " + formatPrice(l.descuento) : "" }}</p>
                   </div>
-                  <p class="text-sm font-bold" style="color: var(--color-primary)">{{ formatPrice(subtotalLinea(l)) }}</p>
+                  <p class="text-sm font-bold whitespace-nowrap" style="color: var(--color-primary)">{{ formatPrice(subtotalLinea(l)) }}</p>
                   <button
-                    v-if="!presupuestoCargado && i >= opticaLinesCount"
+                    v-if="i >= opticaLinesCount"
                     @click="removeLinea(i - opticaLinesCount)"
                     class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all hover:scale-105"
                     style="background-color: var(--color-error-container)"

@@ -16,10 +16,14 @@ import {
   createTipoLente,
   updateTipoLente,
   deactivateTipoLente,
+  deleteTipoLente,
 } from "@/services/inventarioService"
 
 const auth      = useAuthStore()
 const canManage = auth.hasPermission("gestionar_inventario")
+
+const formatPrice = (n: number) =>
+  new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
 
 // ── Estado ─────────────────────────────────────────────────────────────────────
 
@@ -70,9 +74,10 @@ const visiblePages = computed(() => {
 })
 
 const columns = [
-  { key: "nombre",   label: "Nombre" },
-  { key: "estado",   label: "Estado" },
-  { key: "acciones", label: "", align: "right" as const },
+  { key: "nombre",     label: "Nombre" },
+  { key: "precioBase", label: "Precio base" },
+  { key: "estado",     label: "Estado" },
+  { key: "acciones",   label: "", align: "right" as const },
 ]
 
 async function load() {
@@ -95,8 +100,11 @@ function menuItems(item: TipoLente): ContextMenuItem[] {
   return [
     ...(canManage ? [{ type: "item" as const, label: "Editar", icon: "edit", action: () => openEdit(item) }] : []),
     ...(canManage && item.isActive ? [
-      { type: "separator" as const },
       { type: "item" as const, label: "Desactivar", icon: "delete", action: () => openDeactivate(item), danger: true },
+    ] : []),
+    ...(canManage ? [
+      { type: "separator" as const },
+      { type: "item" as const, label: "Eliminar", icon: "delete_forever", action: () => openDelete(item), danger: true },
     ] : []),
   ]
 }
@@ -106,10 +114,10 @@ function menuItems(item: TipoLente): ContextMenuItem[] {
 const showCreate  = ref(false)
 const isSaving    = ref(false)
 const createError = ref("")
-const createForm  = reactive<CreateTipoLenteRequest>({ nombre: "" })
+const createForm  = reactive<CreateTipoLenteRequest>({ nombre: "", precioBase: 0 })
 
 function openCreate() {
-  Object.assign(createForm, { nombre: "" })
+  Object.assign(createForm, { nombre: "", precioBase: 0 })
   createError.value = ""
   showCreate.value  = true
 }
@@ -119,7 +127,7 @@ async function submitCreate() {
   if (!createForm.nombre.trim()) { createError.value = "El nombre es obligatorio."; return }
   isSaving.value = true
   try {
-    await createTipoLente({ nombre: createForm.nombre.trim() })
+    await createTipoLente({ nombre: createForm.nombre.trim(), precioBase: createForm.precioBase || 0 })
     showCreate.value = false
     await load()
   } catch (err: unknown) {
@@ -135,11 +143,11 @@ const showEdit      = ref(false)
 const isEditSaving  = ref(false)
 const editError     = ref("")
 const editingItem   = ref<TipoLente | null>(null)
-const editForm      = reactive<UpdateTipoLenteRequest>({ nombre: "", isActive: true })
+const editForm      = reactive<UpdateTipoLenteRequest>({ nombre: "", precioBase: 0, isActive: true })
 
 function openEdit(item: TipoLente) {
   editingItem.value = item
-  Object.assign(editForm, { nombre: item.nombre, isActive: item.isActive })
+  Object.assign(editForm, { nombre: item.nombre, precioBase: item.precioBase, isActive: item.isActive })
   editError.value = ""
   showEdit.value  = true
 }
@@ -150,7 +158,7 @@ async function submitEdit() {
   if (!editingItem.value) return
   isEditSaving.value = true
   try {
-    await updateTipoLente(editingItem.value.id, { nombre: editForm.nombre.trim(), isActive: editForm.isActive })
+    await updateTipoLente(editingItem.value.id, { nombre: editForm.nombre.trim(), precioBase: editForm.precioBase || 0, isActive: editForm.isActive })
     showEdit.value = false
     await load()
   } catch (err: unknown) {
@@ -185,6 +193,33 @@ async function confirmDeactivate() {
     deactivateError.value = err instanceof Error ? err.message : "Error al desactivar."
   } finally {
     isDeactivating.value = false
+  }
+}
+
+// ── Modal Eliminar (permanente) ──────────────────────────────────────────────
+const showDelete   = ref(false)
+const isDeleting   = ref(false)
+const deleteError  = ref("")
+const deletingItem = ref<TipoLente | null>(null)
+
+function openDelete(item: TipoLente) {
+  deletingItem.value = item
+  deleteError.value  = ""
+  showDelete.value   = true
+}
+
+async function confirmDelete() {
+  if (!deletingItem.value) return
+  isDeleting.value = true
+  deleteError.value = ""
+  try {
+    await deleteTipoLente(deletingItem.value.id)
+    showDelete.value = false
+    await load()
+  } catch (err: unknown) {
+    deleteError.value = err instanceof Error ? err.message : "Error al eliminar."
+  } finally {
+    isDeleting.value = false
   }
 }
 </script>
@@ -232,6 +267,9 @@ async function confirmDeactivate() {
                 </div>
                 <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
               </div>
+            </template>
+            <template #precioBase="{ item }">
+              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(item.precioBase) }}</span>
             </template>
             <template #estado="{ item }">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
@@ -286,11 +324,20 @@ async function confirmDeactivate() {
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
         {{ createError }}
       </div>
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-        <input v-model="createForm.nombre" type="text" placeholder="Ej: Monofocal, Progresivo…"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
+          <input v-model="createForm.nombre" type="text" placeholder="Ej: Monofocal, Progresivo…"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio base (Gs.)</label>
+          <input v-model.number="createForm.precioBase" type="number" min="0" placeholder="0"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Sugerido al elegir el diseño en una venta. Editable por venta.</p>
+        </div>
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="showCreate = false">Cancelar</BaseButton>
@@ -312,6 +359,13 @@ async function confirmDeactivate() {
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
             style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio base (Gs.)</label>
+          <input v-model.number="editForm.precioBase" type="number" min="0"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Sugerido al elegir el diseño en una venta. Editable por venta.</p>
         </div>
         <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
           <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />
@@ -341,6 +395,26 @@ async function confirmDeactivate() {
         <BaseButton variant="secondary" @click="showDeactivate = false">Cancelar</BaseButton>
         <BaseButton variant="danger" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal Eliminar (permanente) -->
+    <BaseModal :show="showDelete" title="Eliminar Tipo de Lente" size="sm" @close="showDelete = false">
+      <div v-if="deleteError" class="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
+        {{ deleteError }}
+      </div>
+      <p class="text-sm" style="color: var(--color-on-surface-variant)">
+        ¿Eliminar definitivamente el tipo de lente
+        <span class="font-semibold" style="color: var(--color-on-surface)">{{ deletingItem?.nombre }}</span>?
+        Esta acción no se puede deshacer. Si está en uso en trabajos a pedido, desactivalo en su lugar.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDelete = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" :disabled="isDeleting" @click="confirmDelete">
+          {{ isDeleting ? "Eliminando…" : "Eliminar" }}
         </BaseButton>
       </template>
     </BaseModal>

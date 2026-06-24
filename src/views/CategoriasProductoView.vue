@@ -17,6 +17,7 @@ import {
   createCategoria,
   updateCategoria,
   deactivateCategoria,
+  deleteCategoria,
 } from "@/services/inventarioService"
 
 const auth = useAuthStore()
@@ -35,10 +36,11 @@ const estadoOptions = [
   { value: "inactiva", label: "Inactivas", dot: "var(--color-outline)" },
 ]
 
+// "Cristal" quedó obsoleto: los lentes ya no son productos con stock. Se conserva el badge
+// (tipoStyle) para categorías legacy, pero no se ofrece al dar de alta/editar categorías.
 const TIPO_OPTIONS = [
   { value: "Generico", label: "Genérico" },
   { value: "Armazon",  label: "Armazón" },
-  { value: "Cristal",  label: "Cristal" },
 ] as const
 
 const tipoLabel = (t: string) => TIPO_OPTIONS.find(o => o.value === t)?.label ?? t
@@ -154,6 +156,12 @@ function menuItems(cat: CategoriaProducto): ContextMenuItem[] {
           { type: "item" as const, label: "Activar", icon: "check_circle", action: () => openActivate(cat) },
         ]
       : []),
+    ...(canManage
+      ? [
+          { type: "separator" as const },
+          { type: "item" as const, label: "Eliminar", icon: "delete_forever", action: () => openDelete(cat), danger: true },
+        ]
+      : []),
   ]
 }
 
@@ -254,6 +262,34 @@ async function confirmDeactivate() {
     deactivateError.value = err instanceof Error ? err.message : "Error al desactivar categoría."
   } finally {
     isDeactivating.value = false
+  }
+}
+
+// ── Modal Eliminar (permanente) ──────────────────────────────────────────────
+
+const showDeleteModal = ref(false)
+const isDeleting = ref(false)
+const deleteError = ref("")
+const deletingCategoria = ref<CategoriaProducto | null>(null)
+
+function openDelete(cat: CategoriaProducto) {
+  deletingCategoria.value = cat
+  deleteError.value = ""
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!deletingCategoria.value) return
+  isDeleting.value = true
+  deleteError.value = ""
+  try {
+    await deleteCategoria(deletingCategoria.value.id)
+    showDeleteModal.value = false
+    await load()
+  } catch (err: unknown) {
+    deleteError.value = err instanceof Error ? err.message : "Error al eliminar categoría."
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -462,7 +498,7 @@ async function confirmActivate() {
             :style="inputStyle(false)">
             <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
-          <p class="text-xs" style="color: var(--color-outline)">Armazón / Cristal habilitan el producto en el flujo de venta a pedido.</p>
+          <p class="text-xs" style="color: var(--color-outline)">El tipo Armazón habilita el producto en el flujo de venta a pedido.</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
@@ -516,7 +552,7 @@ async function confirmActivate() {
             :style="inputStyle(false)">
             <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
-          <p class="text-xs" style="color: var(--color-outline)">Armazón / Cristal habilitan el producto en el flujo de venta a pedido.</p>
+          <p class="text-xs" style="color: var(--color-outline)">El tipo Armazón habilita el producto en el flujo de venta a pedido.</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</label>
@@ -582,6 +618,31 @@ async function confirmActivate() {
         <BaseButton variant="secondary" size="default" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
         <BaseButton variant="danger" size="default" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- ── MODAL ELIMINAR (permanente) ───────────────────────────────────────── -->
+    <BaseModal :show="showDeleteModal" title="Eliminar Categoría" size="sm" @close="showDeleteModal = false">
+      <div v-if="deleteError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
+        {{ deleteError }}
+      </div>
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+             style="background-color: var(--color-error-container)">
+          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 28px">delete_forever</span>
+        </div>
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          ¿Eliminar definitivamente la categoría <strong style="color: var(--color-on-surface)">{{ deletingCategoria?.nombre }}</strong>?
+          Esta acción no se puede deshacer. Si tiene productos asignados, desactivala en su lugar.
+        </p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" size="default" class="flex-1" @click="showDeleteModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" size="default" class="flex-1" :disabled="isDeleting" @click="confirmDelete">
+          {{ isDeleting ? "Eliminando…" : "Eliminar" }}
         </BaseButton>
       </template>
     </BaseModal>

@@ -25,7 +25,7 @@ const diasDesde = (s: string) =>
 const items     = ref<TrabajoPedidoListDto[]>([])
 const isLoading = ref(false)
 const search    = ref("")
-const estadoFiltro = ref<string[]>(["PendienteEnvio", "Enviado"])
+const estadoFiltro = ref<string[]>([])
 
 const estadoOptions = [
   { value: "PendienteEnvio", label: "Pend. envío", dot: "#1D4ED8" },
@@ -126,7 +126,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
 
         <div class="flex items-start justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Recepciones — Lab</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Envíos y Recepciones</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ filtered.length }} pedido{{ filtered.length !== 1 ? "s" : "" }} en tránsito
             </p>
@@ -200,7 +200,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
           <p class="text-sm" style="color:var(--color-on-surface-variant)">
             <span v-if="actionType === 'enviar'">Se registrará el envío de los lentes al laboratorio.</span>
-            <span v-else>Se registrará la recepción. La venta pasará automáticamente a <strong>Lista para cobrar</strong>.</span>
+            <span v-else>Se registrará la recepción de los lentes terminados. El cobro de la venta es independiente y no se ve afectado.</span>
           </p>
           <p v-if="actionError" class="text-xs font-medium" style="color:var(--color-error)">{{ actionError }}</p>
         </div>

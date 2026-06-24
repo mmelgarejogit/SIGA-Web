@@ -370,12 +370,8 @@ async function submitGestionDev() {
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Laboratorio</p>
                     <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.laboratorioNombre }}</p>
                   </div>
-                  <div v-if="venta.trabajoPedido.cristalProductoNombre">
-                    <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Cristal</p>
-                    <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.cristalProductoNombre }}</p>
-                  </div>
                   <div v-if="venta.trabajoPedido.tipoLenteNombre">
-                    <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Tipo de lente</p>
+                    <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Lente</p>
                     <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.tipoLenteNombre }}</p>
                   </div>
                   <div v-if="venta.trabajoPedido.tratamientos.length">

@@ -193,12 +193,8 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               <p style="color: var(--color-on-surface)">{{ selected.laboratorioNombre || "—" }}</p>
             </div>
             <div v-if="selected.tipoLenteNombre">
-              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Tipo de lente</p>
+              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Lente</p>
               <p style="color: var(--color-on-surface)">{{ selected.tipoLenteNombre }}</p>
-            </div>
-            <div v-if="selected.cristalNombre">
-              <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Cristal</p>
-              <p style="color: var(--color-on-surface)">{{ selected.cristalNombre }}</p>
             </div>
             <div v-if="selected.armazonNombre || selected.armazonDelCliente">
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Armazón</p>

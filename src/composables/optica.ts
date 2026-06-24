@@ -7,16 +7,17 @@ export interface OpticaTratamientoSel {
   precio: number
 }
 
-/** Estado de la config óptica de un trabajo a pedido (armazón + cristal + tratamientos + lab). */
+/** Estado de la config óptica de un trabajo a pedido (armazón + lente + tratamientos + lab). */
 export interface OpticaState {
   armazon: Producto | null
   armazonPrecio: number
   armazonDelCliente: boolean
-  cristal: Producto | null
-  cristalPrecio: number
+  // El lente (cristal) ya no es un producto: se especifica por diseño (TipoLente) + precio.
+  tipoLenteId: number | null
+  tipoLenteNombre: string
+  lentePrecio: number
   tratamientos: OpticaTratamientoSel[]
   laboratorio: ProveedorSimple | null
-  tipoLenteId: number | null
 }
 
 export function emptyOptica(): OpticaState {
@@ -24,17 +25,17 @@ export function emptyOptica(): OpticaState {
     armazon: null,
     armazonPrecio: 0,
     armazonDelCliente: false,
-    cristal: null,
-    cristalPrecio: 0,
+    tipoLenteId: null,
+    tipoLenteNombre: "",
+    lentePrecio: 0,
     tratamientos: [],
     laboratorio: null,
-    tipoLenteId: null,
   }
 }
 
 export type LineaUI = AgregarLineaRequest & { descripcion: string }
 
-/** Convierte la selección óptica en líneas de venta (armazón + cristal + tratamientos). */
+/** Convierte la selección óptica en líneas de venta (armazón + lente + tratamientos). */
 export function opticaLineas(s: OpticaState): LineaUI[] {
   const lineas: LineaUI[] = []
   if (s.armazon && !s.armazonDelCliente) {
@@ -43,10 +44,11 @@ export function opticaLineas(s: OpticaState): LineaUI[] {
       cantidad: 1, precioUnitario: s.armazonPrecio, descuento: 0, categoriaFiscal: "Gravado10",
     })
   }
-  if (s.cristal) {
+  // El lente se emite como línea tipo Lente, sin productoId: no descuenta stock (se pide al lab).
+  if (s.tipoLenteId) {
     lineas.push({
-      tipo: "Producto", productoId: s.cristal.id, descripcion: s.cristal.nombre,
-      cantidad: 1, precioUnitario: s.cristalPrecio, descuento: 0, categoriaFiscal: "Gravado10",
+      tipo: "Lente", descripcion: s.tipoLenteNombre ? `Lente ${s.tipoLenteNombre}` : "Lente",
+      cantidad: 1, precioUnitario: s.lentePrecio, descuento: 0, categoriaFiscal: "Gravado10",
     })
   }
   for (const t of s.tratamientos) {
@@ -64,7 +66,6 @@ export function opticaTotal(s: OpticaState): number {
 
 export function opticaTrabajoPedido(s: OpticaState): CrearVentaTrabajoPedidoRequest {
   return {
-    cristalProductoId: s.cristal?.id ?? null,
     tipoLenteId: s.tipoLenteId ?? null,
     tratamientoIds: s.tratamientos.map(t => t.tratamiento.id),
     armazonProductoId: s.armazonDelCliente ? null : (s.armazon?.id ?? null),

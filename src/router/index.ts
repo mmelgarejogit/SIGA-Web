@@ -369,7 +369,7 @@ const router = createRouter({
       path: "/laboratorio/recepciones",
       name: "laboratorio-recepciones",
       component: () => import("@/views/TrabajosPedidoRecepcionesView.vue"),
-      meta: { requiresAuth: true, permission: "gestionar_laboratorio", label: "Recepciones Lab" },
+      meta: { requiresAuth: true, permission: "gestionar_laboratorio", label: "Envíos y Recepciones" },
     },
     {
       path: "/laboratorio/facturas",

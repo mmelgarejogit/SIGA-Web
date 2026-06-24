@@ -22,6 +22,7 @@ import {
   createProducto,
   updateProducto,
   deactivateProducto,
+  deleteProducto,
   registrarMovimiento,
   getMotivosMovimiento,
   getCategorias,
@@ -341,6 +342,34 @@ async function confirmDeactivate() {
   }
 }
 
+// ── Modal Eliminar (permanente) ──────────────────────────────────────────────
+
+const showDeleteModal = ref(false)
+const productoToDelete = ref<Producto | null>(null)
+const isDeleting = ref(false)
+const deleteError = ref("")
+
+function openDelete(p: Producto) {
+  productoToDelete.value = p
+  deleteError.value = ""
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!productoToDelete.value) return
+  isDeleting.value = true
+  deleteError.value = ""
+  try {
+    await deleteProducto(productoToDelete.value.id)
+    showDeleteModal.value = false
+    await loadProductos()
+  } catch (err: unknown) {
+    deleteError.value = err instanceof Error ? err.message : "Error al eliminar."
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 // ── Modal Activar ──────────────────────────────────────────────────────────────
 
 const showActivateModal = ref(false)
@@ -458,6 +487,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
       ? [
           { type: "separator" as const },
           { type: "item" as const, label: "Activar", icon: "check_circle", action: () => openActivate(p) },
+        ]
+      : []),
+    ...(canManage.value
+      ? [
+          { type: "separator" as const },
+          { type: "item" as const, label: "Eliminar", icon: "delete_forever", action: () => openDelete(p), danger: true },
         ]
       : []),
   ]
@@ -1017,6 +1052,31 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <BaseButton variant="secondary" class="flex-1" @click="showDeactivateModal = false">Cancelar</BaseButton>
         <BaseButton variant="danger" class="flex-1" :disabled="isDeactivating" @click="confirmDeactivate">
           {{ isDeactivating ? "Desactivando…" : "Desactivar" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- MODAL ELIMINAR (permanente) -->
+    <BaseModal :show="showDeleteModal" title="Eliminar Producto" size="sm" @close="showDeleteModal = false">
+      <div v-if="deleteError" class="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 text-sm font-medium"
+        style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+        <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">error</span>
+        {{ deleteError }}
+      </div>
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
+          style="background-color: var(--color-error-container)">
+          <span class="material-symbols-outlined" style="color: var(--color-error); font-size: 28px">delete_forever</span>
+        </div>
+        <p class="text-sm" style="color: var(--color-on-surface-variant)">
+          ¿Eliminar definitivamente <strong style="color: var(--color-on-surface)">{{ productoToDelete?.nombre }}</strong>?
+          Esta acción no se puede deshacer. Si tiene movimientos o ventas, desactivalo en su lugar.
+        </p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" class="flex-1" @click="showDeleteModal = false">Cancelar</BaseButton>
+        <BaseButton variant="danger" class="flex-1" :disabled="isDeleting" @click="confirmDelete">
+          {{ isDeleting ? "Eliminando…" : "Eliminar" }}
         </BaseButton>
       </template>
     </BaseModal>

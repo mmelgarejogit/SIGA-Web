@@ -13,21 +13,18 @@ const formatPrice = (n: number) =>
   new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
 
 const allArmazones  = ref<Producto[]>([])
-const allCristales  = ref<Producto[]>([])
 const allTratam     = ref<Tratamiento[]>([])
 const allLabs       = ref<ProveedorSimple[]>([])
 const allTipos      = ref<TipoLente[]>([])
 
 onMounted(async () => {
-  const [arm, cri, trat, labs, tipos] = await Promise.allSettled([
+  const [arm, trat, labs, tipos] = await Promise.allSettled([
     getProductos({ pageSize: 500, tipoCategoria: "Armazon" }),
-    getProductos({ pageSize: 500, tipoCategoria: "Cristal" }),
     getTratamientos(),
     getLaboratorios(),
     getTiposLente(),
   ])
   if (arm.status === "fulfilled")   allArmazones.value = arm.value.items.filter(p => p.isActive)
-  if (cri.status === "fulfilled")   allCristales.value = cri.value.items.filter(p => p.isActive)
   if (trat.status === "fulfilled")  allTratam.value    = trat.value.filter(t => t.isActive)
   if (labs.status === "fulfilled")  allLabs.value      = labs.value
   if (tipos.status === "fulfilled") allTipos.value     = tipos.value.filter(t => t.isActive)
@@ -52,20 +49,14 @@ function toggleArmazonCliente() {
   if (props.state.armazonDelCliente) clearArmazon()
 }
 
-// ── Cristal ──────────────────────────────────────────────────────────────────
-const cristalSearch = ref("")
-const showCristalDrop = ref(false)
-const filteredCristales = computed(() => {
-  const q = cristalSearch.value.trim().toLowerCase()
-  return (q ? allCristales.value.filter(p => p.nombre.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q)) : allCristales.value).slice(0, 8)
-})
-function selectCristal(p: Producto) {
-  props.state.cristal = p
-  props.state.cristalPrecio = p.precioVenta
-  cristalSearch.value = ""
-  showCristalDrop.value = false
+// ── Lente (diseño + precio) ──────────────────────────────────────────────────
+// Elegir el diseño autocompleta el precio sugerido (PrecioBase), editable por venta.
+function selectTipoLente(id: number | null) {
+  props.state.tipoLenteId = id
+  const t = allTipos.value.find(x => x.id === id)
+  props.state.tipoLenteNombre = t?.nombre ?? ""
+  if (t) props.state.lentePrecio = t.precioBase
 }
-function clearCristal() { props.state.cristal = null; props.state.cristalPrecio = 0 }
 
 // ── Tratamientos ─────────────────────────────────────────────────────────────
 const isTratSel = (t: Tratamiento) => props.state.tratamientos.some(x => x.tratamiento.id === t.id)
@@ -128,41 +119,27 @@ const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-va
       </label>
     </div>
 
-    <!-- Cristal -->
+    <!-- Lente (diseño + precio) -->
     <div>
-      <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Cristal</label>
-      <div v-if="state.cristal" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: #F0FDF4; border: 1px solid #BBF7D0">
-        <span class="material-symbols-outlined" style="color:#166534">lens</span>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-sm truncate" style="color:#166534">{{ state.cristal.nombre }}</p>
-          <p class="text-xs" style="color:#16a34a">Stock: {{ state.cristal.stockActual }}</p>
+      <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Lente</label>
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style="font-size:18px;color:var(--color-outline)">lens</span>
+          <select
+            :value="state.tipoLenteId ?? ''"
+            @change="selectTipoLente(($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null)"
+            class="w-full pl-10 pr-4 h-12 text-sm outline-none appearance-none" :style="inputStyle">
+            <option value="">Seleccioná el diseño…</option>
+            <option v-for="t in allTipos" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+          </select>
         </div>
-        <div class="flex items-center gap-1 text-xs" style="color:#16a34a">Gs.
-          <input v-model.number="state.cristalPrecio" type="number" min="0" class="w-28 px-2 py-1 text-sm text-right" :style="priceStyle" />
-        </div>
-        <button type="button" @click="clearCristal" class="p-1 rounded-full hover:bg-green-100"><span class="material-symbols-outlined" style="font-size:18px;color:#16a34a">close</span></button>
-      </div>
-      <div v-else class="relative">
-        <input v-model="cristalSearch" type="text" placeholder="Buscar cristal…" class="w-full px-4 h-12 text-sm outline-none" :style="inputStyle"
-          @focus="showCristalDrop = true" @blur="blur(() => showCristalDrop = false)" />
-        <div v-if="showCristalDrop && filteredCristales.length" class="absolute left-0 right-0 z-20 mt-1 shadow-lg overflow-hidden" :style="dropStyle">
-          <button v-for="p in filteredCristales" :key="p.id" type="button" class="w-full text-left px-4 py-2.5 text-sm flex justify-between hover:bg-surface-container-low" style="border-bottom:1px solid rgba(196,197,213,0.1)" @mousedown.prevent="selectCristal(p)">
-            <span class="font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</span>
-            <span class="text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
-          </button>
-        </div>
-        <div v-if="showCristalDrop && !filteredCristales.length" class="absolute left-0 right-0 z-20 mt-1 px-4 py-3 text-xs" :style="dropStyle" style="color: var(--color-outline)">
-          No hay cristales. Cargá productos en una categoría tipo "Cristal".
+        <div class="flex items-center gap-1 text-xs" style="color: var(--color-on-surface-variant)">Gs.
+          <input v-model.number="state.lentePrecio" type="number" min="0" class="w-28 px-2 py-1 text-sm text-right" :style="priceStyle" />
         </div>
       </div>
-      <!-- Clasificación óptica opcional -->
-      <div class="flex items-center gap-2 mt-2">
-        <label class="text-xs" style="color: var(--color-outline)">Clasificación (opcional):</label>
-        <select v-model="state.tipoLenteId" class="px-3 py-1.5 text-sm outline-none appearance-none" :style="priceStyle">
-          <option :value="null">—</option>
-          <option v-for="t in allTipos" :key="t.id" :value="t.id">{{ t.nombre }}</option>
-        </select>
-      </div>
+      <p v-if="!allTipos.length" class="mt-1.5 text-xs" style="color: var(--color-outline)">
+        No hay diseños de lente. Creá uno en Catálogo → Tipos de Lente.
+      </p>
     </div>
 
     <!-- Tratamientos -->
