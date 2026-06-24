@@ -1,0 +1,15 @@
+# CRÍTICO: no copiar node_modules del host (se instala dentro del contenedor con npm ci)
+node_modules
+dist
+
+# Git / local
+.git
+.gitignore
+.env.local
+*.local
+
+# Logs / misc
+npm-debug.log*
+*.log
+.vscode
+.idea
