@@ -228,9 +228,6 @@ async function iniciarConsulta(t: Turno) {
           <p class="text-sm font-semibold mb-1" style="color: var(--color-outline)">
             Sin pacientes en sala
           </p>
-          <p class="text-xs" style="color: var(--color-outline-variant)">
-            No hay turnos con estado "Presente" para hoy.
-          </p>
         </div>
 
         <BaseTable

@@ -35,11 +35,6 @@ const childIconStyleFor = (route: string) =>
     ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
     : "font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;"
 
-const headerTextColor = computed(() =>
-  props.active ? "var(--color-primary)" : "rgba(255,255,255,0.65)",
-)
-const headerBg = computed(() => (props.active ? "#DBEAFE" : ""))
-
 function handleClick() {
   if (isGroup.value) {
     if (props.collapsed) {
@@ -62,23 +57,9 @@ function handleChildClick(route: string) {
   <div v-if="isGroup">
     <button
       @click="handleClick"
-      class="w-full flex items-center py-2.5 rounded-xl transition-all duration-200 text-left cursor-pointer group overflow-hidden"
-      :class="[active ? 'font-bold' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
-      :style="`background-color: ${headerBg}; color: ${headerTextColor};`"
+      class="nav-btn w-full flex items-center py-2.5 rounded-xl text-left overflow-hidden"
+      :class="[active ? 'font-bold is-active' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
       :title="collapsed ? item.label : undefined"
-      onmouseover="
-        if (!this.getAttribute('data-active')) {
-          this.style.backgroundColor = 'rgba(255,255,255,0.08)'
-          this.style.color = 'white'
-        }
-      "
-      onmouseout="
-        if (!this.getAttribute('data-active')) {
-          this.style.backgroundColor = ''
-          this.style.color = 'rgba(255,255,255,0.65)'
-        }
-      "
-      :data-active="active ? 'true' : null"
     >
       <span class="material-symbols-outlined flex-shrink-0" :style="headerIconStyle">{{
         item.icon
@@ -101,22 +82,8 @@ function handleChildClick(route: string) {
           v-for="child in item.children"
           :key="child.route"
           @click="handleChildClick(child.route)"
-          class="w-full flex items-center gap-3 py-2 px-4 rounded-lg transition-all duration-150 text-left cursor-pointer text-[13px]"
-          :class="activeChildRoute === child.route ? 'font-bold' : 'font-medium'"
-          :style="`background-color: ${activeChildRoute === child.route ? '#DBEAFE' : ''}; color: ${activeChildRoute === child.route ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)'};`"
-          onmouseover="
-            if (!this.getAttribute('data-active')) {
-              this.style.backgroundColor = 'rgba(255,255,255,0.06)'
-              this.style.color = 'rgba(255,255,255,0.75)'
-            }
-          "
-          onmouseout="
-            if (!this.getAttribute('data-active')) {
-              this.style.backgroundColor = ''
-              this.style.color = 'rgba(255,255,255,0.5)'
-            }
-          "
-          :data-active="activeChildRoute === child.route ? 'true' : null"
+          class="nav-child w-full flex items-center gap-3 py-2 px-4 rounded-lg text-left text-[13px]"
+          :class="activeChildRoute === child.route ? 'font-bold is-active' : 'font-medium'"
         >
           <span
             class="material-symbols-outlined flex-shrink-0"
@@ -134,35 +101,56 @@ function handleChildClick(route: string) {
   <button
     v-else
     @click="handleClick"
-    class="w-full flex items-center py-2.5 rounded-xl transition-all duration-200 text-left cursor-pointer overflow-hidden"
-    :class="[active ? 'font-bold' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
-    :style="`background-color: ${active ? '#DBEAFE' : ''}; color: ${active ? 'var(--color-primary)' : 'rgba(255,255,255,0.65)'};`"
+    class="nav-btn w-full flex items-center py-2.5 rounded-xl text-left overflow-hidden"
+    :class="[active ? 'font-bold is-active' : 'font-medium', collapsed ? 'justify-center px-0' : 'gap-3 px-4']"
     :title="collapsed ? item.label : undefined"
-    onmouseover="
-      if (!this.getAttribute('data-active')) {
-        this.style.backgroundColor = 'rgba(255,255,255,0.08)'
-        this.style.color = 'white'
-      }
-    "
-    onmouseout="
-      if (!this.getAttribute('data-active')) {
-        this.style.backgroundColor = ''
-        this.style.color = 'rgba(255,255,255,0.65)'
-      }
-    "
-    :data-active="active ? 'true' : null"
   >
     <span class="material-symbols-outlined flex-shrink-0" :style="simpleIconStyle">{{
       item.icon
     }}</span>
-    <span
-      v-if="!collapsed"
-      class="text-sm tracking-wide"
-    >{{ item.label }}</span>
+    <span v-if="!collapsed" class="text-sm tracking-wide">{{ item.label }}</span>
   </button>
 </template>
 
 <style scoped>
+/* ── Ítems del menú: estado en CSS (sin JS inline) ──────────────────────────── */
+.nav-btn {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.65);
+  background-color: transparent;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.nav-btn.is-active,
+.nav-btn.is-active:hover {
+  background-color: #dbeafe;
+  color: var(--color-primary);
+}
+
+.nav-child {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  background-color: transparent;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.nav-child:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+}
+.nav-child.is-active,
+.nav-child.is-active:hover {
+  background-color: #dbeafe;
+  color: var(--color-primary);
+}
+
+/* ── Chevron del acordeón ────────────────────────────────────────────────────── */
 .sidebar-chevron {
   display: inline-flex;
   align-items: center;
@@ -175,6 +163,7 @@ function handleChildClick(route: string) {
   transform: rotate(180deg);
 }
 
+/* ── Transición de apertura del submenú ─────────────────────────────────────── */
 .sidebar-expand-enter-active {
   transition:
     opacity 0.2s ease,

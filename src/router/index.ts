@@ -320,7 +320,7 @@ const router = createRouter({
     {
       path: "/compras/reportes",
       name: "compras-reportes",
-      component: () => import("@/views/ComprasReportesView.vue"),
+      component: () => import("@/views/ReportesComprasView.vue"),
       meta: { requiresAuth: true, permission: "ver_inventario", label: "Reportes de Compras" },
     },
     {
@@ -440,19 +440,19 @@ const router = createRouter({
     {
       path: "/reportes/citas",
       name: "reportes-citas",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/ReportesCitasView.vue"),
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reportes de Citas" },
     },
     {
       path: "/reportes/ventas",
       name: "reportes-ventas",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/ReportesVentasView.vue"),
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reportes de Ventas" },
     },
     {
       path: "/reportes/inventario",
       name: "reportes-inventario",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/ReportesInventarioView.vue"),
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reporte de Inventario" },
     },
     {
@@ -560,7 +560,7 @@ const router = createRouter({
     {
       path: "/reportes",
       name: "reportes",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/ReportesHubView.vue"),
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reportes" },
     },
   ],

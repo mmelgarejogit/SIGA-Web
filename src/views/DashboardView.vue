@@ -10,6 +10,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import { getPatients } from "@/services/patientService"
 import { getTurnos, getMisTurnos, type Turno } from "@/services/turnoService"
 import { getProfessionalStats, type ProfessionalDashboardStats, type ConsultaClinica } from "@/services/clinicaService"
+import { getReporteVentas, getReporteInventario } from "@/services/reportesService"
 import { useAuthStore } from "@/stores/auth"
 
 const router  = useRouter()
@@ -31,6 +32,20 @@ function toDateStr(d: Date): string {
   const m   = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}-${m}-${day}`
+}
+
+function fmtGs(n: number): string {
+  return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
+}
+
+function weekRangeStr(d: Date): { desde: string; hasta: string } {
+  const day = d.getDay()
+  const offset = day === 0 ? 6 : day - 1 // lunes = inicio
+  const start = new Date(d)
+  start.setDate(d.getDate() - offset)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  return { desde: toDateStr(start), hasta: toDateStr(end) }
 }
 
 function formatFecha(iso: string): string {
@@ -148,6 +163,8 @@ function profFormatDate(iso: string) {
 const todayStr            = toDateStr(new Date())
 const activePatients      = ref("—")
 const todayAppointments   = ref("—")
+const ingresosSemana      = ref("—")
+const stockCritico        = ref("—")
 const isLoadingPatients   = ref(true)
 const isLoadingAppts      = ref(true)
 
@@ -169,7 +186,31 @@ async function loadStaffData() {
   } finally {
     isLoadingAppts.value = false
   }
+
+  // KPIs de reportes (solo si el usuario tiene permiso para verlos)
+  if (auth.hasPermission("ver_reportes")) {
+    try {
+      const { desde, hasta } = weekRangeStr(new Date())
+      const rv = await getReporteVentas({ desde, hasta, agrupacion: "dia" })
+      ingresosSemana.value = fmtGs(rv.totalCobrado)
+    } catch {
+      ingresosSemana.value = "N/D"
+    }
+    try {
+      // El stock crítico es un snapshot; el rango no influye.
+      const ri = await getReporteInventario({ desde: todayStr, hasta: todayStr, agrupacion: "dia" })
+      stockCritico.value = String(ri.stockCritico)
+    } catch {
+      stockCritico.value = "N/D"
+    }
+  }
 }
+
+const stockBadge = computed<{ text: string; type: "positive" | "neutral" | "critical" }>(() => {
+  const n = Number(stockCritico.value)
+  if (Number.isNaN(n)) return { text: "Sin datos", type: "neutral" }
+  return n > 0 ? { text: "Atención", type: "critical" } : { text: "Al día", type: "positive" }
+})
 
 const kpis = computed(() => [
   {
@@ -192,19 +233,19 @@ const kpis = computed(() => [
   },
   {
     title:    "Ingresos Semanales",
-    value:    "—",
+    value:    ingresosSemana.value,
     icon:     "sell",
-    badge:    "Sin datos",
+    badge:    "Esta semana",
     badgeType: "neutral" as const,
     iconBg:   "#E2DFFF",
     iconColor: "var(--color-tertiary)",
   },
   {
     title:    "Stock Crítico",
-    value:    "—",
+    value:    stockCritico.value,
     icon:     "warning",
-    badge:    "Sin datos",
-    badgeType: "neutral" as const,
+    badge:    stockBadge.value.text,
+    badgeType: stockBadge.value.type,
     iconBg:   "var(--color-error-container)",
     iconColor: "var(--color-error)",
   },
