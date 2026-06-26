@@ -368,7 +368,7 @@ const guardarLabel = computed(() =>
             </div>
 
             <!-- Laboratorio (presupuesto a pedido): la óptica queda bloqueada, pero el laboratorio es obligatorio para confirmar -->
-            <div v-if="presupuestoCargado && esPedido" class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+            <div v-if="presupuestoCargado && esPedido" class="rounded-2xl p-5" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
               <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Laboratorio</label>
               <SearchableSelect
                 :model-value="labSeleccionadoId" :options="laboratorioOptions"
@@ -384,7 +384,7 @@ const guardarLabel = computed(() =>
             </template>
 
             <!-- ── LÍNEAS / ÍTEMS ADICIONALES ── -->
-            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">{{ esPedido ? "Ítems adicionales" : "Líneas" }}</h3>
                 <button @click="showLineaManual = true" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105" style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)">
@@ -485,7 +485,7 @@ const guardarLabel = computed(() =>
 
           <!-- Columna lateral -->
           <div class="space-y-6">
-            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Condiciones</h3>
               <div class="space-y-4">
                 <div>
@@ -511,7 +511,7 @@ const guardarLabel = computed(() =>
               </div>
             </div>
 
-            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+            <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Resumen</h3>
               <div class="space-y-2 text-sm">
                 <div v-if="montoExento > 0" class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Exento</span><span style="color: var(--color-on-surface)">{{ formatPrice(montoExento) }}</span></div>

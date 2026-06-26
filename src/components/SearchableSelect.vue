@@ -77,6 +77,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
     <button
       type="button"
       class="ss-trigger"
+      data-field
       :class="{ open, disabled }"
       :disabled="disabled"
       @click="toggle"
@@ -150,7 +151,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   gap: 6px;
   padding: 0 16px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-outline-variant);
   background: var(--color-surface);
   color: var(--color-on-surface);
@@ -210,9 +211,9 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   right: 0;
   z-index: 200;
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 

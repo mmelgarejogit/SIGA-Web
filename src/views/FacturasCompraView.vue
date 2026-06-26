@@ -34,15 +34,15 @@ const filtroFechaHasta = ref("")
 const search = ref("")
 
 const estadoOpciones = [
-  { value: "vigente", label: "Vigente", dot: "#16a34a" },
-  { value: "anulada", label: "Anulada", dot: "#6b7280" },
+  { value: "vigente", label: "Vigente", dot: "var(--color-success)" },
+  { value: "anulada", label: "Anulada", dot: "var(--color-outline)" },
 ]
 const condicionOpciones = [
   { value: "Contado", label: "Contado", dot: "#0369a1" },
-  { value: "Credito", label: "Crédito", dot: "#7c3aed" },
+  { value: "Credito", label: "Crédito", dot: "var(--color-tertiary)" },
 ]
 const origenOpciones = [
-  { value: "ConOC", label: "Con OC", dot: "#1d4ed8" },
+  { value: "ConOC", label: "Con OC", dot: "var(--color-on-info-container)" },
   { value: "Directa", label: "Directa", dot: "#9333ea" },
 ]
 
@@ -127,15 +127,15 @@ function formatMonto(n: number) {
 }
 
 function estadoBadge(estado: string) {
-  if (estado === "Anulado") return { text: "Anulada", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" }
-  if (estado === "Pagado")  return { text: "Pagada",  bg: "#DCFCE7", color: "#16a34a", border: "#BBF7D0" }
-  return { text: "Vigente", bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" }
+  if (estado === "Anulado") return { text: "Anulada", bg: "var(--color-surface-container)", color: "var(--color-outline)", border: "var(--color-outline-variant)" }
+  if (estado === "Pagado")  return { text: "Pagada",  bg: "var(--color-success-container)", color: "var(--color-success)", border: "#BBF7D0" }
+  return { text: "Vigente", bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)", border: "var(--color-warning-container)" }
 }
 
 function origenBadge(f: FacturaCompraItem) {
   return f.pedidoProveedorId
-    ? { text: "Con OC",  bg: "#DBEAFE", color: "#1d4ed8" }
-    : { text: "Directa", bg: "#F3E8FF", color: "#7c3aed" }
+    ? { text: "Con OC",  bg: "var(--color-info-container)", color: "var(--color-on-info-container)" }
+    : { text: "Directa", bg: "#F3E8FF", color: "var(--color-tertiary)" }
 }
 
 // ── Modal Anular ─────────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ async function confirmarAnulacion() {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -304,7 +304,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
           <div v-if="isLoading" class="p-12 flex justify-center">
             <span class="material-symbols-outlined animate-spin" style="font-size: 32px; color: var(--color-primary)">progress_activity</span>
@@ -339,7 +339,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
                 :key="f.id"
                 class="hover:bg-surface-container-low cursor-pointer"
                 :class="{ 'opacity-60': f.estado === 'Anulado' }"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
                 @click.self="router.push(`/compras/facturas/${f.id}`)"
               >
                 <td class="px-6 py-4">
@@ -403,10 +403,10 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
         <div v-if="showAnularModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div class="absolute inset-0" style="background-color: rgba(24, 28, 32, 0.5)" @click="showAnularModal = false" />
           <div class="relative w-full max-w-sm rounded-3xl overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-xl);">
 
             <div class="flex items-center justify-between px-8 pt-8 pb-6"
-              style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)">
+              style="border-bottom: 1px solid var(--color-hairline)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-error)">Anular Factura</h3>
               <button class="p-1 rounded-full transition-colors" style="color: var(--color-outline)"
                 @click="showAnularModal = false">
@@ -445,7 +445,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
             </div>
 
             <div class="px-8 py-6 flex justify-between"
-              style="border-top: 1px solid rgba(196, 197, 213, 0.2)">
+              style="border-top: 1px solid var(--color-hairline)">
               <BaseButton variant="secondary" @click="showAnularModal = false" :disabled="isAnulando">
                 Cancelar
               </BaseButton>

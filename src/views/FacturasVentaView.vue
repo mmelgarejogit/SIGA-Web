@@ -27,12 +27,12 @@ const inputDesde = ref<HTMLInputElement | null>(null)
 const inputHasta = ref<HTMLInputElement | null>(null)
 
 const tipoOpciones = [
-  { value: "Directa",        label: "Directa",   dot: "#1d4ed8" },
-  { value: "TrabajoAPedido", label: "A pedido",  dot: "#7c3aed" },
+  { value: "Directa",        label: "Directa",   dot: "var(--color-on-info-container)" },
+  { value: "TrabajoAPedido", label: "A pedido",  dot: "var(--color-tertiary)" },
 ]
 const condicionOpciones = [
   { value: "Contado", label: "Contado", dot: "#0369a1" },
-  { value: "Credito", label: "Crédito", dot: "#7c3aed" },
+  { value: "Credito", label: "Crédito", dot: "var(--color-tertiary)" },
 ]
 
 function openPicker(input: HTMLInputElement | null) {
@@ -91,13 +91,13 @@ const formatDate = (s?: string) =>
 
 function tipoBadge(tipo: string) {
   return tipo === "TrabajoAPedido"
-    ? { text: "A pedido", bg: "#F3E8FF", color: "#7c3aed" }
-    : { text: "Directa",  bg: "#DBEAFE", color: "#1d4ed8" }
+    ? { text: "A pedido", bg: "#F3E8FF", color: "var(--color-tertiary)" }
+    : { text: "Directa",  bg: "var(--color-info-container)", color: "var(--color-on-info-container)" }
 }
 
 function condicionBadge(c: string) {
   return c === "Credito"
-    ? { text: "Crédito", bg: "#EDE9FE", color: "#7c3aed" }
+    ? { text: "Crédito", bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" }
     : { text: "Contado", bg: "#EFF6FF", color: "#0369a1" }
 }
 
@@ -211,7 +211,7 @@ async function descargarPdf(item: Venta) {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
           <!-- Loading -->
           <div v-if="isLoading" class="p-12 flex justify-center">
@@ -248,7 +248,7 @@ async function descargarPdf(item: Venta) {
                 v-for="v in ventasFiltradas"
                 :key="v.id"
                 class="hover:bg-surface-container-low cursor-pointer"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
                 @click="router.push(`/ventas/${v.id}`)"
               >
                 <!-- Nro. Factura + comprobante ref -->

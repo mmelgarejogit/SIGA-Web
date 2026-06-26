@@ -165,7 +165,7 @@ type CreateErrors = {
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -354,7 +354,7 @@ async function confirmDelete() {
           <FilterChips
             v-model="activeFilters"
             :options="[
-              { value: 'activo',   label: 'Activo',   dot: '#16a34a' },
+              { value: 'activo',   label: 'Activo',   dot: 'var(--color-success)' },
               { value: 'inactivo', label: 'Inactivo', dot: 'var(--color-outline)' },
             ]"
             placeholder="Estado"
@@ -382,8 +382,8 @@ async function confirmDelete() {
           class="rounded-2xl overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-            outline: 1px solid rgba(196, 197, 213, 0.15);
+            box-shadow: var(--shadow-sm);
+            outline: 1px solid var(--color-hairline);
           "
         >
           <BaseTable
@@ -447,7 +447,7 @@ async function confirmDelete() {
             v-if="patients.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
             style="
-              border-top: 1px solid rgba(196, 197, 213, 0.12);
+              border-top: 1px solid var(--color-hairline-soft);
               background-color: var(--color-surface-container-lowest);
             "
           >
@@ -484,7 +484,7 @@ async function confirmDelete() {
                   v-else
                   @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >
                   {{ p }}
                 </button>
@@ -667,7 +667,7 @@ async function confirmDelete() {
         <div
           v-if="createErrors.contact"
           class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-          style="background-color: #fff0c2; color: #7a5000"
+          style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)"
         >
           <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
           {{ createErrors.contact }}

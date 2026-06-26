@@ -160,7 +160,7 @@ async function submit() {
 
           <!-- Nombre del rol -->
           <div class="rounded-3xl p-6 mb-8"
-            style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+            style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5"
               style="color: var(--color-outline)">Nombre del rol *</label>
             <input
@@ -187,7 +187,7 @@ async function submit() {
           <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))">
             <div v-for="group in PERMISSION_GROUPS" :key="group.module"
               class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+              style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
               <!-- Header del módulo (toggle all) -->
               <button
@@ -196,12 +196,12 @@ async function submit() {
                 @click="toggleGroup(groupPermIds(group))"
                 class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
                 :class="isAdminRole ? 'cursor-default' : 'cursor-pointer hover:bg-surface-container-low'"
-                style="border-bottom: 1px solid rgba(196,197,213,0.15)">
+                style="border-bottom: 1px solid var(--color-hairline)">
 
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
                   :style="isGroupAll(groupPermIds(group))
                     ? 'background-color: var(--color-primary)'
-                    : 'background-color: rgba(0,40,142,0.08)'">
+                    : 'background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)'">
                   <span class="material-symbols-outlined transition-colors"
                     :style="`font-size: 18px; color: ${isGroupAll(groupPermIds(group)) ? 'white' : 'var(--color-primary)'}`">
                     {{ group.icon }}
@@ -222,7 +222,7 @@ async function submit() {
                       ? 'border-color: var(--color-primary); background-color: rgba(0,40,142,0.1);'
                       : 'border-color: var(--color-outline-variant);'">
                   <span v-if="isGroupAll(groupPermIds(group))"
-                    class="material-symbols-outlined text-white" style="font-size: 12px">check</span>
+                    class="material-symbols-outlined text-on-primary" style="font-size: 12px">check</span>
                   <span v-else-if="isGroupPartial(groupPermIds(group))"
                     class="block rounded-full" style="width: 10px; height: 2px; background-color: var(--color-primary)"></span>
                 </div>
@@ -242,7 +242,7 @@ async function submit() {
                       ? 'border-color: var(--color-primary); background-color: var(--color-primary);'
                       : 'border-color: var(--color-outline-variant);'">
                     <span v-if="form.permissions.includes(perm.id)"
-                      class="material-symbols-outlined text-white" style="font-size: 12px">check</span>
+                      class="material-symbols-outlined text-on-primary" style="font-size: 12px">check</span>
                   </div>
 
                   <span class="text-sm select-none" style="color: var(--color-on-surface)">{{ perm.label }}</span>

@@ -49,18 +49,18 @@ onUnmounted(() => {
 
         <!-- panel -->
         <div
-          class="relative w-full rounded-3xl overflow-hidden"
+          class="relative w-full rounded-xl overflow-hidden"
           :class="sizeClasses[props.size ?? 'lg']"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);
+            box-shadow: var(--shadow-xl);
           "
         >
           <!-- header -->
           <div
             v-if="props.title"
             class="flex items-center justify-between px-8 pt-8 pb-6"
-            style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+            style="border-bottom: 1px solid var(--color-hairline)"
           >
             <h3
               class="text-xl font-extrabold"
@@ -86,7 +86,7 @@ onUnmounted(() => {
           <div
             v-if="$slots.footer"
             class="px-8 py-6 flex justify-end gap-3"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.2)"
+            style="border-top: 1px solid var(--color-hairline)"
           >
             <slot name="footer" />
           </div>

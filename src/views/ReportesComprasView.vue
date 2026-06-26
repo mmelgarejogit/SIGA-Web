@@ -107,7 +107,7 @@ const kpis = computed(() => {
       icon: "percent",
       badge: "Crédito fiscal",
       badgeType: "neutral" as const,
-      iconBg: "rgba(0,40,142,0.08)",
+      iconBg: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
       iconColor: "var(--color-primary)",
     },
     {
@@ -125,8 +125,8 @@ const kpis = computed(() => {
       icon: "inventory",
       badge: "Período",
       badgeType: "positive" as const,
-      iconBg: "#dcfce7",
-      iconColor: "#166534",
+      iconBg: "var(--color-success-container)",
+      iconColor: "var(--color-on-success-container)",
     },
   ]
 })
@@ -157,12 +157,12 @@ function pct(v: number): string {
 const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const estadoColors: Record<string, string> = {
-  Borrador: "#6b7280",
+  Borrador: "var(--color-outline)",
   Confirmada: "#2563eb",
-  RecibidaParcial: "#d97706",
-  RecibidaTotal: "#16a34a",
-  Cancelada: "#dc2626",
-  Facturada: "#7c3aed",
+  RecibidaParcial: "var(--color-warning)",
+  RecibidaTotal: "var(--color-success)",
+  Cancelada: "var(--color-error)",
+  Facturada: "var(--color-tertiary)",
 }
 function estadoLabel(e: string): string {
   if (e === "RecibidaParcial") return "Recibida parcial"
@@ -180,7 +180,7 @@ const donutSegments = computed(() => {
       label: estadoLabel(e.estado),
       cantidad: e.cantidad,
       porcentaje: e.porcentaje,
-      color: estadoColors[e.estado] ?? "#6b7280",
+      color: estadoColors[e.estado] ?? "var(--color-outline)",
       dash: `${frac * DONUT_C} ${DONUT_C}`,
       offset: -acc * DONUT_C,
     }
@@ -266,7 +266,7 @@ function exportCsv() {
               @click="exportPdf"
               :disabled="!reporte || isLoading"
               class="flex items-center gap-2 px-5 h-11 rounded-full text-sm font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 4px 20px rgba(0, 40, 142, 0.2)"
+              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-primary)"
             >
               <span class="material-symbols-outlined" style="font-size: 18px">picture_as_pdf</span>
               PDF
@@ -312,7 +312,7 @@ function exportCsv() {
           <div
             v-if="sinDatos"
             class="flex flex-col items-center justify-center gap-3 py-16 rounded-2xl mb-8"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
           >
             <div
               class="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -331,7 +331,7 @@ function exportCsv() {
               <!-- Tendencia -->
               <div
                 class="lg:col-span-2 rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="flex items-center justify-between mb-6">
                   <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Compras facturadas</h3>
@@ -375,7 +375,7 @@ function exportCsv() {
               <!-- Dona por estado de OC -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-xl font-extrabold mb-6" style="color: var(--color-primary)">Estado de OC</h3>
 
@@ -420,14 +420,14 @@ function exportCsv() {
             <!-- Por proveedor -->
             <div
               class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
             >
-              <div class="px-6 py-5" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+              <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                 <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Compras por proveedor</h3>
               </div>
               <table class="w-full text-sm">
                 <thead>
-                  <tr style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                  <tr style="border-bottom: 1px solid var(--color-hairline)">
                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Proveedor</th>
                     <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Facturas</th>
                     <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Monto</th>
@@ -437,7 +437,7 @@ function exportCsv() {
                   <tr
                     v-for="(p, i) in reporte.porProveedor"
                     :key="i"
-                    style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                    style="border-bottom: 1px solid var(--color-hairline-soft)"
                   >
                     <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</td>
                     <td class="px-3 py-3 text-center tabular-nums" style="color: var(--color-outline)">{{ p.facturas }}</td>

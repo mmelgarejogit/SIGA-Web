@@ -42,9 +42,9 @@ function openPicker(input: HTMLInputElement | null) {
 }
 
 const estadoOpciones = [
-  { value: "Facturada",       label: "Facturada",       dot: "#5b21b6" },
-  { value: "RecibidaParcial", label: "Recibida parcial", dot: "#92400e" },
-  { value: "RecibidaTotal",   label: "Recibida total",   dot: "#166534" },
+  { value: "Facturada",       label: "Facturada",       dot: "var(--color-tertiary)" },
+  { value: "RecibidaParcial", label: "Recibida parcial", dot: "var(--color-on-warning-container)" },
+  { value: "RecibidaTotal",   label: "Recibida total",   dot: "var(--color-on-success-container)" },
 ]
 
 onMounted(async () => {
@@ -108,10 +108,10 @@ function formatDate(iso: string) {
 
 function estadoOCStyle(estado: EstadoPedido) {
   switch (estado) {
-    case "Facturada":       return { bg: "#ede9fe", text: "#5b21b6" }
-    case "RecibidaParcial": return { bg: "#fef3c7", text: "#92400e" }
-    case "RecibidaTotal":   return { bg: "#dcfce7", text: "#166534" }
-    default:                return { bg: "#f3f4f6", text: "#374151" }
+    case "Facturada":       return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)" }
+    case "RecibidaParcial": return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)" }
+    case "RecibidaTotal":   return { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    default:                return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
   }
 }
 
@@ -222,7 +222,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
           <div v-if="isLoading" class="p-12 flex justify-center">
             <span class="material-symbols-outlined animate-spin" style="font-size: 32px; color: var(--color-primary)">progress_activity</span>
@@ -255,7 +255,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
             <tbody>
               <tr v-for="r in recepciones" :key="r.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
 
                 <td class="px-6 py-4">
                   <span class="font-bold text-sm" style="color: var(--color-primary)">#{{ r.id }}</span>

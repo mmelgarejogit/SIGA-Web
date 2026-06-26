@@ -103,9 +103,9 @@ async function submit() {
 }
 
 function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
+  const base = "border-radius: var(--radius-md); "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 </script>

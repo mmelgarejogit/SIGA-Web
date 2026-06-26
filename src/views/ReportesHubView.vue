@@ -21,8 +21,8 @@ const reportes: ReporteCard[] = [
     title: "Reporte de Ventas",
     description:
       "Facturación y cobros del período, métodos de pago, top productos y servicios, ventas por cajero y conversión de presupuestos.",
-    color: "#1e40af",
-    bg: "#dbeafe",
+    color: "var(--color-on-info-container)",
+    bg: "var(--color-info-container)",
     route: "/reportes/ventas",
     activo: true,
   },
@@ -31,8 +31,8 @@ const reportes: ReporteCard[] = [
     title: "Reporte de Citas",
     description:
       "Turnos por estado y profesional, tasa de ausentismo, consultas y recetas emitidas por período.",
-    color: "#166534",
-    bg: "#dcfce7",
+    color: "var(--color-on-success-container)",
+    bg: "var(--color-success-container)",
     route: "/reportes/citas",
     activo: true,
   },
@@ -41,8 +41,8 @@ const reportes: ReporteCard[] = [
     title: "Reporte de Inventario",
     description:
       "Stock crítico, valorización del inventario, productos sin rotación y movimientos por período.",
-    color: "#92400e",
-    bg: "#fef3c7",
+    color: "var(--color-on-warning-container)",
+    bg: "var(--color-warning-container)",
     route: "/reportes/inventario",
     activo: true,
   },
@@ -77,7 +77,7 @@ function abrir(reporte: ReporteCard) {
             type="button"
             class="text-left rounded-2xl p-8 flex flex-col gap-4 transition-all"
             :class="reporte.activo ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-default'"
-            :style="`background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15); ${reporte.activo ? '' : 'opacity: 0.7;'}`"
+            :style="`background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline); ${reporte.activo ? '' : 'opacity: 0.7;'}`"
             @click="abrir(reporte)"
           >
             <div

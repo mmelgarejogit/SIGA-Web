@@ -163,7 +163,7 @@ async function submit() {
 
           <!-- Filtros y búsqueda -->
           <div class="rounded-2xl p-5 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Segmentación</h3>
             <div class="flex items-center justify-between gap-4 flex-wrap">
               <div class="flex items-center gap-3 flex-wrap">
@@ -184,7 +184,7 @@ async function submit() {
 
             <!-- Resumen -->
             <div class="flex items-center gap-6 mt-4 pt-4"
-              style="border-top: 1px solid rgba(196,197,213,0.15)">
+              style="border-top: 1px solid var(--color-hairline)">
               <div class="text-sm" style="color: var(--color-on-surface-variant)">
                 <span class="font-bold" style="color: var(--color-on-surface)">{{ productosFiltrados.length }}</span>
                 producto{{ productosFiltrados.length !== 1 ? "s" : "" }} en vista
@@ -200,9 +200,9 @@ async function submit() {
 
           <!-- Tabla de productos -->
           <div class="rounded-2xl mb-6 overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
-            <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+            <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Productos</h3>
               <p class="text-xs mt-0.5" style="color: var(--color-outline)">
                 Dejá el campo en blanco para excluir el producto del conteo.
@@ -228,7 +228,7 @@ async function submit() {
                 <tr
                   v-for="p in productosPaginados"
                   :key="p.id"
-                  style="border-top: 1px solid rgba(196,197,213,0.12)"
+                  style="border-top: 1px solid var(--color-hairline-soft)"
                   :style="cantidades[p.id] != null ? 'background-color: #F8FAFF' : ''"
                 >
                   <td class="px-6 py-3">
@@ -257,7 +257,7 @@ async function submit() {
                   <td class="px-6 py-3 text-center">
                     <span v-if="cantidades[p.id] == null" class="text-xs" style="color: var(--color-outline)">—</span>
                     <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                      style="background-color: #dcfce7; color: #166534">
+                      style="background-color: var(--color-success-container); color: var(--color-on-success-container)">
                       <span class="material-symbols-outlined" style="font-size: 13px">check</span>
                       Contado
                     </span>
@@ -268,7 +268,7 @@ async function submit() {
 
             <!-- Paginación -->
             <div class="px-6 py-4 flex items-center justify-between"
-              style="border-top: 1px solid rgba(196,197,213,0.12)">
+              style="border-top: 1px solid var(--color-hairline-soft)">
               <p class="text-sm" style="color: var(--color-on-surface-variant)">
                 Mostrando
                 <span class="font-semibold" style="color: var(--color-on-surface)">
@@ -286,7 +286,7 @@ async function submit() {
 
           <!-- Observaciones -->
           <div class="rounded-2xl p-6 mb-24"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-3" style="color: var(--color-primary)">Observaciones</h3>
             <textarea
               v-model="observaciones"
@@ -299,7 +299,7 @@ async function submit() {
 
           <!-- Footer sticky -->
           <div class="flex items-center justify-between gap-3 fixed bottom-0 py-4 px-8 z-40"
-            :style="`left: var(--sidebar-width); right: 0; background-color: var(--color-background); border-top: 1px solid rgba(196,197,213,0.2)`">
+            :style="`left: var(--sidebar-width); right: 0; background-color: var(--color-background); border-top: 1px solid var(--color-hairline)`">
             <div class="text-sm" style="color: var(--color-on-surface-variant)">
               <template v-if="productosIncluidos.length > 0">
                 <span class="font-semibold" style="color: var(--color-on-surface)">{{ productosIncluidos.length }}</span>

@@ -148,10 +148,10 @@ watch(activeTab, (tab) => {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
 ]
 
 function avatarStyle(p: Patient) {
@@ -186,9 +186,9 @@ function formatHour(iso: string): string {
 function estadoStyle(estado: string) {
   switch (estado) {
     case "Pendiente":
-      return { bg: "#FEF3C7", dot: "#D97706", text: "#92400E" }
+      return { bg: "var(--color-warning-container)", dot: "var(--color-warning)", text: "var(--color-on-warning-container)" }
     case "Completado":
-      return { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+      return { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
     case "Cancelado":
       return {
         bg: "var(--color-surface-container-highest)",
@@ -264,7 +264,7 @@ function openEditModal() {
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -347,8 +347,8 @@ async function confirmDelete() {
             class="rounded-3xl p-8 mb-6 flex items-center justify-between gap-6 flex-wrap"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex items-center gap-6">
@@ -368,7 +368,7 @@ async function confirmDelete() {
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
                     :style="
                       patient.isActive
-                        ? 'background-color: #dcfce7; color: #166534;'
+                        ? 'background-color: var(--color-success-container); color: var(--color-on-success-container);'
                         : 'background-color: var(--color-surface-container-highest); color: var(--color-on-surface-variant);'
                     "
                   >
@@ -376,7 +376,7 @@ async function confirmDelete() {
                       class="w-1.5 h-1.5 rounded-full"
                       :style="
                         patient.isActive
-                          ? 'background-color: #16a34a;'
+                          ? 'background-color: var(--color-success);'
                           : 'background-color: var(--color-outline);'
                       "
                     ></span>
@@ -459,8 +459,8 @@ async function confirmDelete() {
               class="rounded-2xl p-6"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <div class="flex items-center gap-2 mb-5">
@@ -544,8 +544,8 @@ async function confirmDelete() {
               class="rounded-2xl p-6"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <div class="flex items-center gap-2 mb-5">
@@ -594,8 +594,8 @@ async function confirmDelete() {
               class="rounded-2xl p-6"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <div class="flex items-center gap-2 mb-5">
@@ -646,7 +646,7 @@ async function confirmDelete() {
                       class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
                       :style="
                         patient.isActive
-                          ? 'background-color: #dcfce7; color: #166534;'
+                          ? 'background-color: var(--color-success-container); color: var(--color-on-success-container);'
                           : 'background-color: var(--color-surface-container-highest); color: var(--color-on-surface-variant);'
                       "
                     >
@@ -654,7 +654,7 @@ async function confirmDelete() {
                         class="w-1.5 h-1.5 rounded-full"
                         :style="
                           patient.isActive
-                            ? 'background-color: #16a34a;'
+                            ? 'background-color: var(--color-success);'
                             : 'background-color: var(--color-outline);'
                         "
                       ></span>
@@ -673,13 +673,13 @@ async function confirmDelete() {
               class="rounded-2xl overflow-hidden"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <div
                 class="flex items-center justify-between px-6 py-5"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+                style="border-bottom: 1px solid var(--color-hairline)"
               >
                 <div class="flex items-center gap-2">
                   <span
@@ -738,7 +738,7 @@ async function confirmDelete() {
                 </p>
               </div>
 
-              <div v-else class="divide-y" style="border-color: rgba(196, 197, 213, 0.2)">
+              <div v-else class="divide-y" style="border-color: var(--color-hairline)">
                 <div
                   v-for="cita in citas"
                   :key="cita.id"
@@ -801,14 +801,14 @@ async function confirmDelete() {
               class="rounded-2xl overflow-hidden"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <!-- Encabezado del historial -->
               <div
                 class="flex items-center justify-between px-6 py-5"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+                style="border-bottom: 1px solid var(--color-hairline)"
               >
                 <div class="flex items-center gap-2">
                   <span
@@ -877,7 +877,7 @@ async function confirmDelete() {
               <div
                 v-else
                 class="divide-y"
-                style="--tw-divide-opacity: 1; border-color: rgba(196, 197, 213, 0.2)"
+                style="--tw-divide-opacity: 1; border-color: var(--color-hairline)"
               >
                 <div
                   v-for="c in consultas"
@@ -905,7 +905,7 @@ async function confirmDelete() {
                         <span
                           v-if="c.receta"
                           class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                          style="background-color: #d1fae5; color: #065f46"
+                          style="background-color: var(--color-success-container); color: var(--color-on-success-container)"
                         >
                           <span class="material-symbols-outlined" style="font-size: 10px"
                             >check</span

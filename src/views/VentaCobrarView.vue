@@ -124,24 +124,24 @@ function goEmitir() {
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Cobro -->
             <div class="lg:col-span-2 space-y-6">
-              <div v-if="yaCobrado" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <span class="material-symbols-outlined mb-2" style="font-size: 40px; color: #166534">verified</span>
+              <div v-if="yaCobrado" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <span class="material-symbols-outlined mb-2" style="font-size: 40px; color: var(--color-on-success-container)">verified</span>
                 <p class="text-lg font-bold" style="color: var(--color-on-surface)">Venta cobrada</p>
                 <p class="text-sm" style="color: var(--color-on-surface-variant)">El comprobante ya fue emitido.</p>
                 <BaseButton variant="secondary" class="mt-4" @click="router.push(`/ventas/${venta.id}`)">Ver detalle</BaseButton>
               </div>
 
-              <div v-else-if="!puedeCobrar" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div v-else-if="!puedeCobrar" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <p class="text-sm" style="color: var(--color-on-surface-variant)">Esta venta no está lista para cobrar (estado actual: {{ venta.estado }}).</p>
               </div>
 
               <template v-else>
                 <!-- Aviso: no hay caja abierta (los cobros en efectivo se rechazan) -->
-                <div v-if="!cajaAbierta" class="rounded-2xl p-5 flex items-start justify-between gap-4 flex-wrap" style="background:#FEF3C7;border:1.5px solid #FDE68A">
+                <div v-if="!cajaAbierta" class="rounded-2xl p-5 flex items-start justify-between gap-4 flex-wrap" style="background:var(--color-warning-container);border:1.5px solid var(--color-warning-container)">
                   <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined" style="font-size:24px;color:#92400E">point_of_sale</span>
+                    <span class="material-symbols-outlined" style="font-size:24px;color:var(--color-on-warning-container)">point_of_sale</span>
                     <div>
-                      <p class="font-bold text-sm" style="color:#92400E">No hay una caja abierta</p>
+                      <p class="font-bold text-sm" style="color:var(--color-on-warning-container)">No hay una caja abierta</p>
                       <p class="text-xs mt-0.5" style="color:#B45309">Para registrar cobros en efectivo primero tenés que abrir la caja. Tarjeta, transferencia y cheque sí se pueden registrar.</p>
                     </div>
                   </div>
@@ -151,7 +151,7 @@ function goEmitir() {
                   </BaseButton>
                 </div>
 
-                <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+                <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                   <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Pago</h3>
 
                   <div class="grid grid-cols-2 gap-4 mb-4">
@@ -175,7 +175,7 @@ function goEmitir() {
                         <option v-for="m in METODOS" :key="m" :value="m">{{ m }}</option>
                       </select>
                       <input v-model.number="l.monto" type="number" min="0" placeholder="Monto" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
-                      <button v-if="lineas.length > 1" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:#FEE2E2;color:#991B1B" @click="removeLinea(i)">
+                      <button v-if="lineas.length > 1" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--color-error-container);color:var(--color-on-error-container)" @click="removeLinea(i)">
                         <span class="material-symbols-outlined" style="font-size:16px">close</span>
                       </button>
                     </div>
@@ -185,7 +185,7 @@ function goEmitir() {
                   </button>
 
                   <p class="text-sm font-semibold mt-3" style="color: var(--color-primary)">Total a registrar: {{ formatPrice(totalCobro) }}</p>
-                  <p v-if="saldo <= 0" class="mt-2 text-xs font-semibold" style="color:#166534">Esta venta ya está totalmente cobrada. Emití el comprobante para cerrarla.</p>
+                  <p v-if="saldo <= 0" class="mt-2 text-xs font-semibold" style="color:var(--color-on-success-container)">Esta venta ya está totalmente cobrada. Emití el comprobante para cerrarla.</p>
                   <p v-if="opError" class="mt-2 text-xs font-medium" style="color: var(--color-error)">{{ opError }}</p>
 
                   <div class="mt-4 flex gap-2 flex-wrap">
@@ -201,8 +201,8 @@ function goEmitir() {
                 </div>
 
                 <!-- Cobros registrados -->
-                <div v-if="venta.cobros.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                  <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                <div v-if="venta.cobros.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                  <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                     <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cobros registrados</h3>
                   </div>
                   <div class="p-6 space-y-2">
@@ -217,7 +217,7 @@ function goEmitir() {
 
             <!-- Resumen -->
             <div class="space-y-6">
-              <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Venta</h3>
                 <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ venta.clienteNombre }}</p>
                 <p class="text-xs mb-4" style="color: var(--color-on-surface-variant)">
@@ -225,8 +225,8 @@ function goEmitir() {
                 </p>
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Total</span><span class="font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(venta.total) }}</span></div>
-                  <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Cobrado</span><span style="color:#166534">{{ formatPrice(venta.totalCobrado) }}</span></div>
-                  <div class="flex justify-between font-bold pt-2" style="border-top: 1px solid rgba(196,197,213,0.2)"><span style="color: var(--color-on-surface)">Saldo</span><span style="color:#92400E">{{ formatPrice(saldo) }}</span></div>
+                  <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Cobrado</span><span style="color:var(--color-on-success-container)">{{ formatPrice(venta.totalCobrado) }}</span></div>
+                  <div class="flex justify-between font-bold pt-2" style="border-top: 1px solid var(--color-hairline)"><span style="color: var(--color-on-surface)">Saldo</span><span style="color:var(--color-on-warning-container)">{{ formatPrice(saldo) }}</span></div>
                 </div>
               </div>
             </div>

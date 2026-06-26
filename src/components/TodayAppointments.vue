@@ -18,13 +18,13 @@ const turnos = ref<Turno[]>([])
 const isLoading = ref(true)
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, var(--color-surface-container-lowest))", color: "var(--color-outline)" },
 ]
 
-const AVATAR_FALLBACK = { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+const AVATAR_FALLBACK = { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" }
 
 function avatarStyle(id: number) {
   return AVATAR_PALETTE[id % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
@@ -42,9 +42,17 @@ function formatHour(iso: string): string {
 function estadoStyle(estado: string) {
   switch (estado) {
     case "Pendiente":
-      return { bg: "#FEF3C7", dot: "#D97706", text: "#92400E" }
+      return {
+        bg: "var(--color-warning-container)",
+        dot: "var(--color-warning)",
+        text: "var(--color-on-warning-container)",
+      }
     case "Completado":
-      return { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+      return {
+        bg: "var(--color-success-container)",
+        dot: "var(--color-success)",
+        text: "var(--color-on-success-container)",
+      }
     case "Cancelado":
       return {
         bg: "var(--color-surface-container-highest)",
@@ -76,16 +84,16 @@ onMounted(loadTurnos)
 
 <template>
   <div
-    class="rounded-2xl overflow-hidden"
+    class="rounded-lg overflow-hidden"
     style="
       background-color: var(--color-surface-container-lowest);
-      box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
+      box-shadow: var(--shadow-sm);
     "
   >
     <!-- Header -->
     <div
       class="px-6 py-5 flex justify-between items-center"
-      style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)"
+      style="border-bottom: 1px solid var(--color-hairline)"
     >
       <h3 class="text-xl font-bold" style="color: var(--color-on-surface)">
         Próximos Atendimientos
@@ -135,12 +143,12 @@ onMounted(loadTurnos)
     </div>
 
     <!-- Lista -->
-    <div v-else class="divide-y" style="border-top: 1px solid rgba(196, 197, 213, 0.08)">
+    <div v-else class="divide-y" style="border-top: 1px solid var(--color-hairline-soft)">
       <div
         v-for="turno in turnos"
         :key="turno.id"
         class="flex items-center gap-4 px-6 py-4 transition-colors"
-        style="border-bottom: 1px solid rgba(196, 197, 213, 0.08)"
+        style="border-bottom: 1px solid var(--color-hairline-soft)"
         onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
         onmouseout="this.style.backgroundColor = 'transparent'"
       >
@@ -197,7 +205,7 @@ onMounted(loadTurnos)
     <div
       v-if="!isLoading && turnos.length > 0"
       class="px-6 py-3 text-xs font-medium"
-      style="color: var(--color-outline); border-top: 1px solid rgba(196, 197, 213, 0.08)"
+      style="color: var(--color-outline); border-top: 1px solid var(--color-hairline-soft)"
     >
       {{ turnos.length }} turno{{ turnos.length !== 1 ? "s" : "" }} para hoy
     </div>

@@ -2,9 +2,13 @@
 import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
+import { useThemeStore } from "@/stores/theme"
 
 const router = useRouter()
 const authStore = useAuthStore()
+const theme = useThemeStore()
+
+const isDark = computed(() => theme.mode === "dark")
 
 const showDropdown = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -61,10 +65,12 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
     class="fixed top-0 right-0 z-40 flex justify-between items-center px-8 h-16"
     style="
       left: var(--sidebar-width);
-      transition: left 0.25s ease;
-      background: rgba(247, 249, 254, 0.85);
+      transition:
+        left 0.25s ease,
+        background-color var(--duration-base) var(--ease-standard);
+      background: color-mix(in srgb, var(--color-surface) 85%, transparent);
       backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(196, 197, 213, 0.15);
+      border-bottom: 1px solid var(--color-hairline);
     "
   >
     <!-- Left: placeholder para título de sección -->
@@ -74,6 +80,18 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 
     <!-- Right: acciones + usuario -->
     <div class="flex items-center gap-2">
+      <!-- Toggle de tema (claro / oscuro) -->
+      <button
+        @click="theme.toggle"
+        class="theme-toggle p-2 rounded-full transition-colors"
+        :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+      >
+        <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant)">{{
+          isDark ? "light_mode" : "dark_mode"
+        }}</span>
+      </button>
+
       <!-- Notificaciones -->
       <div
         v-if="authStore.hasPermission('ver_notificaciones')"
@@ -82,13 +100,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
       >
         <button
           @click="toggleNotifications"
-          class="p-2 rounded-full transition-colors relative"
-          :style="showNotifications ? 'background-color: var(--color-surface-container-high);' : ''"
-          onmouseover="
-            if (!this.style.backgroundColor || this.style.backgroundColor === '')
-              this.style.backgroundColor = 'var(--color-surface-container-low)'
-          "
-          onmouseout="if (!this.getAttribute('data-active')) this.style.backgroundColor = ''"
+          class="icon-btn p-2 rounded-full transition-colors relative"
+          :class="{ 'is-active': showNotifications }"
         >
           <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant)"
             >notifications</span
@@ -105,15 +118,15 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         >
           <div
             v-if="showNotifications"
-            class="absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden"
+            class="absolute right-0 mt-2 w-72 rounded-lg overflow-hidden"
             style="
               top: 100%;
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 8px 32px rgba(0, 40, 142, 0.12);
-              outline: 1px solid rgba(196, 197, 213, 0.2);
+              box-shadow: var(--shadow-lg);
+              outline: 1px solid var(--color-hairline);
             "
           >
-            <div class="px-4 py-3" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+            <div class="px-4 py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <p class="text-sm font-bold" style="color: var(--color-on-surface)">Notificaciones</p>
             </div>
             <div class="flex flex-col items-center justify-center py-10 gap-2">
@@ -130,23 +143,14 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         </Transition>
       </div>
 
-      <div class="w-px h-8 mx-2" style="background-color: rgba(196, 197, 213, 0.4)"></div>
+      <div class="w-px h-8 mx-2" style="background-color: var(--color-hairline-strong)"></div>
 
       <!-- User dropdown -->
       <div ref="dropdownRef" class="relative">
         <button
           @click="toggleDropdown"
-          class="flex items-center gap-3 px-2 py-1.5 rounded-xl transition-all"
-          :style="showDropdown ? 'background-color: var(--color-surface-container-high);' : ''"
-          onmouseover="
-            if (!this.style.backgroundColor || this.style.backgroundColor === '')
-              this.style.backgroundColor = 'var(--color-surface-container-low)'
-          "
-          onmouseout="
-            this.style.backgroundColor = this.classList.contains('active')
-              ? 'var(--color-surface-container-high)'
-              : ''
-          "
+          class="user-btn flex items-center gap-3 px-2 py-1.5 rounded-md transition-all"
+          :class="{ 'is-active': showDropdown }"
         >
           <div class="text-right">
             <p class="text-sm font-bold leading-none" style="color: var(--color-on-surface)">
@@ -183,16 +187,16 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         >
           <div
             v-if="showDropdown"
-            class="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden"
+            class="absolute right-0 mt-2 w-56 rounded-lg overflow-hidden"
             style="
               top: 100%;
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 8px 32px rgba(0, 40, 142, 0.12);
-              outline: 1px solid rgba(196, 197, 213, 0.2);
+              box-shadow: var(--shadow-lg);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <!-- Info del usuario -->
-            <div class="px-4 py-4" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+            <div class="px-4 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <p class="text-sm font-bold" style="color: var(--color-on-surface)">
                 {{ displayName }}
               </p>
@@ -202,7 +206,10 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                   v-for="role in user?.roles"
                   :key="role"
                   class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style="background-color: rgba(0, 40, 142, 0.08); color: var(--color-primary)"
+                  style="
+                    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+                    color: var(--color-primary);
+                  "
                   >{{ role }}</span
                 >
               </div>
@@ -212,10 +219,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <div class="py-1.5">
               <button
                 @click="logout"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
+                class="logout-btn w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
                 style="color: var(--color-error)"
-                onmouseover="this.style.backgroundColor = '#FFF0EE'"
-                onmouseout="this.style.backgroundColor = ''"
               >
                 <span class="material-symbols-outlined" style="font-size: 18px">logout</span>
                 Cerrar sesión
@@ -227,3 +232,18 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
     </div>
   </header>
 </template>
+
+<style scoped>
+.theme-toggle:hover,
+.icon-btn:hover,
+.user-btn:hover {
+  background-color: var(--color-surface-container-low);
+}
+.icon-btn.is-active,
+.user-btn.is-active {
+  background-color: var(--color-surface-container-high);
+}
+.logout-btn:hover {
+  background-color: var(--color-error-container);
+}
+</style>

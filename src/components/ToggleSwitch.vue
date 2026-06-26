@@ -39,7 +39,7 @@ function defaultMessage() {
 </script>
 
 <template>
-  <div style="border-radius: 12px; overflow: hidden; background-color: var(--color-surface-container-low)">
+  <div style="border-radius: var(--radius-md); overflow: hidden; background-color: var(--color-surface-container-low)">
 
     <!-- Fila principal -->
     <div class="flex items-center justify-between px-4 py-3">
@@ -52,7 +52,7 @@ function defaultMessage() {
         :aria-checked="modelValue"
         @click="requestToggle"
         class="relative flex-shrink-0 transition-colors duration-200"
-        style="width: 44px; height: 24px; border-radius: 6px;"
+        style="width: 44px; height: 24px; border-radius: var(--radius-xs);"
         :style="modelValue
           ? 'background-color: var(--color-primary);'
           : 'background-color: var(--color-outline-variant);'"
@@ -70,7 +70,7 @@ function defaultMessage() {
       <div
         v-if="showConfirm"
         class="px-4 pb-3 pt-2.5"
-        style="border-top: 1px solid rgba(196,197,213,0.2);"
+        style="border-top: 1px solid var(--color-hairline);"
       >
         <div class="flex items-start gap-2 mb-3">
           <span class="material-symbols-outlined flex-shrink-0 mt-px"

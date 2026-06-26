@@ -45,7 +45,7 @@ const saving = ref(false)
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -122,18 +122,18 @@ function cancel() {
           class="rounded-3xl overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-            outline: 1px solid rgba(196, 197, 213, 0.15);
+            box-shadow: var(--shadow-sm);
+            outline: 1px solid var(--color-hairline);
           "
         >
           <!-- Header -->
           <div
             class="flex items-center gap-4 px-8 py-6"
-            style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+            style="border-bottom: 1px solid var(--color-hairline)"
           >
             <div
               class="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style="background-color: rgba(0, 40, 142, 0.08)"
+              style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)"
             >
               <span
                 class="material-symbols-outlined"

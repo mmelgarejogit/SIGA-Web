@@ -213,7 +213,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
       <!-- Date navigator -->
       <div
         class="flex items-center overflow-hidden"
-        style="border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white"
+        style="border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); background: var(--color-surface)"
       >
         <button
           @click="prev"
@@ -257,7 +257,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
         v-if="showHoyButton"
         @click="goToToday"
         class="px-4 text-sm font-semibold transition-colors hover:bg-surface-container-high"
-        style="height: 36px; border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white; color: var(--color-on-surface)"
+        style="height: 36px; border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); background: var(--color-surface); color: var(--color-on-surface)"
       >
         Hoy
       </button>
@@ -265,7 +265,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
       <!-- Mode segmented -->
       <div
         class="flex items-center overflow-hidden"
-        style="border-radius: 12px; border: 1px solid var(--color-outline-variant); background: white"
+        style="border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); background: var(--color-surface)"
       >
         <button
           v-for="m in modes"
@@ -274,12 +274,14 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
           class="px-4 text-sm font-semibold transition-colors"
           :class="[
             props.mode === m.value
-              ? 'text-white'
+              ? ''
               : 'text-on-surface-variant hover:bg-surface-container-high',
             m.value === 'mes' ? 'opacity-50 cursor-not-allowed' : '',
           ]"
           :style="[
-            props.mode === m.value ? { background: 'var(--color-primary)' } : {},
+            props.mode === m.value
+              ? { background: 'var(--color-primary)', color: 'var(--color-on-primary)' }
+              : {},
             { height: '36px' },
           ]"
           :title="m.value === 'mes' ? 'Próximamente' : undefined"
@@ -293,7 +295,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
     <div
       v-if="showCalendar"
       class="absolute p-4 z-50"
-      style="top: calc(100% + 8px); left: 0; border-radius: 12px; background: white; border: 1px solid var(--color-outline-variant); box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12); min-width: 280px"
+      style="top: calc(100% + 8px); left: 0; border-radius: var(--radius-md); background: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline); box-shadow: var(--shadow-lg); min-width: 280px"
     >
       <!-- Calendar header -->
       <div class="flex items-center justify-between mb-3">

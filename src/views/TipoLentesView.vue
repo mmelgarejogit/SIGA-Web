@@ -33,7 +33,7 @@ const loadError = ref("")
 const estadoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "activo",   label: "Activos",   dot: "#166534" },
+  { value: "activo",   label: "Activos",   dot: "var(--color-on-success-container)" },
   { value: "inactivo", label: "Inactivos", dot: "var(--color-outline)" },
 ]
 
@@ -258,7 +258,7 @@ async function confirmDelete() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="itemsPaginados" :loading="isLoading" empty-text="No hay tipos de lente registrados.">
             <template #nombre="{ item }">
               <div class="flex items-center gap-3">
@@ -273,7 +273,7 @@ async function confirmDelete() {
             </template>
             <template #estado="{ item }">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="item.isActive ? 'background-color:#dcfce7;color:#166534' : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
+                :style="item.isActive ? 'background-color:var(--color-success-container);color:var(--color-on-success-container)' : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
                 {{ item.isActive ? "Activo" : "Inactivo" }}
               </span>
             </template>
@@ -286,7 +286,7 @@ async function confirmDelete() {
 
           <!-- Footer paginador -->
           <div v-if="itemsPaginados.length > 0" class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
               de <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong> tipos
@@ -301,7 +301,7 @@ async function confirmDelete() {
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'">
                   {{ p }}
                 </button>
               </template>

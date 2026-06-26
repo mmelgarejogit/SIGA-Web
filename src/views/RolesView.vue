@@ -64,8 +64,8 @@ function roleTypeLabel(type: string | null) {
 
 function roleTypeStyle(type: string | null) {
   return type
-    ? { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
-    : { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" }
+    ? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
+    : { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" }
 }
 
 const columns = [
@@ -116,7 +116,7 @@ const columns = [
           <template #nombre="{ item }">
             <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style="background-color: rgba(0,40,142,0.08)">
+                style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
                 <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">shield_person</span>
               </div>
               <span class="font-bold text-sm" style="color: var(--color-on-surface)">{{ item.name }}</span>
@@ -175,7 +175,7 @@ const columns = [
 
         <!-- Footer conteo -->
         <div class="px-6 py-4 flex items-center"
-          style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+          style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
           <span class="text-sm" style="color: var(--color-on-surface-variant)">
             <strong style="color: var(--color-on-surface)">{{ roles.length }}</strong>
             {{ roles.length === 1 ? "rol configurado" : "roles configurados" }}

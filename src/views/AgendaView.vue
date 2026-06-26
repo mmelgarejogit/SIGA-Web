@@ -513,7 +513,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
             class="rounded-2xl p-4"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
+              box-shadow: var(--shadow-sm);
             "
           >
             <p class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--color-outline)">
@@ -608,7 +608,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
         <div
           v-if="!isLoading && turnos.length > 0"
           class="px-6 py-3 text-xs font-medium"
-          style="color: var(--color-outline); border-top: 1px solid rgba(196, 197, 213, 0.12)"
+          style="color: var(--color-outline); border-top: 1px solid var(--color-hairline-soft)"
         >
           Mostrando {{ turnos.length }} turno{{ turnos.length !== 1 ? "s" : "" }}
           <template v-if="viewMode === 'semana'">

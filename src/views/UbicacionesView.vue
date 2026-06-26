@@ -39,7 +39,7 @@ const searchQuery = ref("")
 const departamentoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "activo",   label: "Activos",   dot: "#16a34a" },
+  { value: "activo",   label: "Activos",   dot: "var(--color-success)" },
   { value: "inactivo", label: "Inactivos", dot: "var(--color-outline)" },
 ]
 
@@ -54,13 +54,13 @@ const departamentoSelectOptions = computed(() =>
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
     : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
 }
 
@@ -414,7 +414,7 @@ async function confirmToggleCiudad() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
 
           <!-- DEPARTAMENTOS -->
           <BaseTable v-if="activeTab === 'departamentos'"
@@ -479,7 +479,7 @@ async function confirmToggleCiudad() {
           <!-- Footer: conteo + paginador -->
           <div v-if="filtered.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
               <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
@@ -495,7 +495,7 @@ async function confirmToggleCiudad() {
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">{{ p }}</button>
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'">{{ p }}</button>
               </template>
               <button @click="currentPage++" :disabled="currentPage === totalPages"
                 class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
@@ -547,8 +547,8 @@ async function confirmToggleCiudad() {
       </div>
       <div class="text-center">
         <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-          :style="togglingDepTo ? 'background-color: #dcfce7' : 'background-color: var(--color-error-container)'">
-          <span class="material-symbols-outlined" :style="togglingDepTo ? 'color: #166534; font-size: 28px' : 'color: var(--color-error); font-size: 28px'">
+          :style="togglingDepTo ? 'background-color: var(--color-success-container)' : 'background-color: var(--color-error-container)'">
+          <span class="material-symbols-outlined" :style="togglingDepTo ? 'color: var(--color-on-success-container); font-size: 28px' : 'color: var(--color-error); font-size: 28px'">
             {{ togglingDepTo ? 'check_circle' : 'block' }}
           </span>
         </div>
@@ -613,8 +613,8 @@ async function confirmToggleCiudad() {
       </div>
       <div class="text-center">
         <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-          :style="togglingCiudadTo ? 'background-color: #dcfce7' : 'background-color: var(--color-error-container)'">
-          <span class="material-symbols-outlined" :style="togglingCiudadTo ? 'color: #166534; font-size: 28px' : 'color: var(--color-error); font-size: 28px'">
+          :style="togglingCiudadTo ? 'background-color: var(--color-success-container)' : 'background-color: var(--color-error-container)'">
+          <span class="material-symbols-outlined" :style="togglingCiudadTo ? 'color: var(--color-on-success-container); font-size: 28px' : 'color: var(--color-error); font-size: 28px'">
             {{ togglingCiudadTo ? 'check_circle' : 'block' }}
           </span>
         </div>

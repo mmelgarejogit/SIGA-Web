@@ -28,8 +28,8 @@ const search    = ref("")
 const filtroFactura = ref<string[]>([])
 
 const filtroOptions = [
-  { value: "con",    label: "Con factura",    dot: "#166534" },
-  { value: "sin",    label: "Sin factura",    dot: "#92400E" },
+  { value: "con",    label: "Con factura",    dot: "var(--color-on-success-container)" },
+  { value: "sin",    label: "Sin factura",    dot: "var(--color-on-warning-container)" },
 ]
 
 async function load() {
@@ -135,7 +135,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               {{ filtered.filter(i => i.factura).length }} factura{{ filtered.filter(i => i.factura).length !== 1 ? "s" : "" }} registrada{{ filtered.filter(i => i.factura).length !== 1 ? "s" : "" }}
             </p>
           </div>
-          <div v-if="totalFacturado > 0" class="rounded-2xl px-6 py-4 text-right" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+          <div v-if="totalFacturado > 0" class="rounded-2xl px-6 py-4 text-right" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
             <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Total facturado</p>
             <p class="text-2xl font-extrabold" style="color: var(--color-primary)">{{ formatPrice(totalFacturado) }}</p>
           </div>
@@ -146,7 +146,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <SearchInput v-model="search" placeholder="Buscar por cliente, lab o n° factura…" class="w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos recibidos">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -160,7 +160,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
             <template #body>
               <tr v-for="item in filtered" :key="item.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ item.numeroComprobante }}</span>
                 </td>
@@ -168,9 +168,9 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.laboratorioNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaRecepcion) }}</td>
                 <td class="px-6 py-4">
-                  <span v-if="item.factura" class="text-sm font-mono font-semibold" style="color: #166534">{{ item.factura.numeroFactura }}</span>
+                  <span v-if="item.factura" class="text-sm font-mono font-semibold" style="color: var(--color-on-success-container)">{{ item.factura.numeroFactura }}</span>
                   <button v-else class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full transition-all hover:scale-105"
-                    style="background:#FEF3C7;color:#92400E" @click="openModal(item)">
+                    style="background:var(--color-warning-container);color:var(--color-on-warning-container)" @click="openModal(item)">
                     <span class="material-symbols-outlined" style="font-size:13px">add</span>
                     Registrar
                   </button>

@@ -200,9 +200,9 @@ async function handleSubmit() {
         <div v-if="success" class="text-center py-8">
           <div
             class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style="background-color: #d1fae5"
+            style="background-color: var(--color-success-container)"
           >
-            <span class="material-symbols-outlined" style="color: #065f46; font-size: 32px"
+            <span class="material-symbols-outlined" style="color: var(--color-on-success-container); font-size: 32px"
               >check_circle</span
             >
           </div>
@@ -220,8 +220,8 @@ async function handleSubmit() {
             class="inline-flex items-center gap-2 h-14 px-8 rounded-full font-bold text-lg transition-all"
             style="
               background-color: var(--color-primary);
-              color: white;
-              box-shadow: 0 8px 24px rgba(0, 40, 142, 0.25);
+              color: var(--color-on-primary);
+              box-shadow: var(--shadow-lg);
             "
           >
             Iniciar sesión
@@ -651,7 +651,7 @@ async function handleSubmit() {
               >
                 <svg
                   v-if="isLoading"
-                  class="animate-spin w-5 h-5 text-white flex-shrink-0"
+                  class="animate-spin w-5 h-5 text-on-primary flex-shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"

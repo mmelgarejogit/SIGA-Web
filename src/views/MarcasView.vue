@@ -31,7 +31,7 @@ const estadoFilter = ref<string[]>([])
 const searchQuery = ref("")
 
 const estadoOptions = [
-  { value: "activa",   label: "Activas",   dot: "#16a34a" },
+  { value: "activa",   label: "Activas",   dot: "var(--color-success)" },
   { value: "inactiva", label: "Inactivas", dot: "var(--color-outline)" },
 ]
 
@@ -94,13 +94,13 @@ const columns = [
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
     : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
 }
 
@@ -298,7 +298,7 @@ async function confirmActivate() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable :columns="columns" :items="marcasPaginadas" :loading="isLoading"
             empty-text="No hay marcas registradas.">
 
@@ -343,7 +343,7 @@ async function confirmActivate() {
           <div
             v-if="marcasPaginadas.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -365,7 +365,7 @@ async function confirmActivate() {
                   v-else
                   @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button
@@ -468,8 +468,8 @@ async function confirmActivate() {
       </div>
       <div class="text-center">
         <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-             style="background-color: #dcfce7">
-          <span class="material-symbols-outlined" style="color: #166534; font-size: 28px">check_circle</span>
+             style="background-color: var(--color-success-container)">
+          <span class="material-symbols-outlined" style="color: var(--color-on-success-container); font-size: 28px">check_circle</span>
         </div>
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           ¿Activar la marca <strong style="color: var(--color-on-surface)">{{ activatingMarca?.nombre }}</strong>?

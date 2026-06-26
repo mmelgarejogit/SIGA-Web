@@ -5,12 +5,15 @@ defineProps<{
   icon: string
   badge?: string
   badgeType?: "positive" | "neutral" | "critical"
-  iconBg: string
+  // iconBg se ignora a propósito: el fondo del ícono se deriva como un tinte sutil
+  // de iconColor, así el contraste queda garantizado en claro y oscuro.
+  iconBg?: string
   iconColor: string
 }>()
 
 const badgeStyle = (type?: string) => {
-  if (type === "positive") return "background-color: #dcfce7; color: #166534;"
+  if (type === "positive")
+    return "background-color: var(--color-success-container); color: var(--color-on-success-container);"
   if (type === "critical")
     return "background-color: var(--color-error-container); color: var(--color-on-error-container);"
   return "background-color: var(--color-primary-fixed); color: var(--color-primary);"
@@ -19,17 +22,17 @@ const badgeStyle = (type?: string) => {
 
 <template>
   <div
-    class="p-6 rounded-2xl transition-transform hover:scale-[1.02] cursor-default"
+    class="p-6 rounded-lg transition-transform hover:scale-[1.02] cursor-default"
     style="
       background-color: var(--color-surface-container-lowest);
-      box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
+      box-shadow: var(--shadow-sm);
     "
   >
     <div class="flex justify-between items-start mb-5">
       <!-- Icon -->
       <div
-        class="w-12 h-12 rounded-2xl flex items-center justify-center"
-        :style="`background-color: ${iconBg};`"
+        class="w-12 h-12 rounded-lg flex items-center justify-center"
+        :style="`background-color: color-mix(in srgb, ${iconColor} 16%, transparent);`"
       >
         <span
           class="material-symbols-outlined"

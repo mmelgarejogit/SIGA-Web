@@ -40,10 +40,10 @@ function formatDate(iso: string | null) {
 
 function estadoOCStyle(estado: EstadoPedido) {
   switch (estado) {
-    case "Facturada":       return { bg: "#ede9fe", text: "#5b21b6" }
-    case "RecibidaParcial": return { bg: "#fef3c7", text: "#92400e" }
-    case "RecibidaTotal":   return { bg: "#dcfce7", text: "#166534" }
-    default:                return { bg: "#f3f4f6", text: "#374151" }
+    case "Facturada":       return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)" }
+    case "RecibidaParcial": return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)" }
+    case "RecibidaTotal":   return { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    default:                return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
   }
 }
 
@@ -111,7 +111,7 @@ function estadoOCLabel(estado: EstadoPedido) {
 
           <!-- Datos generales -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
             <div class="grid grid-cols-2 gap-x-12 gap-y-3">
@@ -146,9 +146,9 @@ function estadoOCLabel(estado: EstadoPedido) {
 
           <!-- Ítems recepcionados -->
           <div class="rounded-2xl overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <div class="px-6 py-4 flex items-center justify-between"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <div>
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Ítems recepcionados</h3>
                 <p class="text-xs mt-0.5" style="color: var(--color-on-surface-variant)">
@@ -176,7 +176,7 @@ function estadoOCLabel(estado: EstadoPedido) {
               </thead>
               <tbody>
                 <tr v-for="item in recepcion.items" :key="item.pedidoItemId"
-                  style="border-top: 1px solid rgba(196,197,213,0.12)">
+                  style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-4 font-medium" style="color: var(--color-on-surface)">{{ item.productoNombre }}</td>
                   <td class="px-6 py-4 text-center">
                     <span class="font-bold" style="color: var(--color-primary)">+{{ item.cantidad }}</span>

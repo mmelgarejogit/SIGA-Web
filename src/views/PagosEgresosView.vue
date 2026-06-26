@@ -79,11 +79,11 @@ function tipoIcon(tipo: string) {
 
 function tipoColor(tipo: string) {
   return ({
-    FacturaCompra: { bg: "#DBEAFE", color: "#1D4ED8" },
-    Honorario:     { bg: "#EDE9FE", color: "#6D28D9" },
-    GastoGeneral:  { bg: "#FEF3C7", color: "#92400E" },
-    Salario:       { bg: "#DCFCE7", color: "#166534" },
-  } as Record<string, { bg: string; color: string }>)[tipo] ?? { bg: "#F3F4F6", color: "#374151" }
+    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    Salario:       { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" },
+  } as Record<string, { bg: string; color: string }>)[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
 
 function menuItems(e: Egreso): ContextMenuItem[] {
@@ -129,8 +129,8 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden"
           style="background-color: var(--color-surface-container-lowest);
-                 box-shadow: 0 1px 3px rgba(196,197,213,0.25);
-                 outline: 1px solid rgba(196,197,213,0.15)">
+                 box-shadow: var(--shadow-sm);
+                 outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="egresos" :loading="isLoading"
             empty-text="No hay egresos aprobados pendientes de pago.">
 
@@ -174,7 +174,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
 
             <template #vencimiento="{ item }">
               <span v-if="item.fechaVencimiento" class="text-sm"
-                :style="item.estaVencido ? 'color: #DC2626; font-weight: 600' : 'color: var(--color-on-surface-variant)'">
+                :style="item.estaVencido ? 'color: var(--color-error); font-weight: 600' : 'color: var(--color-on-surface-variant)'">
                 {{ formatDate(item.fechaVencimiento) }}
               </span>
               <span v-else class="text-sm" style="color: var(--color-outline)">—</span>
@@ -190,7 +190,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           <!-- Footer paginación -->
           <div v-if="totalCount > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong>
               egreso{{ totalCount !== 1 ? "s" : "" }} pendiente{{ totalCount !== 1 ? "s" : "" }} de pago

@@ -144,7 +144,10 @@ onBeforeUnmount(() => {
 function triggerStyle() {
   const opacity = props.disabled ? "opacity: 0.4; cursor: not-allowed; " : ""
   if (props.hasError)
-    return opacity + "border: 1.5px solid var(--color-error); background-color: #FFF8F7;"
+    return (
+      opacity +
+      "border: 1.5px solid var(--color-error); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
+    )
   return opacity + "border: 1px solid var(--color-outline-variant); background-color: var(--color-surface);"
 }
 </script>
@@ -152,7 +155,7 @@ function triggerStyle() {
 <template>
   <div class="di-wrap">
     <!-- Trigger -->
-    <button ref="triggerRef" type="button" class="di-trigger" :style="triggerStyle()" @click="toggle">
+    <button ref="triggerRef" type="button" class="di-trigger" data-field :style="triggerStyle()" @click="toggle">
       <span class="material-symbols-outlined di-icon">calendar_today</span>
       <span class="di-value" :class="{ placeholder: !displayValue }">
         {{ displayValue || placeholder || 'dd/mm/aaaa' }}
@@ -196,7 +199,7 @@ function triggerStyle() {
             class="w-8 h-8 rounded-lg text-xs font-medium flex items-center justify-center transition-colors"
             :class="{ 'opacity-40': day.getMonth() !== calendarMonth }"
             :style="selectedDate && isSameDay(day, selectedDate)
-              ? 'background-color: var(--color-primary); color: white;'
+              ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
               : isSameDay(day, now) && !(selectedDate && isSameDay(day, selectedDate))
                 ? 'color: var(--color-primary); font-weight: 700;'
                 : day.getMonth() === calendarMonth
@@ -234,7 +237,7 @@ function triggerStyle() {
   gap: 10px;
   padding: 0 16px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-family: inherit;
   color: var(--color-on-surface);
@@ -267,10 +270,10 @@ function triggerStyle() {
   z-index: 9999;
   min-width: 280px;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background-color: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-lg);
 }
 
 .di-cal-enter-active,

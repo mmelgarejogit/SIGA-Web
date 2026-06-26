@@ -184,7 +184,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
 
           <!-- Card: Seleccionar producto -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Producto</h3>
 
             <div ref="selectorRef" class="relative">
@@ -211,7 +211,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                 </div>
                 <span v-if="productoSeleccionado.bajoStock"
                   class="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style="background-color: #FEF3C7; color: #92400E">Bajo stock</span>
+                  style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">Bajo stock</span>
                 <button
                   @click="limpiarProducto"
                   class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 active:scale-95"
@@ -241,11 +241,11 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
               <!-- Dropdown del selector -->
               <div v-if="selectorOpen && !productoSeleccionado"
                 class="absolute left-0 right-0 top-full mt-1.5 rounded-2xl z-50 overflow-hidden"
-                style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12)">
+                style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: var(--shadow-lg)">
 
                 <!-- Búsqueda -->
                 <div class="flex items-center gap-2 px-4 py-3"
-                  style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                  style="border-bottom: 1px solid var(--color-hairline)">
                   <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px; color: var(--color-outline)">search</span>
                   <input
                     ref="searchInputRef"
@@ -284,11 +284,11 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                     </div>
                     <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
                       <span class="text-xs font-bold"
-                        :style="p.bajoStock ? 'color: #92400E' : 'color: var(--color-on-surface-variant)'">
+                        :style="p.bajoStock ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-surface-variant)'">
                         Stock: {{ p.stockActual }}
                       </span>
                       <span v-if="p.bajoStock" class="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                        style="background-color: #FEF3C7; color: #92400E; font-size: 10px">↓ bajo</span>
+                        style="background-color: var(--color-warning-container); color: var(--color-on-warning-container); font-size: 10px">↓ bajo</span>
                     </div>
                   </button>
                 </div>
@@ -299,7 +299,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
 
           <!-- Card: Detalles del movimiento -->
           <div v-if="productoSeleccionado" class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-5" style="color: var(--color-primary)">Detalles del movimiento</h3>
 
             <div class="grid grid-cols-2 gap-6">
@@ -326,7 +326,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                     @click="onTipoChange(tipo)"
                     class="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                     :style="movForm.tipo === tipo
-                      ? 'background-color: var(--color-primary); color: white;'
+                      ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
                       : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant);'"
                   >{{ tipo }}</button>
                 </div>

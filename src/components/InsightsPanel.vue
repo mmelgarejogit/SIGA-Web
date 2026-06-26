@@ -41,13 +41,13 @@ function initials(first: string, last: string) {
 }
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, var(--color-surface-container-lowest))", color: "var(--color-outline)" },
 ]
 
-const AVATAR_FALLBACK = { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+const AVATAR_FALLBACK = { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" }
 
 function avatarStyle(id: number) {
   return AVATAR_PALETTE[id % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
@@ -64,12 +64,8 @@ function formatDate(iso: string) {
     <div
       class="p-5 rounded-2xl relative overflow-hidden"
       style="
-        background: linear-gradient(
-          135deg,
-          var(--color-primary) 0%,
-          var(--color-primary-container) 100%
-        );
-        box-shadow: 0 8px 32px rgba(0, 40, 142, 0.25);
+        background: linear-gradient(135deg, #00288e 0%, #1e40af 100%);
+        box-shadow: var(--shadow-lg);
       "
     >
       <div
@@ -133,12 +129,12 @@ function formatDate(iso: string) {
       class="p-5 rounded-2xl"
       style="
         background-color: var(--color-surface-container-lowest);
-        box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
+        box-shadow: var(--shadow-sm);
       "
     >
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
-          <div class="p-1.5 rounded-lg" style="background-color: rgba(0, 40, 142, 0.08)">
+          <div class="p-1.5 rounded-lg" style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
             <span
               class="material-symbols-outlined"
               style="color: var(--color-primary); font-size: 16px"
@@ -198,10 +194,8 @@ function formatDate(iso: string) {
         <div
           v-for="patient in recentPatients"
           :key="patient.id"
-          class="flex items-center gap-3 py-2 px-2 rounded-xl transition-colors cursor-pointer"
-          style="border-bottom: 1px solid rgba(196, 197, 213, 0.08)"
-          onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-          onmouseout="this.style.backgroundColor = 'transparent'"
+          class="ip-patient-row flex items-center gap-3 py-2 px-2 rounded-md transition-colors cursor-pointer"
+          style="border-bottom: 1px solid var(--color-hairline-soft)"
           @click="router.push(`/pacientes/${patient.id}`)"
         >
           <div
@@ -224,3 +218,9 @@ function formatDate(iso: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.ip-patient-row:hover {
+  background-color: var(--color-surface);
+}
+</style>

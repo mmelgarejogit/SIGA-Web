@@ -30,12 +30,12 @@ const estadoFiltro = ref<string[]>([])
 const tipoFiltro   = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "Borrador",           label: "Borrador",            dot: "#6B7280" },
-  { value: "Confirmada",         label: "Confirmada",          dot: "#7C3AED" },
-  { value: "EnProceso",          label: "En proceso",          dot: "#1D4ED8" },
-  { value: "ListaParaCobrar",    label: "Lista para cobrar",   dot: "#92400E" },
-  { value: "ComprobanteEmitido", label: "Comprobante emitido", dot: "#166534" },
-  { value: "Cancelada",          label: "Cancelada",           dot: "#9CA3AF" },
+  { value: "Borrador",           label: "Borrador",            dot: "var(--color-outline)" },
+  { value: "Confirmada",         label: "Confirmada",          dot: "var(--color-tertiary)" },
+  { value: "EnProceso",          label: "En proceso",          dot: "var(--color-on-info-container)" },
+  { value: "ListaParaCobrar",    label: "Lista para cobrar",   dot: "var(--color-on-warning-container)" },
+  { value: "ComprobanteEmitido", label: "Comprobante emitido", dot: "var(--color-on-success-container)" },
+  { value: "Cancelada",          label: "Cancelada",           dot: "var(--color-outline)" },
 ]
 
 const tipoOptions = [
@@ -95,20 +95,20 @@ const visiblePages = computed(() => {
 
 function estadoBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    Borrador:           { bg: "#F3F4F6", text: "#6B7280",  label: "Borrador" },
-    Confirmada:         { bg: "#EDE9FE", text: "#7C3AED",  label: "Confirmada" },
-    EnProceso:          { bg: "#DBEAFE", text: "#1D4ED8",  label: "En proceso" },
-    ListaParaCobrar:    { bg: "#FEF3C7", text: "#92400E",  label: "Lista cobrar" },
-    ComprobanteEmitido: { bg: "#DCFCE7", text: "#166534",  label: "Emitido" },
-    Cancelada:          { bg: "#F3F4F6", text: "#9CA3AF",  label: "Cancelada" },
+    Borrador:           { bg: "var(--color-surface-container)", text: "var(--color-outline)",  label: "Borrador" },
+    Confirmada:         { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)",  label: "Confirmada" },
+    EnProceso:          { bg: "var(--color-info-container)", text: "var(--color-on-info-container)",  label: "En proceso" },
+    ListaParaCobrar:    { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)",  label: "Lista cobrar" },
+    ComprobanteEmitido: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)",  label: "Emitido" },
+    Cancelada:          { bg: "var(--color-surface-container)", text: "var(--color-outline)",  label: "Cancelada" },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 function tipoBadge(tipo: string) {
   return tipo === "TrabajoAPedido"
-    ? { bg: "#F0FDF4", text: "#166534",  label: "A pedido" }
-    : { bg: "#EFF6FF", text: "#1D4ED8",  label: "Directa" }
+    ? { bg: "#F0FDF4", text: "var(--color-on-success-container)",  label: "A pedido" }
+    : { bg: "#EFF6FF", text: "var(--color-on-info-container)",  label: "Directa" }
 }
 
 // ── Navegación al detalle ────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ function goDetalle(v: Venta) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay ventas que mostrar">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -161,7 +161,7 @@ function goDetalle(v: Venta) {
                 v-for="v in filtered"
                 :key="v.id"
                 class="hover:bg-surface-container-low cursor-pointer"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
                 @click="goDetalle(v)"
               >
                 <td class="px-6 py-4">
@@ -177,7 +177,7 @@ function goDetalle(v: Venta) {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(v.fechaVenta) }}</td>
                 <td class="px-6 py-4 text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(v.total) }}</td>
                 <td class="px-6 py-4 text-sm">
-                  <span v-if="v.saldoPendiente > 0" class="font-medium" style="color: #92400E">{{ formatPrice(v.saldoPendiente) }}</span>
+                  <span v-if="v.saldoPendiente > 0" class="font-medium" style="color: var(--color-on-warning-container)">{{ formatPrice(v.saldoPendiente) }}</span>
                   <span v-else style="color: var(--color-on-surface-variant)">—</span>
                 </td>
                 <td class="px-6 py-4">
@@ -194,7 +194,7 @@ function goDetalle(v: Venta) {
           <div
             v-if="ventas.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest)"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -216,7 +216,7 @@ function goDetalle(v: Venta) {
                   v-else
                   @click="currentPage = (p as number); loadVentas()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button

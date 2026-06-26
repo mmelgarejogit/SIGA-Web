@@ -261,8 +261,8 @@ async function submitBooking() {
             class="rounded-2xl p-6 mb-8"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex items-center justify-between mb-4">
@@ -283,7 +283,7 @@ async function submitBooking() {
               <span
                 v-if="activeTurno.solicitudCancelacion"
                 class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
-                style="background-color: #fef3c7; color: #92400e"
+                style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)"
               >
                 <span
                   class="material-symbols-outlined inline-flex items-center justify-center flex-shrink-0 leading-none"
@@ -332,9 +332,9 @@ async function submitBooking() {
             <div class="flex items-center justify-between">
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                style="background-color: #d1fae5; color: #065f46"
+                style="background-color: var(--color-success-container); color: var(--color-on-success-container)"
               >
-                <span class="w-1.5 h-1.5 rounded-full" style="background-color: #065f46"></span>
+                <span class="w-1.5 h-1.5 rounded-full" style="background-color: var(--color-on-success-container)"></span>
                 Pendiente
               </span>
 
@@ -356,8 +356,8 @@ async function submitBooking() {
             class="rounded-2xl p-6 mb-8"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex items-center gap-2 mb-5">
@@ -477,7 +477,7 @@ async function submitBooking() {
                   class="flex flex-col items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                   :style="
                     selectedSlot === slot.horaInicio
-                      ? 'background-color: var(--color-primary); color: white;'
+                      ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
                       : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant); border: 1px solid var(--color-surface-container-highest);'
                   "
                 >
@@ -552,7 +552,7 @@ async function submitBooking() {
                 <span
                   v-if="item.estado === 'Completado'"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                  style="background-color: #d1fae5; color: #065f46"
+                  style="background-color: var(--color-success-container); color: var(--color-on-success-container)"
                 >
                   <span class="material-symbols-outlined" style="font-size: 12px">check</span>
                   Completado

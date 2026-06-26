@@ -54,12 +54,12 @@ const loadError = ref("")
 const estadoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "Borrador",        label: "Borradores",   dot: "#374151" },
-  { value: "Confirmada",      label: "Confirmadas",  dot: "#1e40af" },
-  { value: "Facturada",       label: "Facturadas",   dot: "#5b21b6" },
-  { value: "RecibidaParcial", label: "Parciales",    dot: "#92400e" },
-  { value: "RecibidaTotal",   label: "Recibidas",    dot: "#166534" },
-  { value: "Cancelada",       label: "Canceladas",   dot: "#991b1b" },
+  { value: "Borrador",        label: "Borradores",   dot: "var(--color-on-surface-variant)" },
+  { value: "Confirmada",      label: "Confirmadas",  dot: "var(--color-on-info-container)" },
+  { value: "Facturada",       label: "Facturadas",   dot: "var(--color-tertiary)" },
+  { value: "RecibidaParcial", label: "Parciales",    dot: "var(--color-on-warning-container)" },
+  { value: "RecibidaTotal",   label: "Recibidas",    dot: "var(--color-on-success-container)" },
+  { value: "Cancelada",       label: "Canceladas",   dot: "var(--color-on-error-container)" },
 ]
 
 const pedidoColumns = [
@@ -73,13 +73,13 @@ const pedidoColumns = [
 
 function estadoStyle(estado: EstadoPedido) {
   switch (estado) {
-    case "Borrador":        return { bg: "#f3f4f6", text: "#374151" }
-    case "Confirmada":      return { bg: "#dbeafe", text: "#1e40af" }
-    case "Facturada":       return { bg: "#ede9fe", text: "#5b21b6" }
-    case "RecibidaParcial": return { bg: "#fef3c7", text: "#92400e" }
-    case "RecibidaTotal":   return { bg: "#dcfce7", text: "#166534" }
-    case "Cancelada":       return { bg: "#fee2e2", text: "#991b1b" }
-    default:                return { bg: "#f3f4f6", text: "#374151" }
+    case "Borrador":        return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
+    case "Confirmada":      return { bg: "var(--color-info-container)", text: "var(--color-on-info-container)" }
+    case "Facturada":       return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)" }
+    case "RecibidaParcial": return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)" }
+    case "RecibidaTotal":   return { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    case "Cancelada":       return { bg: "var(--color-error-container)", text: "var(--color-on-error-container)" }
+    default:                return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
   }
 }
 
@@ -233,7 +233,7 @@ function openCreateProveedor() {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -307,7 +307,7 @@ async function submitProveedor() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable :columns="pedidoColumns" :items="pedidos" :loading="isLoading"
             empty-text="No hay órdenes de compra registradas." @row-click="openDetail">
 
@@ -355,7 +355,7 @@ async function submitProveedor() {
           <div
             v-if="pedidos.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -377,7 +377,7 @@ async function submitProveedor() {
                   v-else
                   @click="goToPage(p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button

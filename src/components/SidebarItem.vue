@@ -129,7 +129,7 @@ function handleChildClick(route: string) {
 .nav-btn.is-active,
 .nav-btn.is-active:hover {
   background-color: #dbeafe;
-  color: var(--color-primary);
+  color: #00288e;
 }
 
 .nav-child {
@@ -147,7 +147,7 @@ function handleChildClick(route: string) {
 .nav-child.is-active,
 .nav-child.is-active:hover {
   background-color: #dbeafe;
-  color: var(--color-primary);
+  color: #00288e;
 }
 
 /* ── Chevron del acordeón ────────────────────────────────────────────────────── */

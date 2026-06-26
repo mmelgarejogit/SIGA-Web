@@ -39,7 +39,7 @@ const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
 
 const statusOptions = [
-  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "activo",   label: "Activo",   dot: "var(--color-success)" },
   { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
 ]
 
@@ -125,7 +125,7 @@ function formatDate(iso: string) {
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534", label: "Activo" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
     : {
         bg: "var(--color-surface-container-highest)",
         dot: "var(--color-outline)",
@@ -146,7 +146,7 @@ function menuItems(p: Professional): ContextMenuItem[] {
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -512,8 +512,8 @@ async function submitHorario() {
           class="rounded-2xl overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-            outline: 1px solid rgba(196, 197, 213, 0.15);
+            box-shadow: var(--shadow-sm);
+            outline: 1px solid var(--color-hairline);
           "
         >
           <BaseTable
@@ -592,7 +592,7 @@ async function submitHorario() {
           <div
             class="px-6 py-4"
             style="
-              border-top: 1px solid rgba(196, 197, 213, 0.12);
+              border-top: 1px solid var(--color-hairline-soft);
               background-color: var(--color-surface-container-lowest);
             "
           >
@@ -978,7 +978,7 @@ async function submitHorario() {
             :style="editForm.isActive
               ? 'border-color: var(--color-primary); background-color: var(--color-primary);'
               : 'border-color: var(--color-outline-variant);'">
-            <span v-if="editForm.isActive" class="material-symbols-outlined text-white" style="font-size: 12px">check</span>
+            <span v-if="editForm.isActive" class="material-symbols-outlined text-on-primary" style="font-size: 12px">check</span>
           </div>
           <span class="text-sm font-medium select-none" style="color: var(--color-on-surface)">Cuenta activa</span>
         </div>

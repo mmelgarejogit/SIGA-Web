@@ -61,9 +61,9 @@ function ivaLabel(tipo: TipoIva) {
 }
 
 function estadoBadge(estado: string) {
-  if (estado === "Anulado") return { text: "Anulada",  bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" }
-  if (estado === "Pagado")  return { text: "Pagada",   bg: "#DCFCE7", color: "#16a34a", border: "#BBF7D0" }
-  return                           { text: "Vigente",  bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" }
+  if (estado === "Anulado") return { text: "Anulada",  bg: "var(--color-surface-container)", color: "var(--color-outline)", border: "var(--color-outline-variant)" }
+  if (estado === "Pagado")  return { text: "Pagada",   bg: "var(--color-success-container)", color: "var(--color-success)", border: "#BBF7D0" }
+  return                           { text: "Vigente",  bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)", border: "var(--color-warning-container)" }
 }
 
 // ── Anular ─────────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ const isAnulando       = ref(false)
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -174,7 +174,7 @@ async function confirmarAnulacion() {
 
             <!-- Datos generales -->
             <div class="rounded-2xl p-6"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
               <dl class="space-y-3">
@@ -213,7 +213,7 @@ async function confirmarAnulacion() {
 
             <!-- Resumen fiscal -->
             <div class="rounded-2xl p-6"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
               <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Resumen fiscal</h3>
 
               <div class="space-y-2 mb-4">
@@ -240,7 +240,7 @@ async function confirmarAnulacion() {
               </div>
 
               <div class="flex justify-between items-center pt-3 border-t"
-                style="border-color: rgba(196,197,213,0.2)">
+                style="border-color: var(--color-hairline)">
                 <span class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Total</span>
                 <span class="text-2xl font-extrabold" style="color: var(--color-primary)">{{ formatMonto(factura.montoTotal) }}</span>
               </div>
@@ -253,8 +253,8 @@ async function confirmarAnulacion() {
 
           <!-- Ítems de línea -->
           <div class="rounded-2xl overflow-hidden mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
-            <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+            <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Ítems</h3>
             </div>
 
@@ -276,7 +276,7 @@ async function confirmarAnulacion() {
               </thead>
               <tbody>
                 <tr v-for="item in factura.items" :key="item.id"
-                  style="border-top: 1px solid rgba(196,197,213,0.12)">
+                  style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-4">
                     <p class="font-medium" style="color: var(--color-on-surface)">{{ item.descripcion }}</p>
                     <p v-if="item.productoId" class="text-xs mt-0.5" style="color: var(--color-outline)">

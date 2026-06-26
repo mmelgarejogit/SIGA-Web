@@ -31,11 +31,11 @@ const search    = ref("")
 const estadoFiltro = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "PendienteAprobacion", label: "Pend. aprobación", dot: "#6B7280" },
-  { value: "PendienteEnvio",      label: "Pend. envío",      dot: "#1D4ED8" },
-  { value: "Enviado",             label: "Enviado",           dot: "#92400E" },
-  { value: "Recibido",            label: "Recibido",          dot: "#166534" },
-  { value: "Rechazado",           label: "Rechazado",         dot: "#991B1B" },
+  { value: "PendienteAprobacion", label: "Pend. aprobación", dot: "var(--color-outline)" },
+  { value: "PendienteEnvio",      label: "Pend. envío",      dot: "var(--color-on-info-container)" },
+  { value: "Enviado",             label: "Enviado",           dot: "var(--color-on-warning-container)" },
+  { value: "Recibido",            label: "Recibido",          dot: "var(--color-on-success-container)" },
+  { value: "Rechazado",           label: "Rechazado",         dot: "var(--color-on-error-container)" },
 ]
 
 async function load() {
@@ -62,13 +62,13 @@ const filtered = computed(() => {
 
 function estadoBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    PendienteAprobacion: { bg: "#F3F4F6", text: "#6B7280", label: "Pend. aprobación" },
-    PendienteEnvio:      { bg: "#DBEAFE", text: "#1D4ED8", label: "Pend. envío"      },
-    Enviado:             { bg: "#FEF3C7", text: "#92400E", label: "Enviado"           },
-    Recibido:            { bg: "#DCFCE7", text: "#166534", label: "Recibido"          },
-    Rechazado:           { bg: "#FEE2E2", text: "#991B1B", label: "Rechazado"         },
+    PendienteAprobacion: { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: "Pend. aprobación" },
+    PendienteEnvio:      { bg: "var(--color-info-container)", text: "var(--color-on-info-container)", label: "Pend. envío"      },
+    Enviado:             { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", label: "Enviado"           },
+    Recibido:            { bg: "var(--color-success-container)", text: "var(--color-on-success-container)", label: "Recibido"          },
+    Rechazado:           { bg: "var(--color-error-container)", text: "var(--color-on-error-container)", label: "Rechazado"         },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 // ── Referencia del pedido (datos de la venta, solo lectura) ──────────────────────
@@ -119,7 +119,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <SearchInput v-model="search" placeholder="Buscar por cliente, comprobante o laboratorio…" class="w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos que mostrar">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -135,7 +135,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               <tr
                 v-for="item in filtered" :key="item.id"
                 class="hover:bg-surface-container-low cursor-pointer"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
                 @click="verReferencia(item)"
               >
                 <td class="px-6 py-4">
@@ -152,7 +152,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                   </span>
                 </td>
                 <td class="px-6 py-4">
-                  <span v-if="item.factura" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background:#DCFCE7;color:#166534">
+                  <span v-if="item.factura" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background:var(--color-success-container);color:var(--color-on-success-container)">
                     <span class="material-symbols-outlined" style="font-size:13px">receipt</span>
                     {{ item.factura.numeroFactura }}
                   </span>
@@ -204,7 +204,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Tratamientos</p>
               <div class="flex flex-wrap gap-1.5">
                 <span v-for="t in selected.tratamientos" :key="t"
-                  class="px-2 py-0.5 rounded-full text-xs font-medium" style="background:#EDE9FE;color:#5B21B6">{{ t }}</span>
+                  class="px-2 py-0.5 rounded-full text-xs font-medium" style="background:color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest));color:var(--color-tertiary)">{{ t }}</span>
               </div>
             </div>
           </div>
@@ -224,14 +224,14 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style="border-top: 1px solid rgba(196,197,213,0.12)">
+                  <tr style="border-top: 1px solid var(--color-hairline-soft)">
                     <td class="px-4 py-2 font-semibold" style="color: var(--color-on-surface)">OD</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.odEsferico) }}</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.odCilindro) }}</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtEje(selected.receta?.odEje) }}</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.odAdicion) }}</td>
                   </tr>
-                  <tr style="border-top: 1px solid rgba(196,197,213,0.12)">
+                  <tr style="border-top: 1px solid var(--color-hairline-soft)">
                     <td class="px-4 py-2 font-semibold" style="color: var(--color-on-surface)">OI</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.oiEsferico) }}</td>
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.oiCilindro) }}</td>
@@ -241,7 +241,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 </tbody>
               </table>
               <div v-if="selected.receta?.distanciaInterpupilar || selected.receta?.observaciones"
-                class="px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1" style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+                class="px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1" style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
                 <span v-if="selected.receta?.distanciaInterpupilar" class="text-xs" style="color: var(--color-on-surface-variant)">
                   <span class="font-bold uppercase tracking-wider" style="color: var(--color-outline)">DIP:</span> {{ selected.receta.distanciaInterpupilar }} mm
                 </span>

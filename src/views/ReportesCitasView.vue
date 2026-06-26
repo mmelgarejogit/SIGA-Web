@@ -94,8 +94,8 @@ const kpis = computed(() => {
       icon: "task_alt",
       badge: "Atendidos",
       badgeType: "positive" as const,
-      iconBg: "#dcfce7",
-      iconColor: "#166534",
+      iconBg: "var(--color-success-container)",
+      iconColor: "var(--color-on-success-container)",
     },
     {
       title: "Tasa de asistencia",
@@ -121,7 +121,7 @@ const kpis = computed(() => {
       icon: "medical_services",
       badge: "Período",
       badgeType: "neutral" as const,
-      iconBg: "rgba(0,103,128,0.08)",
+      iconBg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)",
       iconColor: "var(--color-secondary)",
     },
   ]
@@ -148,10 +148,10 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const estadoColors: Record<string, string> = {
   Pendiente: "#2563eb",
-  Confirmado: "#7c3aed",
-  Completado: "#16a34a",
-  Cancelado: "#dc2626",
-  Presente: "#d97706",
+  Confirmado: "var(--color-tertiary)",
+  Completado: "var(--color-success)",
+  Cancelado: "var(--color-error)",
+  Presente: "var(--color-warning)",
 }
 const donutSegments = computed(() => {
   const items = reporte.value?.porEstado ?? []
@@ -163,7 +163,7 @@ const donutSegments = computed(() => {
       estado: e.estado,
       cantidad: e.cantidad,
       porcentaje: e.porcentaje,
-      color: estadoColors[e.estado] ?? "#6b7280",
+      color: estadoColors[e.estado] ?? "var(--color-outline)",
       dash: `${frac * DONUT_C} ${DONUT_C}`,
       offset: -acc * DONUT_C,
     }
@@ -251,7 +251,7 @@ function exportCsv() {
               @click="exportPdf"
               :disabled="!reporte || isLoading"
               class="flex items-center gap-2 px-5 h-11 rounded-full text-sm font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 4px 20px rgba(0, 40, 142, 0.2)"
+              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-primary)"
             >
               <span class="material-symbols-outlined" style="font-size: 18px">picture_as_pdf</span>
               PDF
@@ -297,7 +297,7 @@ function exportCsv() {
           <div
             v-if="sinDatos"
             class="flex flex-col items-center justify-center gap-3 py-16 rounded-2xl mb-8"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
           >
             <div
               class="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -316,7 +316,7 @@ function exportCsv() {
               <!-- Tendencia -->
               <div
                 class="lg:col-span-2 rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="flex items-center justify-between mb-6">
                   <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Tendencia</h3>
@@ -326,7 +326,7 @@ function exportCsv() {
                       Turnos
                     </span>
                     <span class="flex items-center gap-1.5">
-                      <span class="w-3 h-3 rounded-sm" style="background-color: #16a34a"></span>
+                      <span class="w-3 h-3 rounded-sm" style="background-color: var(--color-success)"></span>
                       Completados
                     </span>
                   </div>
@@ -349,7 +349,7 @@ function exportCsv() {
                         ></div>
                         <div
                           class="rounded-t transition-all"
-                          style="width: 42%; background-color: #16a34a; min-height: 1px"
+                          style="width: 42%; background-color: var(--color-success); min-height: 1px"
                           :style="{ height: pct(p.completados) }"
                         ></div>
                       </div>
@@ -373,7 +373,7 @@ function exportCsv() {
               <!-- Dona por estado -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-xl font-extrabold mb-6" style="color: var(--color-primary)">Por estado</h3>
 
@@ -420,14 +420,14 @@ function exportCsv() {
               <!-- Por profesional -->
               <div
                 class="lg:col-span-2 rounded-2xl overflow-hidden"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
-                <div class="px-6 py-5" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                   <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Por profesional</h3>
                 </div>
                 <table class="w-full text-sm">
                   <thead>
-                    <tr style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                    <tr style="border-bottom: 1px solid var(--color-hairline)">
                       <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Profesional</th>
                       <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Turnos</th>
                       <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Completados</th>
@@ -437,7 +437,7 @@ function exportCsv() {
                     <tr
                       v-for="(p, i) in reporte.porProfesional"
                       :key="i"
-                      style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                      style="border-bottom: 1px solid var(--color-hairline-soft)"
                     >
                       <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</td>
                       <td class="px-3 py-3 text-center tabular-nums" style="color: var(--color-outline)">{{ p.turnos }}</td>
@@ -453,7 +453,7 @@ function exportCsv() {
               <!-- Ausentismo -->
               <div
                 class="rounded-2xl p-6 flex flex-col gap-5"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Ausentismo</h3>
                 <div>
@@ -465,7 +465,7 @@ function exportCsv() {
                     Turnos pasados que quedaron sin atender ni cancelar.
                   </p>
                 </div>
-                <div style="border-top: 1px solid rgba(196, 197, 213, 0.2)" class="pt-4">
+                <div style="border-top: 1px solid var(--color-hairline)" class="pt-4">
                   <div class="flex items-baseline gap-2">
                     <span class="text-3xl font-extrabold" style="color: var(--color-on-surface)">{{ reporte.cancelados }}</span>
                     <span class="text-xs font-semibold" style="color: var(--color-outline)">cancelados</span>

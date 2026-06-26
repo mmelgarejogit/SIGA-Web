@@ -79,21 +79,21 @@ const porPaciente = computed(() => {
 
 function estadoBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    Confirmada:         { bg: "#EDE9FE", text: "#7C3AED",  label: "Confirmada" },
-    EnProceso:          { bg: "#DBEAFE", text: "#1D4ED8",  label: "En proceso" },
-    ListaParaCobrar:    { bg: "#FEF3C7", text: "#92400E",  label: "Lista cobrar" },
-    ComprobanteEmitido: { bg: "#DCFCE7", text: "#166534",  label: "Emitido" },
+    Confirmada:         { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)",  label: "Confirmada" },
+    EnProceso:          { bg: "var(--color-info-container)", text: "var(--color-on-info-container)",  label: "En proceso" },
+    ListaParaCobrar:    { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)",  label: "Lista cobrar" },
+    ComprobanteEmitido: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)",  label: "Emitido" },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 // ── Semáforo de antigüedad ────────────────────────────────────────────────────
 
 function antiguedadColor(fechaVenta: string): { color: string; label: string } {
   const dias = Math.floor((Date.now() - new Date(fechaVenta + "T00:00:00").getTime()) / 86_400_000)
-  if (dias <= 7)  return { color: "#166534", label: `${dias}d` }
-  if (dias <= 30) return { color: "#92400E", label: `${dias}d` }
-  return { color: "#991B1B", label: `${dias}d` }
+  if (dias <= 7)  return { color: "var(--color-on-success-container)", label: `${dias}d` }
+  if (dias <= 30) return { color: "var(--color-on-warning-container)", label: `${dias}d` }
+  return { color: "var(--color-on-error-container)", label: `${dias}d` }
 }
 
 // ── Context menu ───────────────────────────────────────────────────────────────
@@ -124,9 +124,9 @@ function menuItems(v: Venta): ContextMenuItem[] {
             </p>
           </div>
           <!-- Total global -->
-          <div class="rounded-2xl px-6 py-4 text-right" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+          <div class="rounded-2xl px-6 py-4 text-right" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
             <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Saldo total pendiente</p>
-            <p class="text-2xl font-extrabold" style="color: #92400E">{{ formatPrice(totalSaldo) }}</p>
+            <p class="text-2xl font-extrabold" style="color: var(--color-on-warning-container)">{{ formatPrice(totalSaldo) }}</p>
           </div>
         </div>
 
@@ -140,7 +140,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
               <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
             </div>
 
-            <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+            <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
               <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="Sin cobros pendientes">
                 <template #head>
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -158,7 +158,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
                     v-for="v in filtered"
                     :key="v.id"
                     class="hover:bg-surface-container-low cursor-pointer"
-                    style="border-bottom: 1px solid rgba(196,197,213,0.12)"
+                    style="border-bottom: 1px solid var(--color-hairline-soft)"
                     @click="goCobrar(v)"
                   >
                     <td class="px-6 py-4">
@@ -173,9 +173,9 @@ function menuItems(v: Venta): ContextMenuItem[] {
                       >{{ antiguedadColor(v.fechaVenta).label }}</span>
                     </td>
                     <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatPrice(v.total) }}</td>
-                    <td class="px-6 py-4 text-sm" style="color: #166534">{{ formatPrice(v.totalCobrado) }}</td>
+                    <td class="px-6 py-4 text-sm" style="color: var(--color-on-success-container)">{{ formatPrice(v.totalCobrado) }}</td>
                     <td class="px-6 py-4">
-                      <span class="text-sm font-bold" style="color: #92400E">{{ formatPrice(v.saldoPendiente) }}</span>
+                      <span class="text-sm font-bold" style="color: var(--color-on-warning-container)">{{ formatPrice(v.saldoPendiente) }}</span>
                     </td>
                     <td class="px-6 py-4">
                       <span
@@ -195,11 +195,11 @@ function menuItems(v: Venta): ContextMenuItem[] {
 
           <!-- Panel lateral: resumen por paciente -->
           <div class="xl:col-span-1">
-            <div class="rounded-2xl overflow-hidden sticky top-24" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-              <div class="px-5 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+            <div class="rounded-2xl overflow-hidden sticky top-24" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+              <div class="px-5 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Por cliente</h3>
               </div>
-              <div class="divide-y" style="divide-color: rgba(196,197,213,0.12); max-height: 480px; overflow-y: auto">
+              <div class="divide-y" style="divide-color: var(--color-hairline-soft); max-height: 480px; overflow-y: auto">
                 <div v-if="!porPaciente.length" class="px-5 py-4 text-sm" style="color: var(--color-outline)">
                   Sin datos
                 </div>
@@ -216,7 +216,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
                         {{ p.ventas }} venta{{ p.ventas !== 1 ? "s" : "" }}
                       </p>
                     </div>
-                    <span class="text-sm font-bold flex-shrink-0" style="color: #92400E">{{ formatPrice(p.saldo) }}</span>
+                    <span class="text-sm font-bold flex-shrink-0" style="color: var(--color-on-warning-container)">{{ formatPrice(p.saldo) }}</span>
                   </div>
                 </button>
               </div>

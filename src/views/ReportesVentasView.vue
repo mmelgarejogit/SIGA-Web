@@ -117,7 +117,7 @@ const kpis = computed(() => {
       icon: "sell",
       badge: "Prom.",
       badgeType: "neutral" as const,
-      iconBg: "rgba(0,40,142,0.08)",
+      iconBg: "color-mix(in srgb, var(--color-primary) 10%, transparent)",
       iconColor: "var(--color-primary)",
     },
     {
@@ -155,10 +155,10 @@ function pct(v: number): string {
 const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const metodoColors: Record<string, string> = {
-  Efectivo: "#16a34a",
+  Efectivo: "var(--color-success)",
   Tarjeta: "#2563eb",
-  Transferencia: "#7c3aed",
-  Cheque: "#d97706",
+  Transferencia: "var(--color-tertiary)",
+  Cheque: "var(--color-warning)",
 }
 const donutSegments = computed(() => {
   const items = reporte.value?.porMetodoPago ?? []
@@ -170,7 +170,7 @@ const donutSegments = computed(() => {
       metodo: m.metodo,
       monto: m.monto,
       porcentaje: m.porcentaje,
-      color: metodoColors[m.metodo] ?? "#6b7280",
+      color: metodoColors[m.metodo] ?? "var(--color-outline)",
       dash: `${frac * DONUT_C} ${DONUT_C}`,
       offset: -acc * DONUT_C,
     }
@@ -274,7 +274,7 @@ function exportCsv() {
               @click="exportPdf"
               :disabled="!reporte || isLoading"
               class="flex items-center gap-2 px-5 h-11 rounded-full text-sm font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 4px 20px rgba(0, 40, 142, 0.2)"
+              style="background-color: var(--color-primary); color: var(--color-on-primary); box-shadow: var(--shadow-primary)"
             >
               <span class="material-symbols-outlined" style="font-size: 18px">picture_as_pdf</span>
               PDF
@@ -323,7 +323,7 @@ function exportCsv() {
           <div
             v-if="sinDatos"
             class="flex flex-col items-center justify-center gap-3 py-16 rounded-2xl mb-8"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
           >
             <div
               class="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -342,7 +342,7 @@ function exportCsv() {
               <!-- Tendencia -->
               <div
                 class="lg:col-span-2 rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="flex items-center justify-between mb-6">
                   <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Tendencia</h3>
@@ -401,7 +401,7 @@ function exportCsv() {
               <!-- Dona método de pago -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-xl font-extrabold mb-6" style="color: var(--color-primary)">Método de pago</h3>
 
@@ -447,7 +447,7 @@ function exportCsv() {
               <!-- Por condición -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-base font-extrabold mb-4" style="color: var(--color-primary)">Por condición</h3>
                 <div v-if="reporte.porCondicion.length" class="flex flex-col gap-3">
@@ -465,7 +465,7 @@ function exportCsv() {
               <!-- Por categoría fiscal -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-base font-extrabold mb-4" style="color: var(--color-primary)">Categoría fiscal</h3>
                 <div v-if="reporte.porCategoriaFiscal.length" class="flex flex-col gap-3">
@@ -480,7 +480,7 @@ function exportCsv() {
               <!-- Presupuestos / conversión -->
               <div
                 class="rounded-2xl p-6"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <h3 class="text-base font-extrabold mb-4" style="color: var(--color-primary)">Presupuestos</h3>
                 <div class="flex items-baseline gap-2 mb-1">
@@ -497,9 +497,9 @@ function exportCsv() {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div
                 class="rounded-2xl overflow-hidden"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
-                <div class="px-6 py-5" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                   <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Top productos</h3>
                 </div>
                 <table class="w-full text-sm">
@@ -507,7 +507,7 @@ function exportCsv() {
                     <tr
                       v-for="(p, i) in reporte.topProductos"
                       :key="i"
-                      style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                      style="border-bottom: 1px solid var(--color-hairline-soft)"
                     >
                       <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</td>
                       <td class="px-3 py-3 text-center tabular-nums" style="color: var(--color-outline)">{{ p.cantidad }}</td>
@@ -522,9 +522,9 @@ function exportCsv() {
 
               <div
                 class="rounded-2xl overflow-hidden"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
-                <div class="px-6 py-5" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                   <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Top servicios</h3>
                 </div>
                 <table class="w-full text-sm">
@@ -532,7 +532,7 @@ function exportCsv() {
                     <tr
                       v-for="(s, i) in reporte.topServicios"
                       :key="i"
-                      style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                      style="border-bottom: 1px solid var(--color-hairline-soft)"
                     >
                       <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ s.nombre }}</td>
                       <td class="px-3 py-3 text-center tabular-nums" style="color: var(--color-outline)">{{ s.cantidad }}</td>
@@ -549,14 +549,14 @@ function exportCsv() {
             <!-- Por cajero -->
             <div
               class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25)"
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
             >
-              <div class="px-6 py-5" style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+              <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                 <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Cobros por cajero</h3>
               </div>
               <table class="w-full text-sm">
                 <thead>
-                  <tr style="border-bottom: 1px solid rgba(196, 197, 213, 0.15)">
+                  <tr style="border-bottom: 1px solid var(--color-hairline)">
                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cajero</th>
                     <th class="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cobros</th>
                     <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Monto</th>
@@ -566,7 +566,7 @@ function exportCsv() {
                   <tr
                     v-for="(c, i) in reporte.porCajero"
                     :key="i"
-                    style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                    style="border-bottom: 1px solid var(--color-hairline-soft)"
                   >
                     <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ c.nombre }}</td>
                     <td class="px-3 py-3 text-center tabular-nums" style="color: var(--color-outline)">{{ c.cantidad }}</td>

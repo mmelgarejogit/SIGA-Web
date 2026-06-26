@@ -193,7 +193,7 @@ async function submitRechazar() {
                 v-for="s in sesiones"
                 :key="s.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
               >
                 <td class="px-6 py-4 font-semibold" style="color: var(--color-on-surface)">{{ s.abiertaPorNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ fmtDt(s.fechaApertura) }}</td>
@@ -207,7 +207,7 @@ async function submitRechazar() {
                   {{ fmt(s.efectivoContado ?? 0) }}
                 </td>
                 <td class="px-6 py-4 text-right font-extrabold"
-                    :style="(s.diferencia ?? 0) === 0 ? 'color:#065F46' : (s.diferencia ?? 0) > 0 ? 'color:#1D4ED8' : 'color:#991B1B'">
+                    :style="(s.diferencia ?? 0) === 0 ? 'color:var(--color-on-success-container)' : (s.diferencia ?? 0) > 0 ? 'color:var(--color-on-info-container)' : 'color:var(--color-on-error-container)'">
                   {{ fmtSigned(s.diferencia ?? 0) }}
                 </td>
                 <td class="px-6 py-4">
@@ -267,7 +267,7 @@ async function submitRechazar() {
         <div class="text-center">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Diferencia</p>
           <p class="font-extrabold text-lg"
-             :style="(detalle.diferencia ?? 0) === 0 ? 'color:#065F46' : (detalle.diferencia ?? 0) > 0 ? 'color:#1D4ED8' : 'color:#991B1B'">
+             :style="(detalle.diferencia ?? 0) === 0 ? 'color:var(--color-on-success-container)' : (detalle.diferencia ?? 0) > 0 ? 'color:var(--color-on-info-container)' : 'color:var(--color-on-error-container)'">
             {{ fmtSigned(detalle.diferencia ?? 0) }}
           </p>
         </div>
@@ -276,11 +276,11 @@ async function submitRechazar() {
       <div class="rounded-xl p-4 grid grid-cols-2 gap-3" style="background-color: var(--color-surface-container-low)">
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Total ingresos</p>
-          <p class="font-extrabold" style="color: #065F46">+{{ fmt(detalle.totalIngresos) }}</p>
+          <p class="font-extrabold" style="color: var(--color-on-success-container)">+{{ fmt(detalle.totalIngresos) }}</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Total egresos</p>
-          <p class="font-extrabold" style="color: #991B1B">−{{ fmt(detalle.totalEgresos) }}</p>
+          <p class="font-extrabold" style="color: var(--color-on-error-container)">−{{ fmt(detalle.totalEgresos) }}</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto inicial</p>

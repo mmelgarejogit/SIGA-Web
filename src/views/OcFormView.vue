@@ -202,7 +202,7 @@ function cancel() {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 </script>
@@ -259,7 +259,7 @@ function inputStyle(hasError = false) {
 
           <!-- Datos generales -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
             <div class="grid grid-cols-2 gap-4">
@@ -318,10 +318,10 @@ function inputStyle(hasError = false) {
 
           <!-- Ítems -->
           <div class="rounded-2xl mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <div class="px-6 py-4 flex items-center justify-between"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Productos a pedir</h3>
               <button @click="addItem"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
@@ -347,7 +347,7 @@ function inputStyle(hasError = false) {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, i) in items" :key="i" style="border-top: 1px solid rgba(196,197,213,0.12)">
+                <tr v-for="(item, i) in items" :key="i" style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-3">
                     <SearchableSelect
                       :model-value="item.productoId"
@@ -444,7 +444,7 @@ function inputStyle(hasError = false) {
 
         <!-- Resultados -->
         <div class="rounded-2xl overflow-hidden"
-             style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15); max-height: 320px; overflow-y: auto;">
+             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline); max-height: 320px; overflow-y: auto;">
 
           <!-- Estado vacío -->
           <div v-if="proveedoresResultados.length === 0"

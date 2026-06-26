@@ -44,7 +44,7 @@ const label = computed(() => (route.meta.label as string) ?? "Esta sección")
       </div>
       <span
         class="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full"
-        style="background-color: rgba(0, 40, 142, 0.08); color: var(--color-primary)"
+        style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary)"
         >En desarrollo</span
       >
     </div>

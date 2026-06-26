@@ -99,7 +99,7 @@ function openRechazar(p: PedidoCompras) {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -158,10 +158,10 @@ const pendientesCount = computed(() => pedidos.value.length)
         <!-- Sin pendientes -->
         <div v-else-if="pedidos.length === 0"
           class="rounded-2xl py-20 flex flex-col items-center text-center gap-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <div class="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style="background-color: #dcfce7">
-            <span class="material-symbols-outlined text-4xl" style="color: #166534">check_circle</span>
+            style="background-color: var(--color-success-container)">
+            <span class="material-symbols-outlined text-4xl" style="color: var(--color-on-success-container)">check_circle</span>
           </div>
           <div>
             <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin órdenes pendientes</p>
@@ -188,14 +188,14 @@ const pendientesCount = computed(() => pedidos.value.length)
           <!-- Card por OC -->
           <div v-for="p in pedidos" :key="p.id"
             class="rounded-2xl overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <!-- Header de card -->
             <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <div class="flex items-center gap-3">
                 <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold"
-                  style="background-color: #f3f4f6; color: #374151">
+                  style="background-color: var(--color-surface-container); color: var(--color-on-surface-variant)">
                   OC #{{ p.id }}
                 </span>
                 <div>
@@ -221,7 +221,7 @@ const pendientesCount = computed(() => pedidos.value.length)
             <div class="px-6 py-4">
               <table class="w-full text-sm mb-4">
                 <thead>
-                  <tr style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                  <tr style="border-bottom: 1px solid var(--color-hairline-soft)">
                     <th class="text-left pb-2 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
                     <th class="text-center pb-2 text-xs font-bold uppercase tracking-wider" style="width: 80px; color: var(--color-outline)">Cant.</th>
                     <th class="text-right pb-2 text-xs font-bold uppercase tracking-wider" style="width: 160px; color: var(--color-outline)">Precio c/u</th>
@@ -247,7 +247,7 @@ const pendientesCount = computed(() => pedidos.value.length)
 
               <!-- Footer de card: total + acciones -->
               <div class="flex items-center justify-between pt-3"
-                style="border-top: 1px solid rgba(196,197,213,0.12)">
+                style="border-top: 1px solid var(--color-hairline-soft)">
                 <div>
                   <span class="text-xs font-bold uppercase tracking-wider mr-2" style="color: var(--color-outline)">Total estimado</span>
                   <span class="text-xl font-extrabold" style="color: var(--color-primary)">
@@ -277,8 +277,8 @@ const pendientesCount = computed(() => pedidos.value.length)
     <!-- Modal Confirmar -->
     <BaseModal :show="showConfirmarModal" title="Aprobar Orden de Compra" size="sm" @close="showConfirmarModal = false">
       <div class="flex flex-col items-center text-center gap-4 py-2">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background-color: #dcfce7">
-          <span class="material-symbols-outlined" style="font-size: 28px; color: #166534">check_circle</span>
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background-color: var(--color-success-container)">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: var(--color-on-success-container)">check_circle</span>
         </div>
         <div>
           <p class="text-sm font-semibold mb-1" style="color: var(--color-on-surface)">

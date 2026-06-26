@@ -215,7 +215,7 @@ function cancel() {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 </script>
@@ -258,7 +258,7 @@ function inputStyle(hasError = false) {
 
           <!-- ─── SECCIÓN 1: Origen ──────────────────────────────────────────── -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">1. Factura y origen</h3>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -329,10 +329,10 @@ function inputStyle(hasError = false) {
 
           <!-- ─── SECCIÓN 2: Detalle de ítems ───────────────────────────────── -->
           <div v-if="selectedFacturaId" class="rounded-2xl mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <div>
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">2. Detalle de ítems</h3>
                 <p class="text-xs mt-0.5" style="color: var(--color-on-surface-variant)">
@@ -380,11 +380,11 @@ function inputStyle(hasError = false) {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="l in lineas" :key="l.itemId" style="border-top: 1px solid rgba(196,197,213,0.12)">
+                <tr v-for="l in lineas" :key="l.itemId" style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ l.productoNombre }}</td>
                   <td class="px-3 py-3 text-center" style="color: var(--color-on-surface-variant)">{{ l.cantidadOC }}</td>
                   <td class="px-3 py-3 text-center" style="color: var(--color-on-surface-variant)">{{ l.yaRecibido }}</td>
-                  <td class="px-3 py-3 text-center font-semibold" style="color: #92400e">{{ l.pendiente }}</td>
+                  <td class="px-3 py-3 text-center font-semibold" style="color: var(--color-on-warning-container)">{{ l.pendiente }}</td>
                   <td class="px-3 py-3">
                     <input v-model.number="l.cantidadRecibida" type="number" :min="0" :max="l.pendiente"
                       class="w-full px-2 py-2 appearance-none shadow-none text-sm text-center outline-none font-bold"
@@ -416,8 +416,8 @@ function inputStyle(hasError = false) {
 
           <!-- ─── SECCIÓN 3: Historial ───────────────────────────────────────── -->
           <div v-if="selectedFacturaId && pedido" class="rounded-2xl mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
-            <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+            <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">3. Recepciones anteriores de esta OC</h3>
               <p class="text-xs mt-0.5" style="color: var(--color-on-surface-variant)">Sólo lectura.</p>
             </div>
@@ -428,7 +428,7 @@ function inputStyle(hasError = false) {
               <p class="text-sm">No hay recepciones previas para esta OC.</p>
             </div>
 
-            <div v-else class="divide-y" style="border-color: rgba(196,197,213,0.12)">
+            <div v-else class="divide-y" style="border-color: var(--color-hairline-soft)">
               <div v-for="rec in historial" :key="rec.id" class="px-6 py-4">
                 <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                   <div class="flex items-center gap-3">
@@ -502,7 +502,7 @@ function inputStyle(hasError = false) {
     </div>
 
     <!-- Resultados -->
-    <div class="rounded-xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
+    <div class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-hairline)">
       <div v-if="facturasFiltradas.length === 0" class="py-12 flex flex-col items-center gap-2">
         <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">receipt_long</span>
         <p class="text-sm font-medium" style="color: var(--color-outline)">Sin resultados para los filtros aplicados.</p>
@@ -521,7 +521,7 @@ function inputStyle(hasError = false) {
             class="cursor-pointer transition-colors hover:bg-surface-container-low"
             :style="f.id === selectedFacturaId
               ? 'background-color: #EEF2FF;'
-              : 'border-top: 1px solid rgba(196,197,213,0.12)'"
+              : 'border-top: 1px solid var(--color-hairline-soft)'"
             @click="selectFactura(f)">
             <td class="px-4 py-3">
               <span class="font-mono font-semibold text-xs" style="color: var(--color-on-surface)">{{ f.nroFactura }}</span>
@@ -533,7 +533,7 @@ function inputStyle(hasError = false) {
             </td>
             <td class="px-4 py-3 text-center">
               <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-                style="background-color: #fef3c7; color: #92400e">{{ f.itemsPendientes }}</span>
+                style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">{{ f.itemsPendientes }}</span>
             </td>
             <td class="px-4 py-3 text-xs" style="color: var(--color-on-surface-variant)">{{ formatDate(f.fechaEmision) }}</td>
           </tr>

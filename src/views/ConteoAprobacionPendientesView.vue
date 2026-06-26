@@ -86,13 +86,13 @@ function formatDate(iso: string) {
           <template #diferencias="{ item }">
             <span v-if="item.lineasConDiferencia > 0"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #FEF3C7; color: #92400E">
+              style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
               {{ item.lineasConDiferencia }}
             </span>
             <span v-else
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #dcfce7; color: #166534">
+              style="background-color: var(--color-success-container); color: var(--color-on-success-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">check_circle</span>
               Sin diferencias
             </span>

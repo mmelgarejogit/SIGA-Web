@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 
 const variantClasses: Record<string, string> = {
-  primary: "bg-primary text-on-primary shadow-[0_4px_20px_rgba(0,40,142,0.2)]",
+  primary: "bg-primary text-on-primary shadow-[var(--shadow-primary)]",
   secondary: "bg-surface-container-high text-on-surface-variant",
   danger: "bg-error text-on-error",
   ghost: "bg-transparent text-on-surface-variant hover:bg-surface-container-high",

@@ -98,8 +98,8 @@ onBeforeUnmount(() => {
       @click="toggle"
       class="w-full h-12 px-4 text-sm text-left flex items-center justify-between outline-none appearance-none shadow-none transition-all"
       :style="hasError
-        ? 'border-radius: 12px; border: 1.5px solid var(--color-error); background-color: #FFF8F7; color: var(--color-on-surface);'
-        : 'border-radius: 12px; border: 1px solid var(--color-outline-variant); background-color: var(--color-surface); color: var(--color-on-surface);'"
+        ? 'border-radius: var(--radius-md); border: 1.5px solid var(--color-error); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface)); color: var(--color-on-surface);'
+        : 'border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); background-color: var(--color-surface); color: var(--color-on-surface);'"
     >
       <span :style="!selected ? 'color: var(--color-outline)' : ''">
         {{ selected ? formatDisplay(selected) : (placeholder ?? 'Seleccionar período') }}
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
             type="button"
             @click="select(i)"
             class="h-9 text-xs font-medium transition-colors"
-            style="border-radius: 8px"
+            style="border-radius: var(--radius-sm)"
             :style="isSelected(i)
               ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
               : isCurrentMonth(i)
@@ -173,10 +173,10 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 9999;
   min-width: 280px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background-color: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-lg);
 }
 .mp-enter-active, .mp-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .mp-enter-from, .mp-leave-to { opacity: 0; transform: translateY(-4px) scale(0.98); }

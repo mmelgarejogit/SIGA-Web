@@ -38,7 +38,7 @@ const loadError = ref("")
 const estadoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "activo",   label: "Activos",   dot: "#166534" },
+  { value: "activo",   label: "Activos",   dot: "var(--color-on-success-container)" },
   { value: "inactivo", label: "Inactivos", dot: "var(--color-outline)" },
 ]
 
@@ -340,7 +340,7 @@ async function quitarTarifa(t: ServicioTarifa) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="itemsPaginados" :loading="isLoading" empty-text="No hay servicios registrados.">
             <template #nombre="{ item }">
               <div class="flex items-center gap-3">
@@ -361,7 +361,7 @@ async function quitarTarifa(t: ServicioTarifa) {
             </template>
             <template #estado="{ item }">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
-                :style="item.isActive ? 'background-color:#dcfce7;color:#166534' : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
+                :style="item.isActive ? 'background-color:var(--color-success-container);color:var(--color-on-success-container)' : 'background-color:var(--color-surface-container-high);color:var(--color-outline)'">
                 {{ item.isActive ? "Activo" : "Inactivo" }}
               </span>
             </template>
@@ -373,7 +373,7 @@ async function quitarTarifa(t: ServicioTarifa) {
           </BaseTable>
 
           <div v-if="itemsPaginados.length > 0" class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
               de <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong> servicios
@@ -388,7 +388,7 @@ async function quitarTarifa(t: ServicioTarifa) {
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'">
                   {{ p }}
                 </button>
               </template>
@@ -522,9 +522,9 @@ async function quitarTarifa(t: ServicioTarifa) {
           </div>
           <div v-else class="space-y-2">
             <div v-for="t in tarifaServicio.tarifas" :key="t.id" class="flex items-center gap-3 rounded-xl px-4 py-2.5"
-              style="background: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.15)">
+              style="background: var(--color-surface-container-low); border: 1px solid var(--color-hairline)">
               <span class="px-2 py-0.5 rounded-full text-xs font-bold"
-                :style="t.professionalId ? 'background-color:#EDE9FE;color:#7c3aed' : 'background-color:#DBEAFE;color:#1d4ed8'">
+                :style="t.professionalId ? 'background-color:color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest));color:var(--color-tertiary)' : 'background-color:var(--color-info-container);color:var(--color-on-info-container)'">
                 {{ t.professionalId ? "Profesional" : "Especialidad" }}
               </span>
               <span class="flex-1 min-w-0 text-sm font-semibold truncate" style="color: var(--color-on-surface)">{{ scopeLabel(t) }}</span>

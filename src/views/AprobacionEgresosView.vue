@@ -78,10 +78,10 @@ function tipoLabel(tipo: string) {
 
 function tipoColor(tipo: string) {
   return {
-    FacturaCompra: { bg: "#DBEAFE", color: "#1D4ED8" },
-    Honorario:     { bg: "#EDE9FE", color: "#6D28D9" },
-    GastoGeneral:  { bg: "#FEF3C7", color: "#92400E" },
-  }[tipo] ?? { bg: "#F3F4F6", color: "#374151" }
+    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+  }[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
 
 function tipoIcon(tipo: string) {
@@ -134,7 +134,7 @@ function openRechazar(e: Egreso) {
 function inputStyle(hasError = false) {
   const base = 'border-radius: 12px; '
   return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
     : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
@@ -256,7 +256,7 @@ async function submitRechazar() {
     <!-- ── MODAL DETALLE ─────────────────────────────────────────────────────── -->
     <BaseModal :show="showDetalle" title="Detalle de Solicitud" size="lg" @close="showDetalle = false">
       <div v-if="detalleEgreso" class="space-y-4">
-        <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
+        <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid var(--color-hairline)">
           <span class="w-12 h-12 rounded-2xl flex items-center justify-center"
             :style="`background-color: ${tipoColor(detalleEgreso.tipo).bg}`">
             <span class="material-symbols-outlined" :style="`font-size: 22px; color: ${tipoColor(detalleEgreso.tipo).color}`">{{ tipoIcon(detalleEgreso.tipo) }}</span>
