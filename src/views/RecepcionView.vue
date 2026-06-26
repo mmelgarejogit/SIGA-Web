@@ -175,7 +175,7 @@ async function iniciarConsulta(t: Turno) {
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Recepcion</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Recepción</h1>
             <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
               {{ todayLabel }}
             </p>
