@@ -126,6 +126,18 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_mis_turnos", label: "Mis Turnos" },
     },
     {
+      path: "/mi-historial",
+      name: "mi-historial",
+      component: () => import("@/views/MiHistorialView.vue"),
+      meta: { requiresAuth: true, permission: "ver_mis_turnos", label: "Mi Historial" },
+    },
+    {
+      path: "/mis-recetas",
+      name: "mis-recetas",
+      component: () => import("@/views/MisRecetasView.vue"),
+      meta: { requiresAuth: true, permission: "ver_mis_turnos", label: "Mis Recetas" },
+    },
+    {
       path: "/clinica",
       redirect: "/clinica/consultas",
     },
