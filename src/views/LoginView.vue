@@ -5,6 +5,7 @@ import { login } from "@/services/authService"
 import { useAuthStore } from "@/stores/auth"
 import { menuConfig } from "@/config/menuConfig"
 import BaseButton from "@/components/BaseButton.vue"
+import AuthHero from "@/components/AuthHero.vue"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -116,83 +117,12 @@ async function handleSubmit() {
     class="min-h-screen flex flex-col md:flex-row overflow-hidden"
     style="background-color: var(--color-surface); color: var(--color-on-surface)"
   >
-    <!-- ── LEFT PANEL ── -->
-    <section
-      class="hidden md:flex md:w-[55%] relative overflow-hidden items-center justify-center"
-      style="background-color: var(--color-primary-container)"
-    >
-      <!-- Background image (eyeglasses on marble, mix-blend-overlay) -->
-      <div class="absolute inset-0 z-0">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB316X6IevMlGCue86yPBEHEtWRntvBzkXBlUqImB4RKgBaS2T9139462GjkuVAQjtmTJEGZkyd7N81l5Wq09m9vTDSS6YAKqWKquTlepD5qqjabt_hvhR2jjTz_VLg15HM_lX8RrqhWOQO70O3CVHt3q_Ci8DG1qF-ev67n9zA7mRn6v9auHmg9DqK-iBx8ATd1UHET5_ko3LskskKQeG9xt1_Ut46H1aOOHZfu9f2ehzY3DLaWTG1h9V1UgB3HGEb0raHHIeyw"
-          alt=""
-          class="w-full h-full object-cover"
-          style="opacity: 0.6; mix-blend-mode: overlay"
-        />
-        <!-- gradient overlay: from-primary (bottom-left) to transparent -->
-        <div
-          class="absolute inset-0"
-          style="
-            background: linear-gradient(to top right, var(--color-primary), transparent);
-            opacity: 0.8;
-          "
-        ></div>
-      </div>
-
-      <!-- Lens circles decoration -->
-      <div
-        class="absolute bottom-[-10%] right-[-10%] w-96 h-96 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255, 255, 255, 0.1)"
-      ></div>
-      <div
-        class="absolute bottom-[-5%] right-[-5%] w-64 h-64 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255, 255, 255, 0.18)"
-      ></div>
-
-      <!-- Content -->
-      <div class="relative z-10 p-12 lg:p-24 max-w-2xl w-full">
-        <div class="mb-14">
-          <span
-            class="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase mb-8"
-            style="
-              background-color: var(--color-secondary-fixed);
-              color: var(--color-on-secondary-fixed);
-            "
-            >Precisión Óptica</span
-          >
-
-          <h1 class="text-5xl lg:text-7xl font-extrabold text-white leading-tight tracking-tighter">
-            La visión del futuro comienza
-            <span style="color: var(--color-secondary-container)"> aquí.</span>
-          </h1>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-          <div class="space-y-2">
-            <p
-              class="text-xs uppercase tracking-widest font-bold"
-              style="color: rgba(255, 255, 255, 0.5)"
-            >
-              Tecnología
-            </p>
-            <p class="text-white text-base font-medium leading-snug">
-              Gestión clínica integrada con precisión absoluta.
-            </p>
-          </div>
-          <div class="space-y-2">
-            <p
-              class="text-xs uppercase tracking-widest font-bold"
-              style="color: rgba(255, 255, 255, 0.5)"
-            >
-              Confianza
-            </p>
-            <p class="text-white text-base font-medium leading-snug">
-              Líder en soluciones para el mercado óptico.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- ── LEFT PANEL (hero de refracción) ── -->
+    <AuthHero
+      eyebrow="Precisión óptica"
+      title="Todo en foco."
+      subtitle="La gestión de tu centro óptico, con la nitidez de un instrumento de precisión."
+    />
 
     <!-- ── RIGHT PANEL ── -->
     <section
