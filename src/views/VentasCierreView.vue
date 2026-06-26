@@ -244,8 +244,8 @@ function confirmarCierreYSalir() {
           <!-- Badge estado -->
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 text-sm font-bold"
                :style="sesion.estado === 'PendienteAprobacion'
-                 ? 'background-color: #FEF3C7; color: #92400E'
-                 : 'background-color: #D1FAE5; color: #065F46'">
+                 ? 'background-color: var(--color-warning-container); color: var(--color-on-warning-container)'
+                 : 'background-color: var(--color-success-container); color: var(--color-on-success-container)'">
             <span class="w-2 h-2 rounded-full animate-pulse"
                   :class="sesion.estado === 'PendienteAprobacion' ? 'bg-amber-500' : 'bg-green-500'"></span>
             {{ sesion.estado === "PendienteAprobacion" ? "Pendiente de aprobación" : "Caja abierta" }}
@@ -254,10 +254,10 @@ function confirmarCierreYSalir() {
           <!-- Banner pendiente de aprobación -->
           <div v-if="sesion.estado === 'PendienteAprobacion'"
                class="rounded-2xl p-5 mb-6 flex items-start gap-4"
-               style="background-color: #FFFBEB; border: 1px solid #FDE68A">
-            <span class="material-symbols-outlined text-3xl flex-shrink-0" style="color: #D97706">schedule</span>
+               style="background-color: #FFFBEB; border: 1px solid var(--color-warning-container)">
+            <span class="material-symbols-outlined text-3xl flex-shrink-0" style="color: var(--color-warning)">schedule</span>
             <div>
-              <p class="font-extrabold mb-1" style="color: #92400E">Cierre pendiente de aprobación</p>
+              <p class="font-extrabold mb-1" style="color: var(--color-on-warning-container)">Cierre pendiente de aprobación</p>
               <p class="text-sm" style="color: #B45309">
                 El arqueo registró una diferencia superior a la tolerancia permitida. Un supervisor debe aprobar o rechazar el cierre.
                 Si es rechazado, podrás hacer un nuevo conteo.
@@ -268,20 +268,20 @@ function confirmarCierreYSalir() {
           <!-- ── Bloque 1: Posición de efectivo ────────────────────────────── -->
           <h3 class="text-base font-extrabold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Posición de efectivo</h3>
           <div class="grid grid-cols-4 gap-4 mb-8">
-            <KpiCard title="Efectivo inicial" :value="fmt(sesion.montoInicial)" icon="account_balance_wallet" iconBg="#EDE9FE" iconColor="#7C3AED" />
-            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="#D1FAE5" iconColor="#065F46" />
+            <KpiCard title="Efectivo inicial" :value="fmt(sesion.montoInicial)" icon="account_balance_wallet" iconBg="color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))" iconColor="var(--color-tertiary)" />
+            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="var(--color-success-container)" iconColor="var(--color-on-success-container)" />
             <KpiCard
               title="Egresos efectivo"
               :value="fmt(sesion.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0))"
-              icon="trending_down" iconBg="#FEE2E2" iconColor="#991B1B"
+              icon="trending_down" iconBg="var(--color-error-container)" iconColor="var(--color-on-error-container)"
             />
-            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="#DBEAFE" iconColor="#1D4ED8" />
+            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="var(--color-info-container)" iconColor="var(--color-on-info-container)" />
           </div>
 
 
           <!-- Movimientos -->
-          <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-            <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.15)">
+          <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+            <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid var(--color-hairline)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Movimientos de la sesión</h3>
               <div class="flex gap-2">
                 <button
@@ -301,7 +301,7 @@ function confirmarCierreYSalir() {
               <p style="color: var(--color-outline)">Sin movimientos en esta sesión</p>
             </div>
 
-            <div v-else class="divide-y" style="divide-color: rgba(196,197,213,0.12)">
+            <div v-else class="divide-y" style="divide-color: var(--color-hairline-soft)">
               <div
                 v-for="m in movsFiltrados"
                 :key="m.id"
@@ -309,10 +309,10 @@ function confirmarCierreYSalir() {
               >
                 <div
                   class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
-                  :style="`background-color: ${m.tipo === 'Ingreso' ? '#D1FAE5' : '#FEE2E2'}`"
+                  :style="`background-color: ${m.tipo === 'Ingreso' ? 'var(--color-success-container)' : 'var(--color-error-container)'}`"
                 >
                   <span class="material-symbols-outlined" style="font-size:20px"
-                    :style="`color: ${m.tipo === 'Ingreso' ? '#065F46' : '#991B1B'}`">
+                    :style="`color: ${m.tipo === 'Ingreso' ? 'var(--color-on-success-container)' : 'var(--color-on-error-container)'}`">
                     {{ m.tipo === "Ingreso" ? "arrow_downward" : "arrow_upward" }}
                   </span>
                 </div>
@@ -331,7 +331,7 @@ function confirmarCierreYSalir() {
                   </div>
                 </div>
                 <p class="text-base font-bold flex-shrink-0"
-                   :style="`color: ${m.tipo === 'Ingreso' ? '#065F46' : '#991B1B'}`">
+                   :style="`color: ${m.tipo === 'Ingreso' ? 'var(--color-on-success-container)' : 'var(--color-on-error-container)'}`">
                   {{ m.tipo === "Ingreso" ? "+" : "−" }}{{ fmt(m.monto) }}
                 </p>
               </div>
@@ -339,7 +339,7 @@ function confirmarCierreYSalir() {
 
             <div v-if="movsFiltrados.length > 0"
                  class="flex items-center justify-between px-6 py-4"
-                 style="border-top: 1px solid rgba(196,197,213,0.15); background-color: var(--color-surface-container-low)">
+                 style="border-top: 1px solid var(--color-hairline); background-color: var(--color-surface-container-low)">
               <p class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
                 {{ movsFiltrados.length }} movimiento{{ movsFiltrados.length !== 1 ? "s" : "" }}
               </p>
@@ -412,9 +412,9 @@ function confirmarCierreYSalir() {
 
     <!-- Panel resultado post-cierre -->
     <div v-if="cierreResult" class="space-y-4">
-      <div class="rounded-2xl p-6 text-center" style="background-color: #D1FAE5">
-        <span class="material-symbols-outlined text-5xl block mb-3" style="color: #065F46">check_circle</span>
-        <p class="text-lg font-extrabold mb-1" style="color: #065F46">Caja cerrada correctamente</p>
+      <div class="rounded-2xl p-6 text-center" style="background-color: var(--color-success-container)">
+        <span class="material-symbols-outlined text-5xl block mb-3" style="color: var(--color-on-success-container)">check_circle</span>
+        <p class="text-lg font-extrabold mb-1" style="color: var(--color-on-success-container)">Caja cerrada correctamente</p>
         <p class="text-sm" style="color: #047857">La sesión fue cerrada y registrada en el historial.</p>
       </div>
       <div class="rounded-xl p-4 grid grid-cols-3 gap-4"
@@ -430,7 +430,7 @@ function confirmarCierreYSalir() {
         <div class="text-center">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Diferencia</p>
           <p class="font-extrabold"
-             :style="(cierreResult.diferencia ?? 0) === 0 ? 'color:#065F46' : (cierreResult.diferencia ?? 0) > 0 ? 'color:#1D4ED8' : 'color:#991B1B'">
+             :style="(cierreResult.diferencia ?? 0) === 0 ? 'color:var(--color-on-success-container)' : (cierreResult.diferencia ?? 0) > 0 ? 'color:var(--color-on-info-container)' : 'color:var(--color-on-error-container)'">
             {{ (cierreResult.diferencia ?? 0) > 0 ? "+" : (cierreResult.diferencia ?? 0) < 0 ? "−" : "" }}{{ fmt(cierreResult.diferencia ?? 0) }}
           </p>
         </div>
@@ -451,11 +451,11 @@ function confirmarCierreYSalir() {
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Ingresos efectivo</p>
-          <p class="font-extrabold" style="color: #065F46">+{{ fmt(sesion?.efectivoIngresos ?? 0) }}</p>
+          <p class="font-extrabold" style="color: var(--color-on-success-container)">+{{ fmt(sesion?.efectivoIngresos ?? 0) }}</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Egresos efectivo</p>
-          <p class="font-extrabold" style="color: #991B1B">−{{ fmt(sesion?.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0) ?? 0) }}</p>
+          <p class="font-extrabold" style="color: var(--color-on-error-container)">−{{ fmt(sesion?.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0) ?? 0) }}</p>
         </div>
       </div>
 
@@ -471,7 +471,7 @@ function confirmarCierreYSalir() {
           class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
           style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
         />
-        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:#065F46' : 'color:#92400E'">
+        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
           {{ diferenciaPreview === 0
               ? "✓ Coincide con lo esperado"
               : `Diferencia: ${diferenciaPreview > 0 ? "+" : "−"}${fmt(diferenciaPreview)}` }}

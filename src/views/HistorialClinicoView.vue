@@ -91,16 +91,16 @@ async function loadHistory() {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
 ]
 
 function avatarStyle(id: number) {
   return (
     AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
   )
 }
 
@@ -167,7 +167,7 @@ const recetaColumns = [
               class="absolute top-full mt-1 w-full rounded-xl shadow-lg z-10 overflow-hidden"
               style="
                 background-color: var(--color-surface-container-lowest);
-                border: 1px solid rgba(196, 197, 213, 0.4);
+                border: 1px solid var(--color-hairline-strong);
               "
             >
               <button
@@ -202,8 +202,8 @@ const recetaColumns = [
           class="flex items-center gap-4 rounded-2xl px-6 py-5 mb-8"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-            outline: 1px solid rgba(196, 197, 213, 0.15);
+            box-shadow: var(--shadow-sm);
+            outline: 1px solid var(--color-hairline);
           "
         >
           <div
@@ -228,7 +228,7 @@ const recetaColumns = [
           class="rounded-2xl py-16 text-center"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+            box-shadow: var(--shadow-sm);
           "
         >
           <span
@@ -288,7 +288,7 @@ const recetaColumns = [
           class="rounded-2xl py-16 text-center"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+            box-shadow: var(--shadow-sm);
           "
         >
           <span
@@ -312,8 +312,8 @@ const recetaColumns = [
             class="rounded-2xl p-6"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -338,7 +338,7 @@ const recetaColumns = [
               <span
                 v-if="c.receta"
                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style="background-color: #d1fae5; color: #065f46"
+                style="background-color: var(--color-success-container); color: var(--color-on-success-container)"
               >
                 <span class="material-symbols-outlined" style="font-size: 12px">check</span>
                 Con receta
@@ -408,7 +408,7 @@ const recetaColumns = [
             <div
               v-if="c.receta"
               class="mt-5 pt-5"
-              style="border-top: 1px solid rgba(196, 197, 213, 0.15)"
+              style="border-top: 1px solid var(--color-hairline)"
             >
               <div class="flex items-center gap-2 mb-3">
                 <span

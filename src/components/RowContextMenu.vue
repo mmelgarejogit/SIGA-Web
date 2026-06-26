@@ -84,7 +84,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 .ctx-trigger {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   border: none;
   background: transparent;
   color: var(--color-outline);
@@ -104,11 +104,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
   position: fixed;
   z-index: 9999;
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 4px;
   min-width: 180px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .ctx-item {
@@ -117,7 +117,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
   gap: 10px;
   width: 100%;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   font-size: 13px;

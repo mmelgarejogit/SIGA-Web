@@ -76,7 +76,7 @@ function onCreated(c: Cliente) {
 </script>
 
 <template>
-  <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+  <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Cliente</h3>
       <button

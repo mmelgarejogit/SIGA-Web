@@ -184,7 +184,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ productos.length }} producto{{ productos.length !== 1 ? "s" : "" }}
               <span v-if="bajoStockCount > 0" class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                style="background-color: #FEF3C7; color: #92400E">
+                style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
                 <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
                 {{ bajoStockCount }} bajo stock
               </span>
@@ -246,19 +246,19 @@ function menuItems(p: Producto): ContextMenuItem[] {
           <template #estado="{ item }">
             <span v-if="item.bajoStock"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #FEF3C7; color: #92400E">
+              style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
               Bajo stock
             </span>
             <span v-else-if="item.stockMaximo != null && item.stockActual >= item.stockMaximo"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #dbeafe; color: #1e40af">
+              style="background-color: var(--color-info-container); color: var(--color-on-info-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">arrow_upward</span>
               Sobre stock
             </span>
             <span v-else
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #dcfce7; color: #166534">
+              style="background-color: var(--color-success-container); color: var(--color-on-success-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">check_circle</span>
               OK
             </span>

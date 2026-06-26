@@ -162,7 +162,7 @@ onUnmounted(() => {
               @click="toggleOption(opt.value)"
             >
               <div class="ms-check" :class="{ checked: isSelected(opt.value) }">
-                <span v-if="isSelected(opt.value)" class="material-symbols-outlined" style="font-size: 12px; color: white">check</span>
+                <span v-if="isSelected(opt.value)" class="material-symbols-outlined" style="font-size: 12px; color: var(--color-on-primary)">check</span>
               </div>
               <span class="ms-option-label">{{ opt.label }}</span>
             </button>
@@ -184,7 +184,7 @@ onUnmounted(() => {
 .ms-trigger {
   width: 100%; display: flex; align-items: center; gap: 6px;
   padding: 0 16px; height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-outline-variant);
   background: var(--color-surface);
   color: var(--color-on-surface);
@@ -194,7 +194,7 @@ onUnmounted(() => {
 }
 .ms-trigger:hover:not(.disabled) { border-color: var(--color-outline); }
 .ms-trigger.open  { border-color: var(--color-primary); outline: none; }
-.ms-trigger.error { border: 1.5px solid var(--color-error); background-color: #FFF8F7; }
+.ms-trigger.error { border: 1.5px solid var(--color-error); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface)); }
 .ms-trigger.disabled { opacity: 0.45; cursor: not-allowed; background: var(--color-surface-container-low); }
 
 .ms-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -203,7 +203,7 @@ onUnmounted(() => {
 .ms-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
-  background: var(--color-primary); color: #fff;
+  background: var(--color-primary); color: var(--color-on-primary);
   font-size: 11px; font-weight: 700; flex-shrink: 0;
 }
 
@@ -214,9 +214,9 @@ onUnmounted(() => {
   position: fixed;
   z-index: 9999;
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -234,7 +234,7 @@ onUnmounted(() => {
 
 .ms-option {
   width: 100%; display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: 8px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
   border: none; background: transparent;
   font-size: 13px; font-family: inherit;
   color: var(--color-on-surface); cursor: pointer; text-align: left;

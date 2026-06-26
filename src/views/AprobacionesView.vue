@@ -43,8 +43,8 @@ const visiblePages = computed(() => {
 })
 
 const tipoOptions = [
-  { value: "Entrada", label: "Entradas", dot: "#166534" },
-  { value: "Salida",  label: "Salidas",  dot: "#991b1b" },
+  { value: "Entrada", label: "Entradas", dot: "var(--color-on-success-container)" },
+  { value: "Salida",  label: "Salidas",  dot: "var(--color-on-error-container)" },
 ]
 
 const columns = [
@@ -66,8 +66,8 @@ function formatDate(iso: string) {
 
 function tipoStyle(tipo: string) {
   return tipo === "Entrada"
-    ? { bg: "#dcfce7", text: "#166534" }
-    : { bg: "#fee2e2", text: "#991b1b" }
+    ? { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    : { bg: "var(--color-error-container)", text: "var(--color-on-error-container)" }
 }
 
 async function load() {
@@ -195,7 +195,7 @@ async function downloadPdf(m: MovimientoStock) {
           <!-- Badge contador -->
           <div v-if="totalCount > 0"
             class="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold"
-            style="background-color: #FEF3C7; color: #92400E">
+            style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
             <span class="material-symbols-outlined" style="font-size: 18px">schedule</span>
             {{ totalCount }} pendiente{{ totalCount !== 1 ? "s" : "" }}
           </div>
@@ -215,7 +215,7 @@ async function downloadPdf(m: MovimientoStock) {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos pendientes de aprobación." @row-click="openDetail">
 
             <template #fecha="{ item }">
@@ -257,7 +257,7 @@ async function downloadPdf(m: MovimientoStock) {
 
           <!-- Paginador -->
           <div v-if="movimientos.length > 0" class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
               de <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong> movimientos
@@ -272,7 +272,7 @@ async function downloadPdf(m: MovimientoStock) {
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number); load()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :style="currentPage === p ? 'background-color: var(--color-primary); color: white;' : 'color: var(--color-on-surface-variant)'">
+                  :style="currentPage === p ? 'background-color: var(--color-primary); color: var(--color-on-primary);' : 'color: var(--color-on-surface-variant)'">
                   {{ p }}
                 </button>
               </template>
@@ -297,7 +297,7 @@ async function downloadPdf(m: MovimientoStock) {
             :style="`background-color: ${tipoStyle(detailTarget.tipo).bg}; color: ${tipoStyle(detailTarget.tipo).text}`">
             {{ detailTarget.tipo }}
           </span>
-          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold" style="background-color: #FEF3C7; color: #92400E">
+          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold" style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
             <span class="material-symbols-outlined" style="font-size: 13px">schedule</span>
             Pendiente
           </span>

@@ -108,8 +108,8 @@ onUnmounted(() => {
 
 const fieldStyle = computed(() =>
   props.hasError
-    ? "border-radius: 12px; border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
-    : "border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
+    ? "border-radius: var(--radius-md); border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
+    : "border-radius: var(--radius-md); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 )
 </script>
 
@@ -243,10 +243,10 @@ const fieldStyle = computed(() =>
   position: fixed;
   z-index: 9999;
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: 0 8px 24px rgba(0, 40, 142, 0.12);
+  box-shadow: var(--shadow-lg);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px;
@@ -255,7 +255,7 @@ const fieldStyle = computed(() =>
 
 .bdi-mopt {
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   font-size: 13px;
@@ -266,7 +266,7 @@ const fieldStyle = computed(() =>
   transition: background 0.1s;
 }
 .bdi-mopt:hover    { background: var(--color-surface-container-high); }
-.bdi-mopt.selected { background: var(--color-primary); color: white; font-weight: 600; }
+.bdi-mopt.selected { background: var(--color-primary); color: var(--color-on-primary); font-weight: 600; }
 
 .bdi-drop-enter-active, .bdi-drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .bdi-drop-enter-from,   .bdi-drop-leave-to     { opacity: 0; transform: translateY(-4px) scale(0.98); }

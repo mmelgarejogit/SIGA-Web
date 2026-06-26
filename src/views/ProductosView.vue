@@ -97,13 +97,13 @@ const columns = [
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
     : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
 }
 
@@ -534,7 +534,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
               class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
               :style="
                 bajoStockFilter
-                  ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+                  ? 'background-color: var(--color-warning-container); color: var(--color-on-warning-container); border: 1px solid var(--color-warning-container);'
                   : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
               "
             >
@@ -561,7 +561,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable
             :columns="columns"
             :items="productos"
@@ -610,7 +610,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
           <div
             v-if="productos.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -632,7 +632,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
                   v-else
                   @click="currentPage = (p as number); loadProductos()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button
@@ -660,7 +660,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
           <!-- Header -->
           <div class="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0"
-            style="border-bottom: 1px solid rgba(196,197,213,0.2)">
+            style="border-bottom: 1px solid var(--color-hairline)">
             <h3 class="text-lg font-extrabold truncate pr-4" style="color: var(--color-primary)">
               {{ detailProducto.nombre }}
             </h3>
@@ -676,7 +676,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
             <!-- Imagen -->
             <div class="w-full rounded-2xl overflow-hidden flex items-center justify-center"
-              style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.2)">
+              style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid var(--color-hairline)">
               <img v-if="detailProducto.imagenUrl"
                 :src="API_BASE + detailProducto.imagenUrl"
                 :alt="detailProducto.nombre"
@@ -698,14 +698,14 @@ function menuItems(p: Producto): ContextMenuItem[] {
               </span>
               <span v-if="detailProducto.descuentoCategoria > 0"
                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style="background-color:#dbeafe;color:#1e40af">
+                style="background-color:var(--color-info-container);color:var(--color-on-info-container)">
                 <span class="material-symbols-outlined" style="font-size:13px">percent</span>
                 {{ detailProducto.descuentoCategoria }}% dto. categoría
               </span>
             </div>
 
             <!-- Info general -->
-            <div class="rounded-2xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
+            <div class="rounded-2xl overflow-hidden" style="border: 1px solid var(--color-hairline)">
               <div v-for="row in [
                 { label: 'Categoría',  value: detailProducto.categoria },
                 { label: 'SKU',        value: detailProducto.sku ?? '—' },
@@ -715,7 +715,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
                 { label: 'Talle',      value: detailProducto.talle ?? '—' },
               ]" :key="row.label"
                 class="flex items-center justify-between px-4 py-3"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ row.label }}</span>
                 <span class="text-sm font-medium text-right" style="color: var(--color-on-surface); max-width: 220px">{{ row.value }}</span>
               </div>
@@ -731,7 +731,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
           <!-- Footer actions -->
           <div v-if="canManage" class="flex gap-3 px-6 py-4 flex-shrink-0"
-            style="border-top: 1px solid rgba(196,197,213,0.2)">
+            style="border-top: 1px solid var(--color-hairline)">
             <BaseButton variant="secondary" size="default" class="flex-1" @click="openEdit(detailProducto); closeDetail()">
               <span class="material-symbols-outlined" style="font-size:18px">edit</span>
               Editar
@@ -997,7 +997,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
               @click="movForm.tipo = tipo as any"
               class="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
               :style="movForm.tipo === tipo
-                ? 'background-color: var(--color-primary); color: white;'
+                ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
                 : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant);'"
             >{{ tipo }}</button>
           </div>
@@ -1090,8 +1090,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
       </div>
       <div class="text-center">
         <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5"
-             style="background-color: #dcfce7">
-          <span class="material-symbols-outlined" style="color: #166534; font-size: 28px">check_circle</span>
+             style="background-color: var(--color-success-container)">
+          <span class="material-symbols-outlined" style="color: var(--color-on-success-container); font-size: 28px">check_circle</span>
         </div>
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           ¿Activar <strong style="color: var(--color-on-surface)">{{ productoToActivate?.nombre }}</strong>?

@@ -187,7 +187,7 @@ async function submitEdit() {
             <span
               class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
               :style="item.activo
-                ? 'background-color: #dcfce7; color: #166534'
+                ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
                 : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
             >{{ item.activo ? "Activa" : "Inactiva" }}</span>
           </template>
@@ -265,7 +265,7 @@ async function submitEdit() {
             <span
               class="material-symbols-outlined"
               style="font-size: 32px; transition: color 0.15s"
-              :style="editForm.activo ? 'color: #166534' : 'color: var(--color-outline)'"
+              :style="editForm.activo ? 'color: var(--color-on-success-container)' : 'color: var(--color-outline)'"
             >{{ editForm.activo ? "toggle_on" : "toggle_off" }}</span>
           </button>
         </div>

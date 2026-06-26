@@ -27,11 +27,11 @@ const isEmpty = () => {
 
 <template>
   <div
-    class="rounded-2xl overflow-hidden"
+    class="rounded-lg overflow-hidden"
     style="
       background-color: var(--color-surface-container-lowest);
-      box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-      outline: 1px solid rgba(196, 197, 213, 0.15);
+      box-shadow: var(--shadow-sm);
+      outline: 1px solid var(--color-hairline);
     "
   >
     <table class="w-full text-left">
@@ -57,7 +57,7 @@ const isEmpty = () => {
       <tbody>
         <!-- Loading skeleton -->
         <template v-if="props.loading">
-          <tr v-for="n in 5" :key="n" style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)">
+          <tr v-for="n in 5" :key="n" style="border-bottom: 1px solid var(--color-hairline-soft)">
             <td v-for="col in (props.columns ?? [{ key: '_', label: '' }])" :key="col.key" class="px-6 py-4">
               <div
                 class="h-4 rounded animate-pulse"
@@ -86,7 +86,7 @@ const isEmpty = () => {
             v-for="(item, idx) in props.items ?? []"
             :key="item.id ?? idx"
             class="group transition-colors cursor-pointer hover:bg-surface-container-low"
-            style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+            style="border-bottom: 1px solid var(--color-hairline-soft)"
             @click="emit('row-click', item)"
           >
             <td

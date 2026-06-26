@@ -80,11 +80,11 @@ function tipoIcon(tipo: string) {
 
 function tipoColor(tipo: string): { bg: string; color: string } {
   return {
-    FacturaCompra: { bg: "#DBEAFE", color: "#1D4ED8" },
-    Honorario:     { bg: "#EDE9FE", color: "#6D28D9" },
-    GastoGeneral:  { bg: "#FEF3C7", color: "#92400E" },
-    Salario:       { bg: "#DCFCE7", color: "#166534" },
-  }[tipo] ?? { bg: "#F3F4F6", color: "#374151" }
+    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    Salario:       { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" },
+  }[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
 
 const referencia = computed(() => {
@@ -102,7 +102,7 @@ const referencia = computed(() => {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -179,10 +179,10 @@ async function submit() {
 
           <!-- Detalle del egreso (solo lectura) -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+            style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
             <p class="text-xs font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Solicitud aprobada</p>
 
-            <div class="flex items-center gap-3 mb-5 pb-4" style="border-bottom: 1px solid rgba(196,197,213,0.15)">
+            <div class="flex items-center gap-3 mb-5 pb-4" style="border-bottom: 1px solid var(--color-hairline)">
               <span class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                 :style="`background-color: ${tipoColor(egreso.tipo).bg}`">
                 <span class="material-symbols-outlined" :style="`font-size: 20px; color: ${tipoColor(egreso.tipo).color}`">
@@ -222,7 +222,7 @@ async function submit() {
 
           <!-- Formulario de pago -->
           <div class="rounded-2xl p-6 space-y-5"
-            style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+            style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
             <p class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Datos del pago</p>
 
             <!-- Error de guardado -->
@@ -280,25 +280,25 @@ async function submit() {
 
             <!-- Pago externo (solo visible para aprobar_egresos) -->
             <template v-if="canMarkExternal">
-              <div class="pt-1" style="border-top: 1px solid rgba(196,197,213,0.2)">
+              <div class="pt-1" style="border-top: 1px solid var(--color-hairline)">
                 <button
                   type="button"
                   @click="form.esExterno = !form.esExterno"
                   class="flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 transition-all"
                   :style="form.esExterno
-                    ? 'background-color: #FEF3C7; border: 1px solid #FDE68A;'
+                    ? 'background-color: var(--color-warning-container); border: 1px solid var(--color-warning-container);'
                     : 'background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);'"
                 >
                   <div
                     class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
                     :style="form.esExterno
-                      ? 'background-color: #D97706; border: 1.5px solid #D97706;'
+                      ? 'background-color: var(--color-warning); border: 1.5px solid var(--color-warning);'
                       : 'background-color: transparent; border: 1.5px solid var(--color-outline);'"
                   >
-                    <span v-if="form.esExterno" class="material-symbols-outlined text-white" style="font-size:14px">check</span>
+                    <span v-if="form.esExterno" class="material-symbols-outlined text-on-primary" style="font-size:14px">check</span>
                   </div>
                   <div>
-                    <p class="text-sm font-bold" :style="form.esExterno ? 'color: #92400E' : 'color: var(--color-on-surface)'">
+                    <p class="text-sm font-bold" :style="form.esExterno ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-surface)'">
                       Pago externo (no afecta la caja)
                     </p>
                     <p class="text-xs" :style="form.esExterno ? 'color: #B45309' : 'color: var(--color-outline)'">
@@ -326,7 +326,7 @@ async function submit() {
 
               <div v-if="form.esExterno"
                 class="flex items-start gap-2 rounded-xl px-4 py-3 text-xs font-medium"
-                style="background-color: #FEF3C7; color: #92400E;">
+                style="background-color: var(--color-warning-container); color: var(--color-on-warning-container);">
                 <span class="material-symbols-outlined flex-shrink-0" style="font-size:16px">warning</span>
                 Este pago quedará registrado bajo tu nombre. No se creará movimiento en la caja actual.
               </div>

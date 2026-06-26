@@ -28,7 +28,7 @@ const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
 
 const statusOptions = [
-  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "activo",   label: "Activo",   dot: "var(--color-success)" },
   { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
 ]
 
@@ -147,7 +147,7 @@ function openEdit(c: CargoEmpleado) {
 function inputStyle(hasError = false) {
   const base = 'border-radius: 12px; '
   return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
     : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
@@ -224,7 +224,7 @@ async function submitEdit() {
           <template #estado="{ item }">
             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
               :style="item.activo
-                ? 'background-color: #dcfce7; color: #166534'
+                ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
                 : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'">
               {{ item.activo ? "Activo" : "Inactivo" }}
             </span>
@@ -301,7 +301,7 @@ async function submitEdit() {
           <button type="button" @click="editForm.activo = !editForm.activo" class="flex-shrink-0"
             :title="editForm.activo ? 'Desactivar' : 'Activar'">
             <span class="material-symbols-outlined" style="font-size: 32px; transition: color 0.15s"
-              :style="editForm.activo ? 'color: #166534' : 'color: var(--color-outline)'">
+              :style="editForm.activo ? 'color: var(--color-on-success-container)' : 'color: var(--color-outline)'">
               {{ editForm.activo ? "toggle_on" : "toggle_off" }}
             </span>
           </button>

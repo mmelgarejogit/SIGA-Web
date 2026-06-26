@@ -29,10 +29,10 @@ function clear() {
       @blur="emit('blur', $event)"
       type="text"
       :placeholder="props.placeholder ?? 'Buscar...'"
-      class="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition-all"
+      class="w-full pl-10 pr-10 py-2.5 rounded-md text-sm outline-none transition-all"
       :style="
         props.error
-          ? 'background-color: #FFF8F7; border: 1.5px solid var(--color-error); color: var(--color-on-surface);'
+          ? 'background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface)); border: 1.5px solid var(--color-error); color: var(--color-on-surface);'
           : 'background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
       "
     />

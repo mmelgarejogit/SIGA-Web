@@ -47,8 +47,8 @@ const lineasConDiferencia = computed(() =>
 const hayDiferencias = computed(() => lineasConDiferencia.value.length > 0)
 
 function diferenciaStyle(d: number) {
-  if (d > 0) return "color: #166534; font-weight: 700"
-  if (d < 0) return "color: #991b1b; font-weight: 700"
+  if (d > 0) return "color: var(--color-on-success-container); font-weight: 700"
+  if (d < 0) return "color: var(--color-on-error-container); font-weight: 700"
   return "color: var(--color-outline)"
 }
 
@@ -210,10 +210,10 @@ function descargarPdf() {
                   </BaseButton>
                   <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold"
                     :style="conteo.estado === 'Pendiente'
-                      ? 'background-color: #FEF3C7; color: #92400E'
+                      ? 'background-color: var(--color-warning-container); color: var(--color-on-warning-container)'
                       : conteo.estado === 'Aprobado'
-                        ? 'background-color: #dcfce7; color: #166534'
-                        : 'background-color: #fee2e2; color: #991b1b'">
+                        ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
+                        : 'background-color: var(--color-error-container); color: var(--color-on-error-container)'">
                     {{ conteo.estado }}
                   </span>
                 </div>
@@ -228,24 +228,24 @@ function descargarPdf() {
             <!-- Resultado de aprobación/rechazo -->
             <div v-if="conteo.aprobadoPorNombre" class="mt-4 flex items-start gap-3 p-4 rounded-2xl"
               :style="conteo.estado === 'Aprobado'
-                ? 'background-color: #dcfce7'
-                : 'background-color: #fee2e2'">
+                ? 'background-color: var(--color-success-container)'
+                : 'background-color: var(--color-error-container)'">
               <span class="material-symbols-outlined mt-0.5"
-                :style="conteo.estado === 'Aprobado' ? 'color: #166534' : 'color: #991b1b'">
+                :style="conteo.estado === 'Aprobado' ? 'color: var(--color-on-success-container)' : 'color: var(--color-on-error-container)'">
                 {{ conteo.estado === "Aprobado" ? "check_circle" : "cancel" }}
               </span>
               <div>
                 <p class="text-sm font-bold"
-                  :style="conteo.estado === 'Aprobado' ? 'color: #166534' : 'color: #991b1b'">
+                  :style="conteo.estado === 'Aprobado' ? 'color: var(--color-on-success-container)' : 'color: var(--color-on-error-container)'">
                   {{ conteo.estado === "Aprobado" ? "Aprobado" : "Rechazado" }} por {{ conteo.aprobadoPorNombre }}
                   · {{ formatDate(conteo.fechaAprobacion!) }}
                 </p>
                 <p v-if="conteo.observacionesAprobacion" class="text-xs mt-0.5 italic"
-                  :style="conteo.estado === 'Aprobado' ? 'color: #166534' : 'color: #991b1b'">
+                  :style="conteo.estado === 'Aprobado' ? 'color: var(--color-on-success-container)' : 'color: var(--color-on-error-container)'">
                   {{ conteo.observacionesAprobacion }}
                 </p>
                 <p v-if="conteo.estado === 'Aprobado'" class="text-xs mt-1"
-                  :style="hayDiferencias ? 'color: #166534' : 'color: #166534; opacity: 0.7'">
+                  :style="hayDiferencias ? 'color: var(--color-on-success-container)' : 'color: var(--color-on-success-container); opacity: 0.7'">
                   {{ hayDiferencias
                     ? `Se generaron movimientos de ajuste para ${lineasConDiferencia.length} producto${lineasConDiferencia.length !== 1 ? "s" : ""}.`
                     : "No había diferencias — no se generaron movimientos." }}
@@ -256,7 +256,7 @@ function descargarPdf() {
 
           <!-- Resumen de diferencias -->
           <div v-if="conteo.estado === 'Pendiente'" class="flex items-center gap-6 mb-6 p-4 rounded-2xl"
-            style="background-color: var(--color-surface-container-lowest); outline: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); outline: 1px solid var(--color-hairline)">
             <div class="text-sm" style="color: var(--color-on-surface-variant)">
               <span class="text-2xl font-extrabold" style="color: var(--color-on-surface)">{{ conteo.totalLineas }}</span>
               <span class="ml-1">productos contados</span>
@@ -264,13 +264,13 @@ function descargarPdf() {
             <div class="w-px h-8" style="background-color: rgba(196,197,213,0.3)"></div>
             <div class="text-sm" style="color: var(--color-on-surface-variant)">
               <span class="text-2xl font-extrabold"
-                :style="hayDiferencias ? 'color: #92400E' : 'color: #166534'">
+                :style="hayDiferencias ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-success-container)'">
                 {{ lineasConDiferencia.length }}
               </span>
               <span class="ml-1">con diferencia</span>
             </div>
             <div v-if="!hayDiferencias" class="flex items-center gap-1.5 text-sm font-semibold ml-2"
-              style="color: #166534">
+              style="color: var(--color-on-success-container)">
               <span class="material-symbols-outlined" style="font-size: 18px">check_circle</span>
               El inventario físico coincide con el sistema
             </div>
@@ -278,10 +278,10 @@ function descargarPdf() {
 
           <!-- Planilla de comparación -->
           <div class="rounded-2xl mb-8 overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196,197,213,0.25); outline: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <div class="px-6 py-4 flex items-center justify-between"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <div>
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Planilla de comparación</h3>
                 <p class="text-xs mt-0.5" style="color: var(--color-outline)">
@@ -305,7 +305,7 @@ function descargarPdf() {
                 <tr
                   v-for="linea in conteo.lineas"
                   :key="linea.id"
-                  style="border-top: 1px solid rgba(196,197,213,0.12)"
+                  style="border-top: 1px solid var(--color-hairline-soft)"
                   :style="linea.diferencia !== 0 ? 'background-color: #FFFBEB' : ''"
                 >
                   <td class="px-6 py-3">
@@ -333,8 +333,8 @@ function descargarPdf() {
                     <span v-if="linea.diferencia === 0" class="text-xs" style="color: var(--color-outline)">Sin ajuste</span>
                     <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
                       :style="linea.diferencia > 0
-                        ? 'background-color: #dcfce7; color: #166534'
-                        : 'background-color: #fee2e2; color: #991b1b'">
+                        ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
+                        : 'background-color: var(--color-error-container); color: var(--color-on-error-container)'">
                       <span class="material-symbols-outlined" style="font-size: 13px">
                         {{ linea.diferencia > 0 ? "add" : "remove" }}
                       </span>
@@ -349,7 +349,7 @@ function descargarPdf() {
           <!-- Footer de acciones (solo si Pendiente) -->
           <div v-if="conteo.estado === 'Pendiente'"
             class="flex items-center justify-between gap-3 fixed bottom-0 py-4 px-8 z-40"
-            :style="`left: var(--sidebar-width); right: 0; background-color: var(--color-background); border-top: 1px solid rgba(196,197,213,0.2)`">
+            :style="`left: var(--sidebar-width); right: 0; background-color: var(--color-background); border-top: 1px solid var(--color-hairline)`">
             <div class="text-sm" style="color: var(--color-on-surface-variant)">
               <template v-if="hayDiferencias">
                 Se generarán movimientos de ajuste para
@@ -357,7 +357,7 @@ function descargarPdf() {
                 producto{{ lineasConDiferencia.length !== 1 ? "s" : "" }} al aprobar.
               </template>
               <template v-else>
-                <span class="flex items-center gap-1.5" style="color: #166534">
+                <span class="flex items-center gap-1.5" style="color: var(--color-on-success-container)">
                   <span class="material-symbols-outlined" style="font-size: 16px">check_circle</span>
                   Sin diferencias — no se generarán movimientos al aprobar.
                 </span>

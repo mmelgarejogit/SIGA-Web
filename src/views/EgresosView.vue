@@ -65,10 +65,10 @@ const tipoOptions = [
 ]
 
 const estadoOptions = [
-  { value: "Pendiente", label: "Pendiente", dot: "#92400E" },
-  { value: "Aprobado", label: "Aprobado", dot: "#1D4ED8" },
-  { value: "Pagado", label: "Pagado", dot: "#166534" },
-  { value: "Rechazado", label: "Rechazado", dot: "#991B1B" },
+  { value: "Pendiente", label: "Pendiente", dot: "var(--color-on-warning-container)" },
+  { value: "Aprobado", label: "Aprobado", dot: "var(--color-on-info-container)" },
+  { value: "Pagado", label: "Pagado", dot: "var(--color-on-success-container)" },
+  { value: "Rechazado", label: "Rechazado", dot: "var(--color-on-error-container)" },
   { value: "Anulado", label: "Anulado", dot: "var(--color-outline)" },
 ]
 
@@ -141,21 +141,21 @@ function tipoIcon(tipo: string) {
 
 function tipoColor(tipo: string): { bg: string; color: string } {
   const map: Record<string, { bg: string; color: string }> = {
-    FacturaCompra: { bg: "#DBEAFE", color: "#1D4ED8" },
-    Honorario: { bg: "#EDE9FE", color: "#6D28D9" },
-    GastoGeneral: { bg: "#FEF3C7", color: "#92400E" },
+    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario: { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    GastoGeneral: { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
   }
-  return map[tipo] ?? { bg: "#F3F4F6", color: "#374151" }
+  return map[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
 
 function estadoBadgeStyle(estado: string, vencido: boolean) {
   if (vencido && estado !== "Pagado" && estado !== "Anulado" && estado !== "Rechazado")
-    return "background-color: #FEE2E2; color: #991B1B"
+    return "background-color: var(--color-error-container); color: var(--color-on-error-container)"
   const map: Record<string, string> = {
-    Pendiente: "background-color: #FEF3C7; color: #92400E",
-    Aprobado:  "background-color: #DBEAFE; color: #1D4ED8",
-    Pagado:    "background-color: #DCFCE7; color: #166534",
-    Rechazado: "background-color: #FEE2E2; color: #991B1B",
+    Pendiente: "background-color: var(--color-warning-container); color: var(--color-on-warning-container)",
+    Aprobado:  "background-color: var(--color-info-container); color: var(--color-on-info-container)",
+    Pagado:    "background-color: var(--color-success-container); color: var(--color-on-success-container)",
+    Rechazado: "background-color: var(--color-error-container); color: var(--color-on-error-container)",
     Anulado:   "background-color: var(--color-surface-container-high); color: var(--color-outline)",
     Borrador:  "background-color: var(--color-surface-container-high); color: var(--color-outline)",
   }
@@ -210,7 +210,7 @@ async function submitAnular() {
 function inputStyle(hasError = false) {
   const base = 'border-radius: 12px; '
   return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
     : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
@@ -259,7 +259,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
             @click="soloVencidos = !soloVencidos; applyFilter()"
             class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
             :style="soloVencidos
-              ? 'background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5'
+              ? 'background-color: var(--color-error-container); color: var(--color-on-error-container); border: 1px solid #FCA5A5'
               : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface)'"
           >
             <span class="material-symbols-outlined" style="font-size: 16px">schedule</span>
@@ -277,8 +277,8 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden"
           style="background-color: var(--color-surface-container-lowest);
-                 box-shadow: 0 1px 3px rgba(196,197,213,0.25);
-                 outline: 1px solid rgba(196,197,213,0.15)">
+                 box-shadow: var(--shadow-sm);
+                 outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="egresos" :loading="isLoading" empty-text="No hay egresos registrados.">
 
             <template #tipo="{ item }">
@@ -325,7 +325,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           <!-- Footer paginación -->
           <div v-if="egresos.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
               <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
@@ -346,7 +346,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                 <button v-else
                   @click="currentPage = (p as number); load()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'">
                   {{ p }}
                 </button>
               </template>
@@ -365,7 +365,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
     <!-- ── MODAL DETALLE ─────────────────────────────────────────────────────── -->
     <BaseModal :show="showDetalle" title="Detalle de Egreso" size="lg" @close="showDetalle = false">
       <div v-if="detalleEgreso" class="space-y-4">
-        <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
+        <div class="flex items-center gap-3 pb-4" style="border-bottom: 1px solid var(--color-hairline)">
           <span class="w-12 h-12 rounded-2xl flex items-center justify-center"
             :style="`background-color: ${tipoColor(detalleEgreso.tipo).bg}`">
             <span class="material-symbols-outlined" :style="`font-size: 22px; color: ${tipoColor(detalleEgreso.tipo).color}`">{{ tipoIcon(detalleEgreso.tipo) }}</span>
@@ -389,7 +389,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           </div>
           <div v-if="detalleEgreso.fechaVencimiento">
             <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Vencimiento</p>
-            <p :style="detalleEgreso.estaVencido ? 'color: #DC2626; font-weight: 600' : 'color: var(--color-on-surface)'">
+            <p :style="detalleEgreso.estaVencido ? 'color: var(--color-error); font-weight: 600' : 'color: var(--color-on-surface)'">
               {{ formatDate(detalleEgreso.fechaVencimiento) }}
             </p>
           </div>
@@ -442,8 +442,8 @@ function menuItems(e: Egreso): ContextMenuItem[] {
 
         <!-- Motivo de rechazo -->
         <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: #FEF2F2">
-          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: #991B1B">Motivo de rechazo</p>
-          <p class="text-sm" style="color: #991B1B">{{ detalleEgreso.motivoRechazo }}</p>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-on-error-container)">Motivo de rechazo</p>
+          <p class="text-sm" style="color: var(--color-on-error-container)">{{ detalleEgreso.motivoRechazo }}</p>
         </div>
 
         <div v-if="detalleEgreso.observaciones" class="rounded-2xl p-3" style="background-color: var(--color-surface-container-low)">

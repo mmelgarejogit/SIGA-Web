@@ -56,9 +56,9 @@ function vigenciaBadge(v: Venta) {
   const validez   = v.validezDias > 0 ? v.validezDias : 15
   const dias      = diasDesde(v.fechaVenta)
   const restantes = validez - dias
-  if (restantes < 0)  return { label: "Vencido",            bg: "#FEE2E2", text: "#991B1B" }
-  if (restantes <= 5) return { label: `${restantes}d`,       bg: "#FEF3C7", text: "#92400E" }
-  return                     { label: `${restantes}d rest.`, bg: "#DCFCE7", text: "#166534" }
+  if (restantes < 0)  return { label: "Vencido",            bg: "var(--color-error-container)", text: "var(--color-on-error-container)" }
+  if (restantes <= 5) return { label: `${restantes}d`,       bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)" }
+  return                     { label: `${restantes}d rest.`, bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay presupuestos pendientes">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">N° Presupuesto</th>
@@ -160,7 +160,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
               <tr
                 v-for="v in filtered" :key="v.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
               >
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>

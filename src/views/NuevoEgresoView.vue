@@ -84,9 +84,9 @@ function selectTipo(t: TipoNuevo) {
 }
 
 function tipoColor(key: TipoNuevo) {
-  if (key === "Honorario") return { bg: "#EDE9FE", color: "#6D28D9" }
-  if (key === "Salario") return { bg: "#DCFCE7", color: "#166534" }
-  return { bg: "#FEF3C7", color: "#92400E" }
+  if (key === "Honorario") return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" }
+  if (key === "Salario") return { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" }
+  return { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" }
 }
 
 async function submit() {
@@ -177,7 +177,7 @@ const empleadoOptions = computed(() =>
 function inputStyle(hasError = false) {
   const base = 'border-radius: 12px; '
   return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
     : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 </script>
@@ -232,7 +232,7 @@ function inputStyle(hasError = false) {
         <!-- Formulario (solo si hay tipo seleccionado) -->
         <template v-if="selectedTipo">
           <div class="rounded-3xl p-6 space-y-5"
-            style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+            style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
             <!-- Error -->
             <div v-if="formError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"

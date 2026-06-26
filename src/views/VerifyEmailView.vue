@@ -80,9 +80,9 @@ onMounted(async () => {
       <div v-else-if="status === 'success'" class="flex flex-col items-center gap-4">
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center"
-          style="background-color: #d1fae5"
+          style="background-color: var(--color-success-container)"
         >
-          <span class="material-symbols-outlined" style="color: #065f46; font-size: 32px"
+          <span class="material-symbols-outlined" style="color: var(--color-on-success-container); font-size: 32px"
             >check_circle</span
           >
         </div>
@@ -97,8 +97,8 @@ onMounted(async () => {
           class="mt-4 inline-flex items-center gap-2 h-12 px-8 rounded-full font-bold transition-all active:scale-[0.98]"
           style="
             background-color: var(--color-primary);
-            color: white;
-            box-shadow: 0 8px 24px rgba(0, 40, 142, 0.2);
+            color: var(--color-on-primary);
+            box-shadow: var(--shadow-lg);
           "
         >
           Iniciar sesión
@@ -128,7 +128,7 @@ onMounted(async () => {
           style="
             border: 1.5px solid var(--color-outline-variant);
             color: var(--color-primary);
-            background: white;
+            background: var(--color-surface-container-lowest);
           "
         >
           Volver al login

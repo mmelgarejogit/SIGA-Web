@@ -28,8 +28,8 @@ const search    = ref("")
 const estadoFiltro = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "PendienteEnvio", label: "Pend. envío", dot: "#1D4ED8" },
-  { value: "Enviado",        label: "Enviado",     dot: "#92400E" },
+  { value: "PendienteEnvio", label: "Pend. envío", dot: "var(--color-on-info-container)" },
+  { value: "Enviado",        label: "Enviado",     dot: "var(--color-on-warning-container)" },
 ]
 
 async function load() {
@@ -98,9 +98,9 @@ async function submitAction() {
 // ── Badges ─────────────────────────────────────────────────────────────────────
 
 function estadoBadge(estado: string) {
-  if (estado === "PendienteEnvio") return { bg: "#DBEAFE", text: "#1D4ED8", label: "Pend. envío" }
-  if (estado === "Enviado")        return { bg: "#FEF3C7", text: "#92400E", label: "Enviado" }
-  return { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  if (estado === "PendienteEnvio") return { bg: "var(--color-info-container)", text: "var(--color-on-info-container)", label: "Pend. envío" }
+  if (estado === "Enviado")        return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", label: "Enviado" }
+  return { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
@@ -138,7 +138,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <SearchInput v-model="search" placeholder="Buscar por cliente o laboratorio…" class="w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos en tránsito">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -153,7 +153,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
             <template #body>
               <tr v-for="item in filtered" :key="item.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ item.numeroComprobante }}</span>
                 </td>
@@ -164,10 +164,10 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4">
                   <span v-if="item.fechaEnvio" class="text-xs font-bold px-2 py-1 rounded-full"
                     :style="diasDesde(item.fechaEnvio) > 10
-                      ? 'background:#FEE2E2;color:#991B1B'
+                      ? 'background:var(--color-error-container);color:var(--color-on-error-container)'
                       : diasDesde(item.fechaEnvio) > 5
-                        ? 'background:#FEF3C7;color:#92400E'
-                        : 'background:#DCFCE7;color:#166534'"
+                        ? 'background:var(--color-warning-container);color:var(--color-on-warning-container)'
+                        : 'background:var(--color-success-container);color:var(--color-on-success-container)'"
                   >{{ diasDesde(item.fechaEnvio) }}d</span>
                   <span v-else class="text-xs" style="color:var(--color-outline)">—</span>
                 </td>

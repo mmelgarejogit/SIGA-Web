@@ -57,9 +57,9 @@ function formatDate(iso: string) {
 }
 
 function estadoBadgeStyle(estado: string) {
-  if (estado === "Pendiente") return "background-color: #FEF3C7; color: #92400E"
-  if (estado === "Aprobado")  return "background-color: #dcfce7; color: #166534"
-  return "background-color: #fee2e2; color: #991b1b"
+  if (estado === "Pendiente") return "background-color: var(--color-warning-container); color: var(--color-on-warning-container)"
+  if (estado === "Aprobado")  return "background-color: var(--color-success-container); color: var(--color-on-success-container)"
+  return "background-color: var(--color-error-container); color: var(--color-on-error-container)"
 }
 
 function estadoIcon(estado: string) {
@@ -188,7 +188,7 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
               {{ conteos.length }} inventario{{ conteos.length !== 1 ? "s" : "" }}
               <span v-if="pendientesCount > 0"
                 class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                style="background-color: #FEF3C7; color: #92400E">
+                style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
                 <span class="material-symbols-outlined" style="font-size: 13px">schedule</span>
                 {{ pendientesCount }} pendiente{{ pendientesCount !== 1 ? "s" : "" }}
               </span>
@@ -230,7 +230,7 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
           <template #diferencias="{ item }">
             <span v-if="item.lineasConDiferencia > 0"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              style="background-color: #FEF3C7; color: #92400E">
+              style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
               <span class="material-symbols-outlined" style="font-size: 13px">warning</span>
               {{ item.lineasConDiferencia }}
             </span>

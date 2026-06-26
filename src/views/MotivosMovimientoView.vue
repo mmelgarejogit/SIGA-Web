@@ -78,9 +78,9 @@ function menuItems(m: MotivoMovimiento): ContextMenuItem[] {
 // ── Tipo badge ────────────────────────────────────────────────────────────────
 
 function tipoBadgeStyle(tipo: string) {
-  if (tipo === "Entrada") return "background-color: #dcfce7; color: #166534"
-  if (tipo === "Salida") return "background-color: #fee2e2; color: #991b1b"
-  return "background-color: #EDE9FE; color: #5B21B6"
+  if (tipo === "Entrada") return "background-color: var(--color-success-container); color: var(--color-on-success-container)"
+  if (tipo === "Salida") return "background-color: var(--color-error-container); color: var(--color-on-error-container)"
+  return "background-color: color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest)); color: var(--color-tertiary)"
 }
 
 // ── Modal Crear ───────────────────────────────────────────────────────────────

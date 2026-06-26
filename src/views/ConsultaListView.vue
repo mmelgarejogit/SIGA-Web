@@ -357,16 +357,16 @@ async function confirmDelete() {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
 ]
 
 function avatarStyle(id: number) {
   return (
     AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
   )
 }
 
@@ -385,7 +385,7 @@ function formatDate(iso: string) {
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -511,8 +511,8 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
           class="rounded-2xl overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-            outline: 1px solid rgba(196, 197, 213, 0.15);
+            box-shadow: var(--shadow-sm);
+            outline: 1px solid var(--color-hairline);
           "
         >
           <BaseTable
@@ -577,7 +577,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
                 <!-- Badge de receta -->
                 <span v-if="item.receta"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold w-fit"
-                  style="background-color: #d1fae5; color: #065f46">
+                  style="background-color: var(--color-success-container); color: var(--color-on-success-container)">
                   <span class="material-symbols-outlined" style="font-size: 12px">clinical_notes</span>
                   Con receta
                 </span>
@@ -595,7 +595,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
           <div
             v-if="consultas.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -617,7 +617,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
                   v-else
                   @click="goToPage(p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button
@@ -816,12 +816,12 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
             class="w-full max-w-2xl rounded-3xl overflow-hidden"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);
+              box-shadow: var(--shadow-xl);
             "
           >
             <div
               class="flex items-center justify-between px-8 pt-8 pb-6"
-              style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+              style="border-bottom: 1px solid var(--color-hairline)"
             >
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">
                 Receta Óptica
@@ -1035,7 +1035,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
 
             <div
               class="px-8 py-6 flex items-center justify-between gap-3"
-              style="border-top: 1px solid rgba(196, 197, 213, 0.2)"
+              style="border-top: 1px solid var(--color-hairline)"
             >
               <button
                 v-if="recetaConsulta?.receta"
@@ -1079,7 +1079,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
                   @click="submitReceta"
                   :disabled="isSavingReceta"
                   class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-                  style="background-color: var(--color-primary); color: white"
+                  style="background-color: var(--color-primary); color: var(--color-on-primary)"
                 >
                   <svg
                     v-if="isSavingReceta"

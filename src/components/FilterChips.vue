@@ -160,7 +160,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   padding: 0 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
   color: var(--color-on-surface);
@@ -184,7 +184,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   height: 17px;
   border-radius: 50%;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 10px;
   font-weight: 700;
 }
@@ -206,11 +206,11 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   left: 0;
   z-index: 50;
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
   padding: 6px;
   min-width: 200px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .fc-group-label {
@@ -229,7 +229,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   gap: 8px;
   width: 100%;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   font-size: 13px;
@@ -257,7 +257,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  color: #fff;
+  color: var(--color-on-primary);
 }
 .fc-check .material-symbols-outlined {
   font-size: 11px;

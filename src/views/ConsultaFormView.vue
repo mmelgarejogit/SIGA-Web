@@ -190,16 +190,16 @@ function onCancel() {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
+  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
 ]
 
 function avatarStyle(id: number) {
   return (
     AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
   )
 }
 
@@ -214,7 +214,7 @@ const professionalOptions = computed(() =>
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -267,8 +267,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             class="rounded-2xl p-6 space-y-5"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">Paciente</h3>
@@ -307,8 +307,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             class="rounded-2xl p-6 space-y-5"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">
@@ -559,8 +559,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             class="rounded-2xl p-6 space-y-5"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex items-center gap-2 mb-2">

@@ -51,6 +51,14 @@ src/
 
 ## Tema visual
 
+> **Fuente de verdad visual: [`design-system.md`](./design-system.md) + los tokens en `src/assets/main.css`.**
+> Ante cualquier conflicto entre esta sección y `design-system.md`, **gana `design-system.md`**.
+> El sistema soporta **dark mode** (clase `.dark` en `<html>` vía `stores/theme.ts`; toggle en `AppHeader`).
+> Todo color/sombra/radio sale de un token (`var(--color-*)`, `var(--radius-*)`, `var(--shadow-*)`,
+> utilities `bg-primary`/`shadow-md`/`rounded-md`…) y **flipea solo** entre claro y oscuro.
+> Helpers de estilo centralizados en `src/composables/useFieldStyles.ts` (`inputStyle`/`statusStyle`/
+> `avatarStyle`) — importarlos, no copiarlos.
+
 ### Tipografía
 ```css
 --font-headline: "Plus Jakarta Sans"   /* títulos, headings */
@@ -75,20 +83,28 @@ src/
 --color-surface-dim:   #D8DADF
 --color-surface-variant: #E0E2E7
 
-/* Error */
---color-error:           #BA1A1A
---color-error-container: #FFDAD6
+/* Semánticos (cada uno con -container y -on-container) */
+--color-error / --color-success / --color-warning / --color-info
+
+/* Superficies (jerarquía de elevación; la página es la base, las cards se elevan) */
+--color-surface                    /* fondo de página + fondo de inputs */
+--color-surface-container-lowest   /* cards, tablas, modales */
+--color-surface-container-low/high/highest
 ```
 
-> **Regla:** usar Tailwind utilities (`bg-primary`, `text-on-surface`, etc.) siempre que existan. Cuando Tailwind no alcance, usar `var(--color-*)` en `style` binding. **Prohibido hardcodear hexes** (`#181c20`, `#444653`, etc.) fuera de `main.css`.
+> **Regla:** usar Tailwind utilities (`bg-primary`, `text-on-surface`, etc.) siempre que existan. Cuando Tailwind no alcance, usar `var(--color-*)` en `style` binding. **Prohibido hardcodear hexes** fuera de `main.css`. Todos los valores light/dark están en `main.css` y en la tabla de `design-system.md` §1.
 
-### Border radius
+### Border radius (escala corregida — la vieja `--radius-xl: 3rem` ya no existe)
 ```css
---radius-default: 1rem     /* cards, inputs, modales */
---radius-large:   2rem
---radius-xl:      3rem
---radius-full:    9999px   /* badges, avatares */
+--radius-xs: 6px    /* dots, badges rectangulares */
+--radius-sm: 8px    /* chips, filtros */
+--radius-md: 12px   /* inputs, campos, dropdowns */
+--radius-lg: 16px   /* cards, tablas, KpiCard */
+--radius-xl: 20px   /* modales */
+--radius-2xl: 24px  --radius-3xl: 28px   --radius-full: 9999px
 ```
+> Ya **no aplica** la antigua regla "rounded-xl prohibido": el bug del radio gigante está corregido.
+> Inputs/campos usan `rounded-md` (o `var(--radius-md)` vía `useFieldStyles`).
 
 ### Iconos
 Se usa **Material Symbols Outlined** en todo el sistema. Ejemplo de uso:
@@ -139,6 +155,9 @@ Todas las vistas autenticadas usan este layout fijo:
 
 ## Design System
 
+> **Resumen.** Los detalles visuales completos (tokens light/dark, radios, sombras, motion, foco,
+> componentes) viven en [`design-system.md`](./design-system.md). **Ante conflicto, gana `design-system.md`.**
+
 ### Tipografía
 
 | Rol | Tag | Clases Tailwind | Style binding (si es necesario) |
@@ -156,7 +175,7 @@ Todas las vistas autenticadas usan este layout fijo:
 
 | Variante | Fondo | Texto | Radio | Sombra |
 |----------|-------|-------|-------|--------|
-| `primary` | `bg-primary` | `text-on-primary` | `rounded-full` | `0 4px 20px rgba(0, 40, 142, 0.2)` |
+| `primary` | `bg-primary` | `text-on-primary` | `rounded-full` | `var(--shadow-primary)` |
 | `secondary` | `bg-surface-container-high` | `text-on-surface-variant` | `rounded-full` | — |
 | `danger` | `bg-error` | `text-on-error` | `rounded-full` | — |
 | `ghost` | transparent | `text-on-surface-variant` | `rounded-full` | — |
@@ -174,7 +193,7 @@ Todas las vistas autenticadas usan este layout fijo:
 Toda vista de listado usa **una única fila** de filtros con este layout:
 
 ```html
-<div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+<div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
   <!-- Izquierda: FilterChips + filtros adicionales -->
   <div class="flex items-center gap-3 flex-wrap">
     <FilterChips
@@ -188,7 +207,7 @@ Toda vista de listado usa **una única fila** de filtros con este layout:
       @click="toggleFiltro"
       class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
       :style="filtroActivo
-        ? 'background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A;'
+        ? 'background-color: var(--color-warning-container); color: var(--color-on-warning-container); border: 1px solid var(--color-warning-container);'
         : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'"
     >
       <span class="material-symbols-outlined" style="font-size: 18px">icono</span>
@@ -212,7 +231,7 @@ Toda vista de listado usa **una única fila** de filtros con este layout:
 - `SearchInput` siempre a la **derecha** con `class="w-72"`.
 - Filtros adicionales booleanos (como "Bajo stock") van a la **izquierda** junto al `FilterChips`, usando el estilo de botón con borde `outline-variant`.
 - Una sola fila con `justify-between`. Si hay muchos filtros se wrappean con `flex-wrap`.
-- `mb-6` entre la barra de filtros y la tabla.
+- `mb-8` entre la barra de filtros y la tabla.
 - **Nunca** usar `FilterTabs` en nuevas vistas — está deprecado.
 
 **Opciones para `FilterChips`:**
@@ -228,20 +247,20 @@ El campo `dot` es opcional — usarlo cuando el valor tiene un color semántico 
 
 ```html
 <input
-  class="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm outline-none transition-all"
+  class="w-full pl-10 pr-10 py-2.5 rounded-md text-sm outline-none transition-all"
   style="background-color: var(--color-surface-container-lowest);
          border: 1px solid var(--color-outline-variant);
          color: var(--color-on-surface);"
 />
 ```
 
-> **Regla:** forma `rounded-xl` (no `rounded-full`), fondo `surface-container-lowest`, borde sólido `outline-variant`.
+> **Regla:** forma `rounded-md` (no `rounded-full`), fondo `surface-container-lowest`, borde sólido `outline-variant`.
 
 ### Tablas (`BaseTable`)
 
-- **Wrapper:** `rounded-2xl overflow-hidden` + `bg-surface-container-lowest` + shadow suave
+- **Wrapper:** `rounded-lg overflow-hidden` + `bg-surface-container-lowest` + `box-shadow: var(--shadow-sm)`
 - **Header:** `bg-surface-container-low`, `py-5`, `text-xs font-bold uppercase tracking-widest`, `color: var(--color-outline)`
-- **Filas:** `border-bottom: 1px solid rgba(196, 197, 213, 0.12)`, hover `hover:bg-surface-container-low` (Tailwind class)
+- **Filas:** `border-bottom: 1px solid var(--color-hairline-soft)`, hover `hover:bg-surface-container-low` (Tailwind class)
 - **Celdas:** `px-6 py-4`
 
 > **Regla:** usar **siempre** `hover:bg-surface-container-low` como clase Tailwind. Prohibido `onmouseover="this.style.backgroundColor = '...'"`.
@@ -288,9 +307,9 @@ Botones de ícono dentro de filas (editar, eliminar, confirmar, etc.). **No usar
       <div class="absolute inset-0" style="background-color: rgba(24, 28, 32, 0.5)"
            @click.self="close" />
       <!-- panel -->
-      <div class="relative w-full rounded-3xl overflow-hidden"
+      <div class="relative w-full rounded-xl overflow-hidden"
            style="background-color: var(--color-surface-container-lowest);
-                  box-shadow: 0 24px 64px rgba(0, 40, 142, 0.18);">
+                  box-shadow: var(--shadow-xl);">
         <!-- header -->
         <div class="flex items-center justify-between px-8 pt-8 pb-6"
              style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)">
@@ -318,7 +337,7 @@ Botones de ícono dentro de filas (editar, eliminar, confirmar, etc.). **No usar
 | `md` / `xl` | — | Reservados — no usar salvo caso excepcional documentado |
 
 > **Reglas:**
-> - Siempre `rounded-3xl overflow-hidden`.
+> - Siempre `rounded-xl overflow-hidden`.
 > - Siempre header con borde inferior `rgba(196, 197, 213, 0.2)`.
 > - Título del modal en `color: var(--color-primary)`.
 > - Body scrollable con `max-h-[70vh] overflow-y-auto`.
@@ -331,23 +350,16 @@ Botones de ícono dentro de filas (editar, eliminar, confirmar, etc.). **No usar
 - **Input estándar:**
   ```html
   <input
-    class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-    :style="inputStyle(hasError)"
+    class="px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+    :style="inputStyle(!!errors.campo)"
   />
   ```
-- **Helper `inputStyle`:**
-  ```ts
-  function inputStyle(hasError: boolean) {
-    return hasError
-      ? 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
-      : 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);'
-  }
-  ```
-- **Select:** igual que input pero con `appearance-none`.
+- **Helper `inputStyle`:** importar de `@/composables/useFieldStyles` (no copiar). Usa `var(--radius-md)`, borde/fondo por token y fondo de error `color-mix(error 8%, surface)`. El focus ring lo da la regla global de campos en `main.css`.
+- **Select:** igual que input pero con `appearance-none` (o usar `SearchableSelect`/`MultiSelect`).
 - **Label:** `<label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">`
 - **Error text:** `<p class="text-xs font-medium" style="color: var(--color-error)">...</p>`
 
-> **Regla:** todos los inputs usan `px-4 py-3`. No mezclar `px-3 py-2.5` (estilo antiguo de AgendaView).
+> **Regla:** todos los campos usan alto fijo `h-12` (48px) + `appearance-none shadow-none` y `var(--radius-md)`. No mezclar `px-4 py-3` ni `px-3 py-2.5` (estilos antiguos).
 
 ---
 
@@ -541,24 +553,12 @@ const isCreating  = ref(false)
 </Teleport>
 ```
 
-### Avatar con color dinámico
+### Avatar y badge de estado
+Importar de `@/composables/useFieldStyles` (no redefinir con hexes):
 ```typescript
-const avatarColors = [
-  { bg: '#DBEAFE', color: '#1E40AF' },
-  { bg: '#D1FAE5', color: '#065F46' },
-  { bg: '#EDE9FE', color: '#5B21B6' },
-  { bg: '#FEE2E2', color: '#991B1B' },
-  { bg: '#FEF3C7', color: '#92400E' },
-]
-const avatarStyle = (id: number) => avatarColors[id % avatarColors.length]
-const initials    = (first: string, last: string) => `${first[0]}${last[0]}`.toUpperCase()
-```
-
-### Status badge
-```typescript
-const statusStyle = (isActive: boolean) => isActive
-  ? 'bg-green-100 text-green-700'
-  : 'bg-red-100  text-red-600'
+import { avatarStyle, initials, statusStyle } from "@/composables/useFieldStyles"
+// avatarStyle(id) → { bg, color } con tinte que adapta a claro/oscuro
+// statusStyle(isActive) → { bg, dot, text } con tokens success/neutral
 ```
 
 ### Helpers de formato
@@ -579,9 +579,11 @@ const formatDate = (iso: string) =>
   icon="person"
   badge="+12"
   badgeType="positive"   <!-- 'positive' | 'neutral' | 'critical' -->
-  iconBg="#DBEAFE"
-  iconColor="#1E40AF"
+  iconColor="var(--color-primary)"
 />
+<!-- El fondo del ícono se deriva de iconColor (tinte). iconBg quedó obsoleto. -->
+<!-- iconColor debe ser un acento: --color-primary/secondary/tertiary/error/success/info -->
+
 ```
 
 ### AppSidebar

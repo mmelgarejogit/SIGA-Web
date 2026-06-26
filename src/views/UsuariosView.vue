@@ -51,15 +51,15 @@ function formatDate(iso: string) {
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534", label: "Activo" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
     : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)", label: "Inactivo" }
 }
 
 function userTypeStyle(type: AppUser["type"]) {
-  if (type === "Profesional") return { bg: "rgba(32,0,177,0.08)", color: "var(--color-tertiary)" }
-  if (type === "Paciente")    return { bg: "rgba(0,103,128,0.08)", color: "var(--color-secondary)" }
-  if (type === "Administrador") return { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
-  return { bg: "rgba(0,40,142,0.08)", color: "var(--color-primary)" }
+  if (type === "Profesional") return { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" }
+  if (type === "Paciente")    return { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" }
+  if (type === "Administrador") return { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
+  return { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
 }
 
 function roleChipStyle(roleId: number) {
@@ -296,7 +296,7 @@ const userColumns = [
           >
             <div v-if="showFilterDropdown"
               class="absolute left-0 top-full mt-2 z-20 rounded-2xl overflow-hidden py-1.5"
-              style="min-width: 196px; background-color: var(--color-surface-container-lowest); box-shadow: 0 8px 32px rgba(0,40,142,0.14), 0 1px 4px rgba(0,0,0,0.06); outline: 1px solid rgba(196,197,213,0.2)">
+              style="min-width: 196px; background-color: var(--color-surface-container-lowest); box-shadow: 0 8px 32px rgba(0,40,142,0.14), 0 1px 4px rgba(0,0,0,0.06); outline: 1px solid var(--color-hairline)">
               <button
                 v-for="f in filters" :key="f.id"
                 @click="selectFilter(f.id)"
@@ -389,7 +389,7 @@ const userColumns = [
 
           <!-- Footer paginación -->
           <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196,197,213,0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
               <strong style="color: var(--color-on-surface)">{{ paginationStart }}–{{ paginationEnd }}</strong>
@@ -407,7 +407,7 @@ const userColumns = [
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number)"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'">
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'">
                   {{ p }}
                 </button>
               </template>
@@ -460,7 +460,7 @@ const userColumns = [
         <!-- Info usuario -->
         <div v-if="managingUser"
           class="flex items-center gap-4 p-4 rounded-2xl"
-          style="background-color: var(--color-surface); border: 1px solid rgba(196,197,213,0.2)">
+          style="background-color: var(--color-surface); border: 1px solid var(--color-hairline)">
           <div class="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
             :style="`background-color: ${avatarStyle(managingUser.userId).bg}; color: ${avatarStyle(managingUser.userId).color};`">
             {{ initials(managingUser.firstName, managingUser.lastName) }}
@@ -532,8 +532,8 @@ const userColumns = [
                 @click="toggleRoleSelection(role.id)"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all"
                 :style="selectedRolesToAdd.includes(role.id)
-                  ? 'background-color: rgba(0,40,142,0.08); outline: 1.5px solid rgba(0,40,142,0.3);'
-                  : 'background-color: var(--color-surface); outline: 1px solid rgba(196,197,213,0.2);'">
+                  ? 'background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); outline: 1.5px solid rgba(0,40,142,0.3);'
+                  : 'background-color: var(--color-surface); outline: 1px solid var(--color-hairline);'">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   :style="`background-color: ${roleChipStyle(role.id).bg};`">
                   <span class="material-symbols-outlined" :style="`font-size:18px; color: ${roleChipStyle(role.id).color};`">shield_person</span>
@@ -548,7 +548,7 @@ const userColumns = [
                   :style="selectedRolesToAdd.includes(role.id)
                     ? 'border-color: var(--color-primary); background-color: var(--color-primary);'
                     : 'border-color: var(--color-outline-variant);'">
-                  <span v-if="selectedRolesToAdd.includes(role.id)" class="material-symbols-outlined text-white" style="font-size: 12px">check</span>
+                  <span v-if="selectedRolesToAdd.includes(role.id)" class="material-symbols-outlined text-on-primary" style="font-size: 12px">check</span>
                 </div>
               </button>
             </div>

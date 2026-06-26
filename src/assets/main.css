@@ -1,11 +1,17 @@
 @import "tailwindcss";
 
+/* Dark mode controlado por la clase .dark en <html> (no por prefers-color-scheme).
+   Habilita los utilities `dark:` además del override de tokens más abajo. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --sidebar-width: 280px;
 }
 
 @theme {
-  /* ── Brand colors ── */
+  /* ════════════════════════════════════════════════════════════
+     COLORES DE MARCA  (valores light; .dark los sobrescribe abajo)
+     ════════════════════════════════════════════════════════════ */
   --color-primary: #00288e;
   --color-primary-container: #1e40af;
   --color-primary-fixed: #dde1ff;
@@ -34,13 +40,29 @@
   --color-on-tertiary-container: #b6b4ff;
   --color-on-tertiary-fixed-variant: #3323cc;
 
+  /* ── Semánticos ─────────────────────────────────────────────── */
   --color-error: #ba1a1a;
   --color-error-container: #ffdad6;
   --color-on-error: #ffffff;
   --color-on-error-container: #93000a;
 
-  /* ── Surface scale ── */
-  --color-surface: #f7f9fe;
+  --color-success: #16a34a;
+  --color-success-container: #dcfce7;
+  --color-on-success: #ffffff;
+  --color-on-success-container: #166534;
+
+  --color-warning: #b45309;
+  --color-warning-container: #fff0c2;
+  --color-on-warning: #ffffff;
+  --color-on-warning-container: #7a5000;
+
+  --color-info: #0369a1;
+  --color-info-container: #dbeafe;
+  --color-on-info: #ffffff;
+  --color-on-info-container: #1e40af;
+
+  /* ── Superficies ────────────────────────────────────────────── */
+  --color-surface: #e9edf6; /* fondo de página (más marcado para que las cards resalten) */
   --color-surface-bright: #f7f9fe;
   --color-surface-dim: #d8dadf;
   --color-surface-variant: #e0e2e7;
@@ -53,23 +75,139 @@
   --color-inverse-surface: #2d3135;
   --color-inverse-on-surface: #eff1f6;
 
-  /* ── Neutral ── */
+  /* ── Neutrales / texto ──────────────────────────────────────── */
   --color-on-surface: #181c20;
   --color-on-surface-variant: #444653;
   --color-on-background: #181c20;
-  --color-background: #f7f9fe;
+  --color-background: #e9edf6;
   --color-outline: #757684;
   --color-outline-variant: #c4c5d5;
 
-  /* ── Typography ── */
+  /* ── Líneas finas (reemplaza los rgba(196,197,213,...) literales) ─ */
+  --color-hairline-soft: rgba(196, 197, 213, 0.12); /* separadores de fila/footer */
+  --color-hairline: rgba(196, 197, 213, 0.22); /*       bordes, divisores estándar */
+  --color-hairline-strong: rgba(196, 197, 213, 0.4); /* divisores marcados */
+
+  /* ── Anillo de foco (deriva del primary del tema activo) ─────── */
+  --color-focus-ring: color-mix(in srgb, var(--color-primary) 45%, transparent);
+
+  /* ════════════════════════════════════════════════════════════
+     TIPOGRAFÍA
+     ════════════════════════════════════════════════════════════ */
   --font-headline: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
 
-  /* ── Border radius ── */
-  --radius-DEFAULT: 1rem;
-  --radius-lg: 2rem;
-  --radius-xl: 3rem;
-  --radius-full: 9999px;
+  /* ════════════════════════════════════════════════════════════
+     BORDER RADIUS  (escala sana — reemplaza la rota de antes)
+     ════════════════════════════════════════════════════════════ */
+  --radius-xs: 0.375rem; /*  6px — dots, badges rectangulares */
+  --radius-sm: 0.5rem; /*    8px — chips, filtros de toolbar */
+  --radius-md: 0.75rem; /*  12px — inputs, campos, dropdowns */
+  --radius-lg: 1rem; /*     16px — cards, tablas */
+  --radius-xl: 1.25rem; /* 20px — modales, paneles */
+  --radius-2xl: 1.5rem; /* 24px — paneles grandes */
+  --radius-3xl: 1.75rem; /*28px — hero / dashboard */
+  --radius-full: 9999px; /*       avatares, pills, botón primary */
+
+  /* ════════════════════════════════════════════════════════════
+     SOMBRAS  (tonales con el azul de marca; .dark las profundiza)
+     ════════════════════════════════════════════════════════════ */
+  --shadow-xs: 0 1px 2px rgba(0, 40, 142, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 40, 142, 0.08), 0 1px 2px rgba(0, 40, 142, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 40, 142, 0.1);
+  --shadow-lg: 0 8px 28px rgba(0, 40, 142, 0.14);
+  --shadow-xl: 0 20px 56px rgba(0, 40, 142, 0.18);
+  --shadow-primary: 0 4px 20px rgba(0, 40, 142, 0.24);
+
+  /* ════════════════════════════════════════════════════════════
+     MOTION
+     ════════════════════════════════════════════════════════════ */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 250ms;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK MODE — sobrescribe los mismos tokens cuando <html class="dark">.
+   Como utilities e inline styles usan var(--color-*), todo flipea aquí.
+   ══════════════════════════════════════════════════════════════ */
+.dark {
+  /* Marca (tonal más claro, mismo espíritu corporativo) */
+  --color-primary: #b8c4ff;
+  --color-primary-container: #173bab;
+  --color-primary-fixed: #173bab;
+  --color-primary-fixed-dim: #00288e;
+  --color-on-primary: #001453;
+  --color-on-primary-container: #dde1ff;
+  --color-inverse-primary: #00288e;
+
+  --color-secondary: #6cd3f7;
+  --color-secondary-container: #004e61;
+  --color-secondary-fixed-dim: #006780;
+  --color-on-secondary: #001f28;
+  --color-on-secondary-container: #b7eaff;
+
+  --color-tertiary: #c3c0ff;
+  --color-tertiary-container: #3323cc;
+  --color-on-tertiary: #0f0069;
+  --color-on-tertiary-container: #e2dfff;
+
+  /* Semánticos */
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+
+  --color-success: #6dd58c;
+  --color-success-container: #114a2a;
+  --color-on-success: #003918;
+  --color-on-success-container: #b8f0c4;
+
+  --color-warning: #ffd27a;
+  --color-warning-container: #5a3a00;
+  --color-on-warning: #3d2a00;
+  --color-on-warning-container: #ffe6b0;
+
+  --color-info: #a8c8ff;
+  --color-info-container: #173bab;
+  --color-on-info: #00305f;
+  --color-on-info-container: #dbeafe;
+
+  /* Superficies — la página es la más oscura; las cards (lowest) quedan por encima
+     (más claras) para que resalten, y el resto asciende (hovers más claros que la card). */
+  --color-surface: #0c0f13;
+  --color-surface-bright: #363a3e;
+  --color-surface-dim: #0c0f13;
+  --color-surface-variant: #44464f;
+  --color-surface-container-lowest: #171c24;
+  --color-surface-container-low: #1c222a;
+  --color-surface-container: #222932;
+  --color-surface-container-high: #2b323c;
+  --color-surface-container-highest: #353d48;
+  --color-inverse-surface: #e1e2e8;
+  --color-inverse-on-surface: #2d3135;
+
+  /* Neutrales / texto */
+  --color-on-surface: #e1e2e8;
+  --color-on-surface-variant: #c4c6d0;
+  --color-on-background: #e1e2e8;
+  --color-background: #0c0f13;
+  --color-outline: #8e909c;
+  --color-outline-variant: #44464f;
+
+  /* Líneas finas */
+  --color-hairline-soft: rgba(255, 255, 255, 0.06);
+  --color-hairline: rgba(255, 255, 255, 0.12);
+  --color-hairline-strong: rgba(255, 255, 255, 0.22);
+
+  /* Sombras más profundas sobre fondo oscuro */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.7);
+  --shadow-primary: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -77,10 +215,20 @@
     box-sizing: border-box;
   }
 
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     font-family: var(--font-body);
     background-color: var(--color-surface);
     color: var(--color-on-surface);
+    transition:
+      background-color var(--duration-base) var(--ease-standard),
+      color var(--duration-base) var(--ease-standard);
   }
 
   h1,
@@ -90,6 +238,13 @@
   h5,
   h6 {
     font-family: var(--font-headline);
+  }
+
+  /* Anillo de foco visible y accesible para teclado.
+     Los inputs que usan `outline-none` reciben su propio ring en Fase 2. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
   }
 
   .material-symbols-outlined {
@@ -103,4 +258,17 @@
     vertical-align: middle;
     user-select: none;
   }
+}
+
+/* Focus ring en campos de formulario. Va SIN @layer a propósito: las reglas no
+   "layered" ganan sobre los utilities de Tailwind (p.ej. `shadow-none`, que de otro
+   modo anularía cualquier box-shadow de foco). Opt-in para componentes custom con
+   data-field (triggers de MultiSelect/SearchableSelect/DateInput, etc.). */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[data-field]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--color-primary);
 }

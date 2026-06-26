@@ -276,7 +276,7 @@ const condicionOptions = [
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 </script>
@@ -321,7 +321,7 @@ function inputStyle(hasError = false) {
 
           <!-- Origen -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Origen de la factura</h3>
             <div class="grid grid-cols-2 gap-3">
               <label
@@ -350,7 +350,7 @@ function inputStyle(hasError = false) {
 
           <!-- Datos generales -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -436,8 +436,8 @@ function inputStyle(hasError = false) {
 
           <!-- Ítems Con OC -->
           <div v-if="origen === 'ConOC'" class="rounded-2xl mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
-            <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+            <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Ítems de la factura</h3>
               <p class="text-xs mt-1" style="color: var(--color-on-surface-variant)">
                 Copiados de la OC seleccionada — podés ajustar el tipo de IVA por ítem.
@@ -465,7 +465,7 @@ function inputStyle(hasError = false) {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, i) in ocItems" :key="i" style="border-top: 1px solid rgba(196,197,213,0.12)">
+                <tr v-for="(item, i) in ocItems" :key="i" style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-3 font-medium" style="color: var(--color-on-surface)">{{ item.descripcion }}</td>
                   <td class="px-6 py-3 text-center" style="color: var(--color-on-surface-variant)">{{ item.cantidad }}</td>
                   <td class="px-6 py-3 text-right" style="color: var(--color-on-surface-variant)">{{ formatMonto(item.precioUnitario) }}</td>
@@ -491,9 +491,9 @@ function inputStyle(hasError = false) {
 
           <!-- Ítems Directa -->
           <div v-if="origen === 'Directa'" class="rounded-2xl mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
-              style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
               <div>
                 <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Ítems de la factura *</h3>
                 <p class="text-xs mt-0.5" style="color: var(--color-on-surface-variant)">
@@ -520,7 +520,7 @@ function inputStyle(hasError = false) {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, i) in directaItems" :key="i" style="border-top: 1px solid rgba(196,197,213,0.12)">
+                <tr v-for="(item, i) in directaItems" :key="i" style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-3">
                     <SearchableSelect
                       :model-value="item.productoId"
@@ -572,7 +572,7 @@ function inputStyle(hasError = false) {
 
           <!-- Resumen fiscal (calculado desde ítems, read-only) -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Resumen fiscal</h3>
               <span class="text-xs px-2.5 py-1 rounded-full"
@@ -629,7 +629,7 @@ function inputStyle(hasError = false) {
 
           <!-- Observaciones -->
           <div class="rounded-2xl p-6 mb-6"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Observaciones</label>
             <textarea v-model="form.observaciones" rows="2" placeholder="Notas opcionales…"
               class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle(false)" />

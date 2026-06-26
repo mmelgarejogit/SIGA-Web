@@ -147,7 +147,7 @@ function duracion(apertura: string, cierre?: string): string {
                 v-for="s in sesiones"
                 :key="s.id"
                 class="hover:bg-surface-container-low transition-colors"
-                style="border-bottom: 1px solid rgba(196, 197, 213, 0.12)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
               >
                 <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">
                   {{ fmtDt(s.fechaApertura) }}
@@ -160,14 +160,14 @@ function duracion(apertura: string, cierre?: string): string {
                 </td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface)">{{ s.abiertaPorNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ s.cerradaPorNombre ?? "—" }}</td>
-                <td class="px-6 py-4 text-sm font-semibold" style="color: #065F46">{{ fmt(s.totalIngresos) }}</td>
-                <td class="px-6 py-4 text-sm font-semibold" style="color: #991B1B">{{ fmt(s.totalEgresos) }}</td>
+                <td class="px-6 py-4 text-sm font-semibold" style="color: var(--color-on-success-container)">{{ fmt(s.totalIngresos) }}</td>
+                <td class="px-6 py-4 text-sm font-semibold" style="color: var(--color-on-error-container)">{{ fmt(s.totalEgresos) }}</td>
                 <td class="px-6 py-4 text-sm font-bold" style="color: var(--color-primary)">{{ fmt(s.saldoNeto) }}</td>
                 <td class="px-6 py-4">
                   <span
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     :style="s.estado === 'Abierta'
-                      ? 'background-color:#D1FAE5; color:#065F46'
+                      ? 'background-color:var(--color-success-container); color:var(--color-on-success-container)'
                       : 'background-color:var(--color-surface-container-high); color:var(--color-on-surface-variant)'"
                   >
                     <span v-if="s.estado === 'Abierta'" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -231,17 +231,17 @@ function duracion(apertura: string, cierre?: string): string {
 
       <!-- Resumen financiero -->
       <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-xl p-4 text-center" style="background-color: #D1FAE5">
-          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: #065F46">Ingresos</p>
-          <p class="text-lg font-extrabold" style="color: #065F46">{{ fmt(detalle.totalIngresos) }}</p>
+        <div class="rounded-xl p-4 text-center" style="background-color: var(--color-success-container)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-on-success-container)">Ingresos</p>
+          <p class="text-lg font-extrabold" style="color: var(--color-on-success-container)">{{ fmt(detalle.totalIngresos) }}</p>
         </div>
-        <div class="rounded-xl p-4 text-center" style="background-color: #FEE2E2">
-          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: #991B1B">Egresos</p>
-          <p class="text-lg font-extrabold" style="color: #991B1B">{{ fmt(detalle.totalEgresos) }}</p>
+        <div class="rounded-xl p-4 text-center" style="background-color: var(--color-error-container)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-on-error-container)">Egresos</p>
+          <p class="text-lg font-extrabold" style="color: var(--color-on-error-container)">{{ fmt(detalle.totalEgresos) }}</p>
         </div>
-        <div class="rounded-xl p-4 text-center" style="background-color: #DBEAFE">
-          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: #1D4ED8">Saldo neto</p>
-          <p class="text-lg font-extrabold" style="color: #1D4ED8">{{ fmt(detalle.saldoNeto) }}</p>
+        <div class="rounded-xl p-4 text-center" style="background-color: var(--color-info-container)">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-on-info-container)">Saldo neto</p>
+          <p class="text-lg font-extrabold" style="color: var(--color-on-info-container)">{{ fmt(detalle.saldoNeto) }}</p>
         </div>
       </div>
 
@@ -260,16 +260,16 @@ function duracion(apertura: string, cierre?: string): string {
           <div>
             <p class="text-xs mb-1" style="color: var(--color-on-surface-variant)">Diferencia</p>
             <p class="text-xs font-bold mb-0.5"
-               :style="(detalle.diferencia ?? 0) === 0 ? 'color:#065F46' : (detalle.diferencia ?? 0) > 0 ? 'color:#1D4ED8' : 'color:#991B1B'">
+               :style="(detalle.diferencia ?? 0) === 0 ? 'color:var(--color-on-success-container)' : (detalle.diferencia ?? 0) > 0 ? 'color:var(--color-on-info-container)' : 'color:var(--color-on-error-container)'">
               {{ (detalle.diferencia ?? 0) === 0 ? "Cuadrada" : (detalle.diferencia ?? 0) > 0 ? "Sobrante" : "Faltante" }}
             </p>
             <p class="font-bold"
-               :style="(detalle.diferencia ?? 0) === 0 ? 'color:#065F46' : (detalle.diferencia ?? 0) > 0 ? 'color:#1D4ED8' : 'color:#991B1B'">
+               :style="(detalle.diferencia ?? 0) === 0 ? 'color:var(--color-on-success-container)' : (detalle.diferencia ?? 0) > 0 ? 'color:var(--color-on-info-container)' : 'color:var(--color-on-error-container)'">
               {{ fmtSigned(detalle.diferencia ?? 0) }}
             </p>
           </div>
         </div>
-        <div v-if="detalle.observacionCierre" class="pt-2" style="border-top: 1px solid rgba(196,197,213,0.2)">
+        <div v-if="detalle.observacionCierre" class="pt-2" style="border-top: 1px solid var(--color-hairline)">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Observación</p>
           <p class="text-sm" style="color: var(--color-on-surface)">{{ detalle.observacionCierre }}</p>
         </div>
@@ -280,19 +280,19 @@ function duracion(apertura: string, cierre?: string): string {
         <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">
           Movimientos ({{ detalle.movimientos.length }})
         </p>
-        <div class="rounded-xl overflow-hidden" style="border: 1px solid rgba(196,197,213,0.2)">
+        <div class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-hairline)">
           <div
             v-for="m in detalle.movimientos"
             :key="m.id"
             class="flex items-center gap-3 px-4 py-3"
-            style="border-bottom: 1px solid rgba(196,197,213,0.12)"
+            style="border-bottom: 1px solid var(--color-hairline-soft)"
           >
             <div
               class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-              :style="`background-color: ${m.tipo === 'Ingreso' ? '#D1FAE5' : '#FEE2E2'}`"
+              :style="`background-color: ${m.tipo === 'Ingreso' ? 'var(--color-success-container)' : 'var(--color-error-container)'}`"
             >
               <span class="material-symbols-outlined" style="font-size:16px"
-                :style="`color: ${m.tipo === 'Ingreso' ? '#065F46' : '#991B1B'}`">
+                :style="`color: ${m.tipo === 'Ingreso' ? 'var(--color-on-success-container)' : 'var(--color-on-error-container)'}`">
                 {{ m.tipo === "Ingreso" ? "arrow_downward" : "arrow_upward" }}
               </span>
             </div>
@@ -304,7 +304,7 @@ function duracion(apertura: string, cierre?: string): string {
               </div>
             </div>
             <p class="text-sm font-bold flex-shrink-0"
-               :style="`color: ${m.tipo === 'Ingreso' ? '#065F46' : '#991B1B'}`">
+               :style="`color: ${m.tipo === 'Ingreso' ? 'var(--color-on-success-container)' : 'var(--color-on-error-container)'}`">
               {{ m.tipo === "Ingreso" ? "+" : "−" }}{{ fmt(m.monto) }}
             </p>
           </div>

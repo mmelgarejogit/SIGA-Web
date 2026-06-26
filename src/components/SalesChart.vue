@@ -22,16 +22,16 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
 
 <template>
   <div
-    class="rounded-2xl overflow-hidden"
+    class="rounded-lg overflow-hidden"
     style="
       background-color: var(--color-surface-container-lowest);
-      box-shadow: 0 1px 3px rgba(196, 197, 213, 0.3);
-      outline: 1px solid rgba(196, 197, 213, 0.15);
+      box-shadow: var(--shadow-sm);
+      outline: 1px solid var(--color-hairline);
     "
   >
     <div
       class="px-5 py-4 flex justify-between items-center"
-      style="border-bottom: 1px solid rgba(196, 197, 213, 0.2)"
+      style="border-bottom: 1px solid var(--color-hairline)"
     >
       <div>
         <h2 class="text-base font-bold" style="color: var(--color-on-surface)">
@@ -41,7 +41,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
       </div>
       <span
         class="text-xs font-bold px-2.5 py-1 rounded-full"
-        style="background-color: rgba(0, 40, 142, 0.08); color: var(--color-primary)"
+        style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary)"
       >
         ₲ 8.35M total
       </span>
@@ -56,10 +56,10 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
           </linearGradient>
         </defs>
 
-        <line x1="20" y1="20" x2="260" y2="20" stroke="rgba(196,197,213,0.3)" stroke-width="1" />
-        <line x1="20" y1="45" x2="260" y2="45" stroke="rgba(196,197,213,0.3)" stroke-width="1" />
-        <line x1="20" y1="70" x2="260" y2="70" stroke="rgba(196,197,213,0.3)" stroke-width="1" />
-        <line x1="20" y1="95" x2="260" y2="95" stroke="rgba(196,197,213,0.3)" stroke-width="1" />
+        <line x1="20" y1="20" x2="260" y2="20" stroke="var(--color-hairline-strong)" stroke-width="1" />
+        <line x1="20" y1="45" x2="260" y2="45" stroke="var(--color-hairline-strong)" stroke-width="1" />
+        <line x1="20" y1="70" x2="260" y2="70" stroke="var(--color-hairline-strong)" stroke-width="1" />
+        <line x1="20" y1="95" x2="260" y2="95" stroke="var(--color-hairline-strong)" stroke-width="1" />
 
         <polygon :points="areaPoints" fill="url(#salesGrad)" />
 
@@ -78,7 +78,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
           :cx="(i / (values.length - 1)) * 240 + 20"
           :cy="100 - normalize(v)"
           r="3.5"
-          fill="white"
+          fill="var(--color-surface-container-lowest)"
           stroke="var(--color-primary)"
           stroke-width="2"
         />
@@ -88,7 +88,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
           :cy="100 - normalize(values[6]!)"
           r="5"
           fill="var(--color-primary)"
-          stroke="white"
+          stroke="var(--color-surface-container-lowest)"
           stroke-width="2"
         />
       </svg>
@@ -111,7 +111,7 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
 
       <div
         class="grid grid-cols-3 gap-2 mt-5 pt-4"
-        style="border-top: 1px solid rgba(196, 197, 213, 0.2)"
+        style="border-top: 1px solid var(--color-hairline)"
       >
         <div class="text-center">
           <p class="text-xs font-medium" style="color: var(--color-outline)">Mejor día</p>
@@ -122,8 +122,8 @@ const formatM = (v: number) => `₲${(v / 1000000).toFixed(1)}M`
         <div
           class="text-center"
           style="
-            border-left: 1px solid rgba(196, 197, 213, 0.2);
-            border-right: 1px solid rgba(196, 197, 213, 0.2);
+            border-left: 1px solid var(--color-hairline);
+            border-right: 1px solid var(--color-hairline);
           "
         >
           <p class="text-xs font-medium" style="color: var(--color-outline)">Promedio</p>

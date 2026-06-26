@@ -63,7 +63,7 @@ const search      = ref("")
 const estadoFilter = ref<string[]>([])
 
 const estadoOptions = [
-  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "activo",   label: "Activo",   dot: "var(--color-success)" },
   { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
 ]
 
@@ -222,7 +222,7 @@ function openEdit(p: Proveedor) {
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -349,7 +349,7 @@ async function confirmDeactivate() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
         <BaseTable :columns="columns" :items="proveedores" :loading="isLoading"
           empty-text="No hay proveedores registrados.">
 
@@ -386,7 +386,7 @@ async function confirmDeactivate() {
             <span
               class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
               :style="item.isActive
-                ? 'background-color: #dcfce7; color: #166534'
+                ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
                 : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
             >{{ item.isActive ? "Activo" : "Inactivo" }}</span>
           </template>
@@ -402,7 +402,7 @@ async function confirmDeactivate() {
           <div
             v-if="proveedores.length > 0"
             class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest);"
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest);"
           >
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
@@ -424,7 +424,7 @@ async function confirmDeactivate() {
                   v-else
                   @click="currentPage = (p as number); load()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :class="currentPage === p ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                  :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
                 >{{ p }}</button>
               </template>
               <button
@@ -537,10 +537,10 @@ async function confirmDeactivate() {
           >
             <span
               class="material-symbols-outlined"
-              :style="`font-size: 22px; color: ${form.esLaboratorio ? '#166534' : 'var(--color-outline)'}`"
+              :style="`font-size: 22px; color: ${form.esLaboratorio ? 'var(--color-on-success-container)' : 'var(--color-outline)'}`"
             >{{ form.esLaboratorio ? 'check_box' : 'check_box_outline_blank' }}</span>
             <div class="text-left">
-              <p class="text-sm font-semibold" :style="`color: ${form.esLaboratorio ? '#166534' : 'var(--color-on-surface)'}`">
+              <p class="text-sm font-semibold" :style="`color: ${form.esLaboratorio ? 'var(--color-on-success-container)' : 'var(--color-on-surface)'}`">
                 Es laboratorio óptico
               </p>
               <p class="text-xs" style="color: var(--color-on-surface-variant)">
@@ -557,7 +557,7 @@ async function confirmDeactivate() {
             type="button"
             @click="addContacto"
             class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-            style="background-color: rgba(0,40,142,0.08); color: var(--color-primary)"
+            style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary)"
           >
             <span class="material-symbols-outlined" style="font-size: 15px">add</span>
             Agregar contacto
@@ -582,7 +582,7 @@ async function confirmDeactivate() {
             v-for="(c, i) in contactoRows"
             :key="i"
             class="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-0 items-center"
-            :style="i < contactoRows.length - 1 ? 'border-bottom: 1px solid rgba(196,197,213,0.15)' : ''"
+            :style="i < contactoRows.length - 1 ? 'border-bottom: 1px solid var(--color-hairline)' : ''"
           >
             <div class="px-2 py-2">
               <input

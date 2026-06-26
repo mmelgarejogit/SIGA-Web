@@ -102,7 +102,7 @@ onMounted(load)
         </div>
 
         <div v-else class="rounded-2xl p-8"
-          style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.2)">
+          style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
           <div v-if="saveError" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-5 text-sm font-medium"
             style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
@@ -111,7 +111,7 @@ onMounted(load)
           </div>
 
           <div v-if="saveSuccess" class="flex items-center gap-2 rounded-2xl px-4 py-3 mb-5 text-sm font-medium"
-            style="background-color: #dcfce7; color: #166534">
+            style="background-color: var(--color-success-container); color: var(--color-on-success-container)">
             <span class="material-symbols-outlined" style="font-size: 18px">check_circle</span>
             Configuración guardada correctamente.
           </div>
@@ -164,7 +164,7 @@ onMounted(load)
             <div v-if="canEdit" class="flex justify-end pt-2">
               <button type="submit" :disabled="isSaving"
                 class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-                style="background-color: var(--color-primary); color: white;">
+                style="background-color: var(--color-primary); color: var(--color-on-primary);">
                 <svg v-if="isSaving" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

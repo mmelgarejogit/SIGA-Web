@@ -10,6 +10,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import { getPatients } from "@/services/patientService"
 import { getTurnos, getMisTurnos, type Turno } from "@/services/turnoService"
 import { getProfessionalStats, type ProfessionalDashboardStats, type ConsultaClinica } from "@/services/clinicaService"
+import { getReporteVentas, getReporteInventario } from "@/services/reportesService"
 import { useAuthStore } from "@/stores/auth"
 
 const router  = useRouter()
@@ -31,6 +32,20 @@ function toDateStr(d: Date): string {
   const m   = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}-${m}-${day}`
+}
+
+function fmtGs(n: number): string {
+  return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
+}
+
+function weekRangeStr(d: Date): { desde: string; hasta: string } {
+  const day = d.getDay()
+  const offset = day === 0 ? 6 : day - 1 // lunes = inicio
+  const start = new Date(d)
+  start.setDate(d.getDate() - offset)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  return { desde: toDateStr(start), hasta: toDateStr(end) }
 }
 
 function formatFecha(iso: string): string {
@@ -109,7 +124,7 @@ const profKpis = computed(() => [
     icon:      "group",
     badge:     "Mes",
     badgeType: "neutral" as const,
-    iconBg:    "rgba(0,40,142,0.08)",
+    iconBg:    "color-mix(in srgb, var(--color-primary) 10%, transparent)",
     iconColor: "var(--color-primary)",
   },
   {
@@ -118,17 +133,17 @@ const profKpis = computed(() => [
     icon:      "medical_services",
     badge:     "Mes",
     badgeType: "neutral" as const,
-    iconBg:    "rgba(0,103,128,0.08)",
+    iconBg:    "color-mix(in srgb, var(--color-secondary) 10%, transparent)",
     iconColor: "var(--color-secondary)",
   },
 ])
 
 function profAvatarStyle(id: number) {
   const palette = [
-    { bg: "rgba(0,40,142,0.08)",    color: "var(--color-primary)" },
-    { bg: "rgba(0,103,128,0.08)",   color: "var(--color-secondary)" },
-    { bg: "rgba(32,0,177,0.08)",    color: "var(--color-tertiary)" },
-    { bg: "rgba(117,118,132,0.10)", color: "var(--color-outline)" },
+    { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)",    color: "var(--color-primary)" },
+    { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)",   color: "var(--color-secondary)" },
+    { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)",    color: "var(--color-tertiary)" },
+    { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
   ]
   return palette[id % palette.length] ?? palette[0]!
 }
@@ -148,6 +163,8 @@ function profFormatDate(iso: string) {
 const todayStr            = toDateStr(new Date())
 const activePatients      = ref("—")
 const todayAppointments   = ref("—")
+const ingresosSemana      = ref("—")
+const stockCritico        = ref("—")
 const isLoadingPatients   = ref(true)
 const isLoadingAppts      = ref(true)
 
@@ -169,7 +186,31 @@ async function loadStaffData() {
   } finally {
     isLoadingAppts.value = false
   }
+
+  // KPIs de reportes (solo si el usuario tiene permiso para verlos)
+  if (auth.hasPermission("ver_reportes")) {
+    try {
+      const { desde, hasta } = weekRangeStr(new Date())
+      const rv = await getReporteVentas({ desde, hasta, agrupacion: "dia" })
+      ingresosSemana.value = fmtGs(rv.totalCobrado)
+    } catch {
+      ingresosSemana.value = "N/D"
+    }
+    try {
+      // El stock crítico es un snapshot; el rango no influye.
+      const ri = await getReporteInventario({ desde: todayStr, hasta: todayStr, agrupacion: "dia" })
+      stockCritico.value = String(ri.stockCritico)
+    } catch {
+      stockCritico.value = "N/D"
+    }
+  }
 }
+
+const stockBadge = computed<{ text: string; type: "positive" | "neutral" | "critical" }>(() => {
+  const n = Number(stockCritico.value)
+  if (Number.isNaN(n)) return { text: "Sin datos", type: "neutral" }
+  return n > 0 ? { text: "Atención", type: "critical" } : { text: "Al día", type: "positive" }
+})
 
 const kpis = computed(() => [
   {
@@ -192,19 +233,19 @@ const kpis = computed(() => [
   },
   {
     title:    "Ingresos Semanales",
-    value:    "—",
+    value:    ingresosSemana.value,
     icon:     "sell",
-    badge:    "Sin datos",
+    badge:    "Esta semana",
     badgeType: "neutral" as const,
     iconBg:   "#E2DFFF",
     iconColor: "var(--color-tertiary)",
   },
   {
     title:    "Stock Crítico",
-    value:    "—",
+    value:    stockCritico.value,
     icon:     "warning",
-    badge:    "Sin datos",
-    badgeType: "neutral" as const,
+    badge:    stockBadge.value.text,
+    badgeType: stockBadge.value.type,
     iconBg:   "var(--color-error-container)",
     iconColor: "var(--color-error)",
   },
@@ -387,8 +428,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Acciones rápidas (1/3 ancho) -->
             <div class="flex flex-col gap-4">
               <div class="rounded-3xl p-7"
-                   style="background-color: var(--color-primary);
-                          box-shadow: 0 4px 24px rgba(0,40,142,0.25);">
+                   style="background-color: #00288e;
+                          box-shadow: var(--shadow-lg);">
                 <span class="material-symbols-outlined mb-4 block"
                       style="color: rgba(255,255,255,0.7); font-size: 28px;
                              font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">
@@ -438,7 +479,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                class="mt-6 rounded-3xl overflow-hidden"
                style="background-color: var(--color-surface-container-lowest);
                       box-shadow: 0 2px 16px rgba(0,40,142,0.07);">
-            <div class="px-7 py-5" style="border-bottom: 1px solid rgba(196,197,213,0.15)">
+            <div class="px-7 py-5" style="border-bottom: 1px solid var(--color-hairline)">
               <h2 class="text-xs font-bold uppercase tracking-widest"
                   style="color: var(--color-outline)">
                 Turnos recientes
@@ -447,7 +488,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <div>
               <div v-for="turno in turnosRecientes" :key="turno.id"
                    class="flex items-center gap-4 px-7 py-4 hover:bg-surface-container-low transition-colors"
-                   style="border-bottom: 1px solid rgba(196,197,213,0.08)">
+                   style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                      style="background-color: var(--color-surface-container-low)">
                   <span class="material-symbols-outlined"
@@ -517,7 +558,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
           >
             <div
               class="flex items-center justify-between px-7 py-5"
-              style="border-bottom: 1px solid rgba(196,197,213,0.15)"
+              style="border-bottom: 1px solid var(--color-hairline)"
             >
               <h2 class="text-xs font-bold uppercase tracking-widest"
                   style="color: var(--color-outline)">
@@ -561,7 +602,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                 v-for="c in profStats.ultimasConsultas"
                 :key="c.id"
                 class="flex items-center gap-4 px-7 py-4 hover:bg-surface-container-low transition-colors"
-                style="border-bottom: 1px solid rgba(196,197,213,0.08)"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
               >
                 <div
                   class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
@@ -580,7 +621,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                 <span
                   v-if="c.receta"
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0"
-                  style="background-color: #d1fae5; color: #065f46"
+                  style="background-color: var(--color-success-container); color: var(--color-on-success-container)"
                 >
                   <span class="material-symbols-outlined" style="font-size: 12px">check</span>
                   Con receta
@@ -645,8 +686,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                    class="absolute bottom-16 right-0 w-56 rounded-2xl overflow-hidden mb-2"
                    style="background-color: var(--color-surface-container-lowest);
                           box-shadow: 0 8px 32px rgba(0,40,142,0.18);
-                          outline: 1px solid rgba(196,197,213,0.2);">
-                <div class="px-4 py-3" style="border-bottom: 1px solid rgba(196,197,213,0.15)">
+                          outline: 1px solid var(--color-hairline);">
+                <div class="px-4 py-3" style="border-bottom: 1px solid var(--color-hairline)">
                   <p class="text-xs font-bold uppercase tracking-widest"
                      style="color: var(--color-outline)">
                     Acciones rápidas

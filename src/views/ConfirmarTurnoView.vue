@@ -31,11 +31,11 @@ onMounted(async () => {
 <template>
   <div
     class="min-h-screen flex items-center justify-center p-6"
-    style="background-color: #F7F9FE"
+    style="background-color: var(--color-surface)"
   >
     <div
       class="w-full max-w-md rounded-3xl overflow-hidden"
-      style="background:#ffffff;box-shadow:0 4px 24px rgba(0,0,0,0.08)"
+      style="background:var(--color-surface-container-lowest);box-shadow:var(--shadow-lg)"
     >
       <!-- Header -->
       <div style="background:#00288E;padding:28px 40px">
@@ -53,21 +53,21 @@ onMounted(async () => {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
-          <p style="color:#444653;font-size:15px">Confirmando tu turno…</p>
+          <p style="color:var(--color-on-surface-variant);font-size:15px">Confirmando tu turno…</p>
         </template>
 
         <!-- Éxito -->
         <template v-else-if="estado === 'ok'">
           <div
             class="w-16 h-16 rounded-full flex items-center justify-center mb-6"
-            style="background-color:#D1FAE5"
+            style="background-color:var(--color-success-container)"
           >
-            <span class="material-symbols-outlined" style="font-size:32px;color:#065F46">check_circle</span>
+            <span class="material-symbols-outlined" style="font-size:32px;color:var(--color-on-success-container)">check_circle</span>
           </div>
-          <h2 class="text-2xl font-extrabold mb-3" style="color:#111827">
+          <h2 class="text-2xl font-extrabold mb-3" style="color:var(--color-on-surface)">
             ¡Turno confirmado!
           </h2>
-          <p style="color:#6B7280;font-size:15px;line-height:1.6">
+          <p style="color:var(--color-outline);font-size:15px;line-height:1.6">
             Tu turno en SIGA Óptica ha sido confirmado exitosamente.<br>
             Te esperamos en la fecha y hora acordada.
           </p>
@@ -77,19 +77,19 @@ onMounted(async () => {
         <template v-else>
           <div
             class="w-16 h-16 rounded-full flex items-center justify-center mb-6"
-            style="background-color:#FEE2E2"
+            style="background-color:var(--color-error-container)"
           >
-            <span class="material-symbols-outlined" style="font-size:32px;color:#991B1B">error</span>
+            <span class="material-symbols-outlined" style="font-size:32px;color:var(--color-on-error-container)">error</span>
           </div>
-          <h2 class="text-2xl font-extrabold mb-3" style="color:#111827">
+          <h2 class="text-2xl font-extrabold mb-3" style="color:var(--color-on-surface)">
             No se pudo confirmar
           </h2>
-          <p style="color:#6B7280;font-size:15px;line-height:1.6">
+          <p style="color:var(--color-outline);font-size:15px;line-height:1.6">
             {{ mensaje }}
           </p>
         </template>
 
-        <p class="mt-8 text-xs" style="color:#9CA3AF">
+        <p class="mt-8 text-xs" style="color:var(--color-outline)">
           SIGA Óptica — Sistema de Gestión
         </p>
       </div>

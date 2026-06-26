@@ -118,8 +118,8 @@ async function emitir() {
             <!-- Emisión -->
             <div class="lg:col-span-2 space-y-6">
               <!-- Ya emitido -->
-              <div v-if="yaEmitido" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <span class="material-symbols-outlined mb-2" style="font-size: 40px; color: #166534">verified</span>
+              <div v-if="yaEmitido" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <span class="material-symbols-outlined mb-2" style="font-size: 40px; color: var(--color-on-success-container)">verified</span>
                 <p class="text-lg font-bold" style="color: var(--color-on-surface)">Documento ya emitido</p>
                 <p class="text-sm" style="color: var(--color-on-surface-variant)">
                   Esta venta ya tiene {{ venta.factura ? "factura timbrada" : "recibo simple" }} emitido.
@@ -128,7 +128,7 @@ async function emitir() {
               </div>
 
               <!-- No disponible -->
-              <div v-else-if="!puedeEmitir" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div v-else-if="!puedeEmitir" class="rounded-2xl p-8 text-center" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <p class="text-sm" style="color: var(--color-on-surface-variant)">
                   Esta venta no está lista para emitir documento (estado actual: {{ venta.estado }}).
                 </p>
@@ -136,7 +136,7 @@ async function emitir() {
 
               <!-- Formulario -->
               <template v-else>
-                <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+                <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                   <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Tipo de documento</h3>
 
                   <!-- Selector -->
@@ -241,7 +241,7 @@ async function emitir() {
 
             <!-- Resumen -->
             <div class="space-y-6">
-              <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Venta</h3>
                 <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ venta.clienteNombre }}</p>
                 <p class="text-xs mb-4" style="color: var(--color-on-surface-variant)">
@@ -249,8 +249,8 @@ async function emitir() {
                 </p>
                 <div class="space-y-2 text-sm">
                   <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Total</span><span class="font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(venta.total) }}</span></div>
-                  <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Cobrado</span><span style="color:#166534">{{ formatPrice(venta.totalCobrado) }}</span></div>
-                  <div class="flex justify-between font-bold pt-2" style="border-top: 1px solid rgba(196,197,213,0.2)"><span style="color: var(--color-on-surface)">Saldo</span><span style="color:#92400E">{{ formatPrice(venta.saldoPendiente) }}</span></div>
+                  <div class="flex justify-between"><span style="color: var(--color-on-surface-variant)">Cobrado</span><span style="color:var(--color-on-success-container)">{{ formatPrice(venta.totalCobrado) }}</span></div>
+                  <div class="flex justify-between font-bold pt-2" style="border-top: 1px solid var(--color-hairline)"><span style="color: var(--color-on-surface)">Saldo</span><span style="color:var(--color-on-warning-container)">{{ formatPrice(venta.saldoPendiente) }}</span></div>
                 </div>
               </div>
             </div>

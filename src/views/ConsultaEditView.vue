@@ -172,7 +172,7 @@ function onCancel() {
 function inputStyle(hasError: boolean) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
@@ -226,8 +226,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               class="rounded-2xl p-6 space-y-5"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">Paciente</h3>
@@ -254,8 +254,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
               class="rounded-2xl p-6 space-y-5"
               style="
                 background-color: var(--color-surface-container-lowest);
-                box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-                outline: 1px solid rgba(196, 197, 213, 0.15);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
               "
             >
               <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">
@@ -287,8 +287,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             class="rounded-2xl p-6 space-y-5"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <h3 class="text-lg font-extrabold" style="color: var(--color-on-surface)">
@@ -498,8 +498,8 @@ const recetaRows = [{ eye: "OD" }, { eye: "OI" }]
             class="rounded-2xl p-6 space-y-5"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
-              outline: 1px solid rgba(196, 197, 213, 0.15);
+              box-shadow: var(--shadow-sm);
+              outline: 1px solid var(--color-hairline);
             "
           >
             <div class="flex items-center gap-2 mb-2">

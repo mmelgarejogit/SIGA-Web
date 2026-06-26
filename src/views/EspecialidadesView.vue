@@ -52,7 +52,7 @@ onMounted(load)
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -189,7 +189,7 @@ async function confirmDelete() {
         <!-- Tabla -->
         <template v-else>
           <div class="rounded-2xl overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); border: 1px solid rgba(196,197,213,0.15)">
+            style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
             <div v-if="filtered.length === 0" class="py-16 text-center">
               <span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-outline-variant)">medical_services</span>
@@ -207,11 +207,11 @@ async function confirmDelete() {
               <tbody>
                 <tr v-for="esp in filtered" :key="esp.id"
                   class="hover:bg-surface-container-low transition-colors"
-                  style="border-top: 1px solid rgba(196,197,213,0.12)">
+                  style="border-top: 1px solid var(--color-hairline-soft)">
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
                       <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style="background-color: rgba(0,40,142,0.08)">
+                        style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
                         <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">medical_services</span>
                       </div>
                       <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ esp.nombre }}</span>
@@ -231,7 +231,7 @@ async function confirmDelete() {
 
             <!-- Footer conteo -->
             <div v-if="filtered.length > 0" class="px-6 py-4"
-              style="border-top: 1px solid rgba(196,197,213,0.12)">
+              style="border-top: 1px solid var(--color-hairline-soft)">
               <span class="text-sm" style="color: var(--color-on-surface-variant)">
                 <strong style="color: var(--color-on-surface)">{{ especialidades.length }}</strong>
                 especialidad{{ especialidades.length !== 1 ? "es" : "" }}

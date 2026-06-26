@@ -370,7 +370,7 @@ async function handleSubmit() {
             >
               <svg
                 v-if="isLoading"
-                class="animate-spin w-5 h-5 text-white flex-shrink-0"
+                class="animate-spin w-5 h-5 text-on-primary flex-shrink-0"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -403,13 +403,13 @@ async function handleSubmit() {
         <!-- Divider + alternatives -->
         <div class="mt-12 flex flex-col items-center gap-6">
           <div class="w-full flex items-center gap-4">
-            <div class="flex-1 h-px" style="background-color: rgba(196, 197, 213, 0.35)"></div>
+            <div class="flex-1 h-px" style="background-color: var(--color-hairline-strong)"></div>
             <span
               class="text-xs font-bold uppercase tracking-widest"
               style="color: var(--color-outline-variant)"
               >o iniciar sesión con</span
             >
-            <div class="flex-1 h-px" style="background-color: rgba(196, 197, 213, 0.35)"></div>
+            <div class="flex-1 h-px" style="background-color: var(--color-hairline-strong)"></div>
           </div>
 
           <!-- Google button -->
@@ -418,7 +418,7 @@ async function handleSubmit() {
             class="w-full h-12 rounded-full flex items-center justify-center gap-3 font-semibold transition-colors"
             style="
               border: 1px solid var(--color-outline-variant);
-              background-color: white;
+              background-color: var(--color-surface-container-lowest);
               color: var(--color-on-surface-variant);
             "
           >

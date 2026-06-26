@@ -5,6 +5,18 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIGA-Óptica | Centro Óptico Santa María</title>
+    <script>
+      // Anti-flash: aplica el tema antes del primer paint (mismo criterio que stores/theme.ts)
+      (function () {
+        try {
+          var t = localStorage.getItem("siga_theme")
+          if (t !== "light" && t !== "dark") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          }
+          if (t === "dark") document.documentElement.classList.add("dark")
+        } catch (e) {}
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">

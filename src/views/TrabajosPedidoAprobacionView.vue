@@ -108,7 +108,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos pendientes de aprobación">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -122,7 +122,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
             <template #body>
               <tr v-for="item in filtered" :key="item.id"
                 class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <td class="px-6 py-4">
                   <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ item.numeroComprobante }}</span>
                 </td>
@@ -130,7 +130,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.tipoLenteNombre }}</td>
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-1">
-                    <span v-for="t in item.tratamientos" :key="t" class="px-2 py-0.5 rounded-full text-xs" style="background:#EDE9FE;color:#5B21B6">{{ t }}</span>
+                    <span v-for="t in item.tratamientos" :key="t" class="px-2 py-0.5 rounded-full text-xs" style="background:color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest));color:var(--color-tertiary)">{{ t }}</span>
                     <span v-if="!item.tratamientos.length" class="text-xs" style="color:var(--color-outline)">—</span>
                   </div>
                 </td>

@@ -155,7 +155,7 @@ watch(
     </div>
 
     <!-- Nav Items -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden px-2 flex flex-col gap-0.5">
+    <div class="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden px-2 flex flex-col gap-0.5">
       <div v-for="item in visibleItems" :key="item.id" class="flex-shrink-0">
         <SidebarItem
           :item="item"
@@ -174,11 +174,8 @@ watch(
     <div class="px-3 mt-2 flex-shrink-0" :class="sidebar.collapsed ? 'flex justify-center' : ''">
       <button
         @click="sidebar.toggle"
-        class="flex items-center py-2 px-3 rounded-xl transition-all w-full"
+        class="collapse-btn flex items-center py-2 px-3 rounded-xl w-full"
         :class="sidebar.collapsed ? 'justify-center gap-0' : 'gap-2'"
-        style="color: rgba(255,255,255,0.4)"
-        onmouseover="this.style.backgroundColor='rgba(255,255,255,0.08)'; this.style.color='rgba(255,255,255,0.75)'"
-        onmouseout="this.style.backgroundColor=''; this.style.color='rgba(255,255,255,0.4)'"
         :title="sidebar.collapsed ? 'Expandir menú' : 'Colapsar menú'"
       >
         <span
@@ -197,3 +194,36 @@ watch(
     </div>
   </nav>
 </template>
+
+<style scoped>
+/* ── Scrollbar fino acorde al sidebar oscuro (reemplaza el nativo) ───────────── */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Botón colapsar (hover en CSS, sin JS inline) ───────────────────────────── */
+.collapse-btn {
+  color: rgba(255, 255, 255, 0.4);
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.collapse-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+}
+</style>

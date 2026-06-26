@@ -46,14 +46,14 @@ const visiblePages = computed(() => {
 })
 
 const tipoOptions = [
-  { value: "Entrada", label: "Entradas", dot: "#166534" },
-  { value: "Salida",  label: "Salidas",  dot: "#991b1b" },
+  { value: "Entrada", label: "Entradas", dot: "var(--color-on-success-container)" },
+  { value: "Salida",  label: "Salidas",  dot: "var(--color-on-error-container)" },
 ]
 
 const estadoOptions = [
-  { value: "Pendiente",  label: "Pendientes",  dot: "#92400E" },
-  { value: "Aprobado",   label: "Aprobados",   dot: "#166534" },
-  { value: "Rechazado",  label: "Rechazados",  dot: "#991b1b" },
+  { value: "Pendiente",  label: "Pendientes",  dot: "var(--color-on-warning-container)" },
+  { value: "Aprobado",   label: "Aprobados",   dot: "var(--color-on-success-container)" },
+  { value: "Rechazado",  label: "Rechazados",  dot: "var(--color-on-error-container)" },
 ]
 
 const columns = [
@@ -76,15 +76,15 @@ function formatDate(iso: string) {
 
 function tipoStyle(tipo: string) {
   return tipo === "Entrada"
-    ? { bg: "#dcfce7", text: "#166534" }
-    : { bg: "#fee2e2", text: "#991b1b" }
+    ? { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    : { bg: "var(--color-error-container)", text: "var(--color-on-error-container)" }
 }
 
 function estadoBadge(estado: string) {
   switch (estado) {
-    case "Aprobado":  return { bg: "#dcfce7", text: "#166534", icon: "check_circle" }
-    case "Rechazado": return { bg: "#fee2e2", text: "#991b1b", icon: "cancel" }
-    default:          return { bg: "#FEF3C7", text: "#92400E", icon: "schedule" }
+    case "Aprobado":  return { bg: "var(--color-success-container)", text: "var(--color-on-success-container)", icon: "check_circle" }
+    case "Rechazado": return { bg: "var(--color-error-container)", text: "var(--color-on-error-container)", icon: "cancel" }
+    default:          return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", icon: "schedule" }
   }
 }
 
@@ -184,7 +184,7 @@ async function downloadPdf(m: MovimientoStock) {
 
         <!-- Tabla -->
         <div class="rounded-2xl overflow-hidden"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos registrados." @row-click="openDetail">
 
             <template #fecha="{ item }">
@@ -234,7 +234,7 @@ async function downloadPdf(m: MovimientoStock) {
 
           <!-- Paginador -->
           <div v-if="movimientos.length > 0" class="px-6 py-4 flex items-center justify-between flex-wrap gap-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando <strong style="color: var(--color-on-surface)">{{ rangeStart }}–{{ rangeEnd }}</strong>
               de <strong style="color: var(--color-on-surface)">{{ totalCount }}</strong> movimientos
@@ -249,7 +249,7 @@ async function downloadPdf(m: MovimientoStock) {
                 <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
                 <button v-else @click="currentPage = (p as number); load()"
                   class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
-                  :style="currentPage === p ? 'background-color: var(--color-primary); color: white;' : 'color: var(--color-on-surface-variant)'">
+                  :style="currentPage === p ? 'background-color: var(--color-primary); color: var(--color-on-primary);' : 'color: var(--color-on-surface-variant)'">
                   {{ p }}
                 </button>
               </template>
@@ -315,13 +315,13 @@ async function downloadPdf(m: MovimientoStock) {
             </p>
           </div>
           <div class="grid grid-cols-2">
-            <div class="px-5 py-3.5" style="border-bottom: 1px solid rgba(196,197,213,0.2); border-right: 1px solid rgba(196,197,213,0.2)">
+            <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--color-hairline); border-right: 1px solid var(--color-hairline)">
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">
                 {{ detailTarget.estado === "Aprobado" ? "Aprobado por" : "Rechazado por" }}
               </p>
               <p class="text-sm" style="color: var(--color-on-surface)">{{ detailTarget.aprobadoPorNombre ?? "—" }}</p>
             </div>
-            <div class="px-5 py-3.5" style="border-bottom: 1px solid rgba(196,197,213,0.2)">
+            <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--color-hairline)">
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Fecha</p>
               <p class="text-sm" style="color: var(--color-on-surface)">{{ detailTarget.fechaAprobacion ? formatDate(detailTarget.fechaAprobacion) : "—" }}</p>
             </div>

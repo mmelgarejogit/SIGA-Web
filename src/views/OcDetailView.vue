@@ -79,13 +79,13 @@ function itemPendiente(item: PedidoItemCompras) {
 
 function estadoStyle(estado: EstadoPedido) {
   switch (estado) {
-    case "Borrador":        return { bg: "#f3f4f6", text: "#374151" }
-    case "Confirmada":      return { bg: "#dbeafe", text: "#1e40af" }
-    case "Facturada":       return { bg: "#ede9fe", text: "#5b21b6" }
-    case "RecibidaParcial": return { bg: "#fef3c7", text: "#92400e" }
-    case "RecibidaTotal":   return { bg: "#dcfce7", text: "#166534" }
-    case "Cancelada":       return { bg: "#fee2e2", text: "#991b1b" }
-    default:                return { bg: "#f3f4f6", text: "#374151" }
+    case "Borrador":        return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
+    case "Confirmada":      return { bg: "var(--color-info-container)", text: "var(--color-on-info-container)" }
+    case "Facturada":       return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)" }
+    case "RecibidaParcial": return { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)" }
+    case "RecibidaTotal":   return { bg: "var(--color-success-container)", text: "var(--color-on-success-container)" }
+    case "Cancelada":       return { bg: "var(--color-error-container)", text: "var(--color-on-error-container)" }
+    default:                return { bg: "var(--color-surface-container)", text: "var(--color-on-surface-variant)" }
   }
 }
 
@@ -132,7 +132,7 @@ const devolucionItemOptions = computed(() =>
 function inputStyle(hasError = false) {
   const base = "border-radius: 12px; "
   return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;"
+    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
     : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
@@ -259,7 +259,7 @@ async function submitDevolucion() {
           <!-- ─── TAB: DETALLE ──────────────────────────────────────────────── -->
           <div v-show="activeTab === 'detalle'">
             <div class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15);">
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
               <table class="w-full text-sm">
                 <thead>
                   <tr style="background-color: var(--color-surface-container-low)">
@@ -272,14 +272,14 @@ async function submitDevolucion() {
                 </thead>
                 <tbody>
                   <tr v-for="item in pedido.items" :key="item.id"
-                    style="border-top: 1px solid rgba(196,197,213,0.12)">
+                    style="border-top: 1px solid var(--color-hairline-soft)">
                     <td class="px-6 py-4 font-medium" style="color: var(--color-on-surface)">{{ item.productoNombre }}</td>
                     <td class="px-6 py-4 text-right" style="color: var(--color-on-surface-variant)">{{ item.cantidad }}</td>
                     <td class="px-6 py-4 text-right">
                       <span :style="item.cantidadRecibida >= item.cantidad
-                        ? 'color: #166534; font-weight: 600'
+                        ? 'color: var(--color-on-success-container); font-weight: 600'
                         : item.cantidadRecibida > 0
-                          ? 'color: #92400e; font-weight: 600'
+                          ? 'color: var(--color-on-warning-container); font-weight: 600'
                           : 'color: var(--color-on-surface-variant)'">
                         {{ item.cantidadRecibida }}
                       </span>
@@ -304,7 +304,7 @@ async function submitDevolucion() {
             <!-- Sin factura -->
             <div v-if="!pedido.factura"
               class="rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-4"
-              style="background-color: var(--color-surface-container-lowest); outline: 1px solid rgba(196,197,213,0.15)">
+              style="background-color: var(--color-surface-container-lowest); outline: 1px solid var(--color-hairline)">
               <span class="material-symbols-outlined text-5xl" style="color: var(--color-outline)">receipt_long</span>
               <div>
                 <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin factura registrada</p>
@@ -317,11 +317,11 @@ async function submitDevolucion() {
 
             <!-- Con factura -->
             <div v-else class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
               <!-- Header factura -->
               <div class="px-6 py-5 flex items-start justify-between"
-                style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Nro. de Factura</p>
                   <p class="text-2xl font-extrabold font-mono" style="color: var(--color-on-surface)">
@@ -331,10 +331,10 @@ async function submitDevolucion() {
                 <div class="flex flex-col items-end gap-2">
                   <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold"
                     :style="pedido.factura.estado === 'Pagado'
-                      ? 'background-color: #dcfce7; color: #166534'
+                      ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
                       : pedido.factura.estado === 'Anulado'
-                        ? 'background-color: #fee2e2; color: #991b1b'
-                        : 'background-color: #fef3c7; color: #92400e'">
+                        ? 'background-color: var(--color-error-container); color: var(--color-on-error-container)'
+                        : 'background-color: var(--color-warning-container); color: var(--color-on-warning-container)'">
                     {{ pedido.factura.estado }}
                   </span>
                   <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
@@ -344,16 +344,16 @@ async function submitDevolucion() {
               </div>
 
               <!-- Fechas -->
-              <div class="grid grid-cols-3 gap-0" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              <div class="grid grid-cols-3 gap-0" style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <div class="px-6 py-4">
                   <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de emisión</p>
                   <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatDate(pedido.factura.fechaEmision) }}</p>
                 </div>
-                <div class="px-6 py-4" style="border-left: 1px solid rgba(196,197,213,0.12)">
+                <div class="px-6 py-4" style="border-left: 1px solid var(--color-hairline-soft)">
                   <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Vencimiento</p>
                   <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ pedido.factura.fechaVencimiento ? formatDate(pedido.factura.fechaVencimiento) : "—" }}</p>
                 </div>
-                <div class="px-6 py-4" style="border-left: 1px solid rgba(196,197,213,0.12)">
+                <div class="px-6 py-4" style="border-left: 1px solid var(--color-hairline-soft)">
                   <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de pago</p>
                   <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ pedido.factura.fechaPago ? formatDate(pedido.factura.fechaPago) : "—" }}</p>
                 </div>
@@ -384,7 +384,7 @@ async function submitDevolucion() {
                     <span class="font-medium" style="color: var(--color-on-surface-variant)">{{ formatPrice(pedido.factura.iva10) }}</span>
                   </div>
                   <div class="flex justify-between text-sm font-extrabold pt-2"
-                    style="border-top: 1px solid rgba(196,197,213,0.2); color: var(--color-primary)">
+                    style="border-top: 1px solid var(--color-hairline); color: var(--color-primary)">
                     <span>Total</span>
                     <span>{{ formatPrice(pedido.factura.montoTotal) }}</span>
                   </div>
@@ -401,7 +401,7 @@ async function submitDevolucion() {
           <div v-show="activeTab === 'recepciones'">
             <div v-if="pedido.recepciones.length === 0"
               class="rounded-2xl p-10 flex flex-col items-center gap-3 text-center"
-              style="background-color: var(--color-surface-container-lowest); outline: 1px solid rgba(196,197,213,0.15)">
+              style="background-color: var(--color-surface-container-lowest); outline: 1px solid var(--color-hairline)">
               <span class="material-symbols-outlined text-5xl" style="color: var(--color-outline)">inventory_2</span>
               <div>
                 <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin recepciones registradas</p>
@@ -415,10 +415,10 @@ async function submitDevolucion() {
             <div v-else class="space-y-4">
               <div v-for="rec in pedido.recepciones" :key="rec.id"
                 class="rounded-2xl overflow-hidden"
-                style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
                 <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
-                  style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+                  style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <div class="flex items-center gap-3">
                     <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                       style="background-color: var(--color-primary); color: #fff">
@@ -465,7 +465,7 @@ async function submitDevolucion() {
           <div v-show="activeTab === 'devoluciones'">
             <div v-if="pedido.devoluciones.length === 0"
               class="rounded-2xl p-10 flex flex-col items-center gap-3 text-center"
-              style="background-color: var(--color-surface-container-lowest); outline: 1px solid rgba(196,197,213,0.15)">
+              style="background-color: var(--color-surface-container-lowest); outline: 1px solid var(--color-hairline)">
               <span class="material-symbols-outlined text-5xl" style="color: var(--color-outline)">undo</span>
               <div>
                 <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin devoluciones registradas</p>
@@ -476,7 +476,7 @@ async function submitDevolucion() {
             </div>
 
             <div v-else class="rounded-2xl overflow-hidden"
-              style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
               <table class="w-full text-sm">
                 <thead>
                   <tr style="background-color: var(--color-surface-container-low)">
@@ -488,10 +488,10 @@ async function submitDevolucion() {
                 </thead>
                 <tbody>
                   <tr v-for="dev in pedido.devoluciones" :key="dev.id"
-                    style="border-top: 1px solid rgba(196,197,213,0.12)">
+                    style="border-top: 1px solid var(--color-hairline-soft)">
                     <td class="px-6 py-4 font-medium" style="color: var(--color-on-surface)">{{ dev.productoNombre }}</td>
                     <td class="px-6 py-4 text-center">
-                      <span class="font-bold" style="color: #991b1b">−{{ dev.cantidad }}</span>
+                      <span class="font-bold" style="color: var(--color-on-error-container)">−{{ dev.cantidad }}</span>
                     </td>
                     <td class="px-6 py-4 italic" style="color: var(--color-on-surface-variant)">{{ dev.motivo }}</td>
                     <td class="px-6 py-4 text-right text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(dev.createdAt) }}</td>

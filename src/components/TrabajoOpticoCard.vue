@@ -83,7 +83,7 @@ const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-va
 </script>
 
 <template>
-  <div class="rounded-2xl p-6 space-y-5" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+  <div class="rounded-2xl p-6 space-y-5" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
     <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Trabajo óptico</h3>
 
     <!-- Armazón -->

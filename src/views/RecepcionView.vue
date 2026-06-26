@@ -189,13 +189,13 @@ async function iniciarConsulta(t: Turno) {
         <div class="mb-6">
           <div
             class="inline-flex items-center gap-3 rounded-2xl px-5 py-4"
-            style="background: white; border: 1px solid var(--color-surface-container-highest)"
+            style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-surface-container-highest)"
           >
             <div
               class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style="background-color: #ede9fe"
+              style="background-color: color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))"
             >
-              <span class="material-symbols-outlined" style="font-size: 20px; color: #7c3aed"
+              <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-tertiary)"
                 >person_check</span
               >
             </div>
@@ -203,7 +203,7 @@ async function iniciarConsulta(t: Turno) {
               <p class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-outline)">
                 Pacientes en sala
               </p>
-              <p class="text-3xl font-bold" style="color: #7c3aed">{{ turnos.length }}</p>
+              <p class="text-3xl font-bold" style="color: var(--color-tertiary)">{{ turnos.length }}</p>
             </div>
           </div>
         </div>
@@ -217,7 +217,7 @@ async function iniciarConsulta(t: Turno) {
           class="rounded-2xl py-16 text-center"
           style="
             background-color: var(--color-surface-container-lowest);
-            box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25);
+            box-shadow: var(--shadow-sm);
           "
         >
           <span
@@ -227,9 +227,6 @@ async function iniciarConsulta(t: Turno) {
           >
           <p class="text-sm font-semibold mb-1" style="color: var(--color-outline)">
             Sin pacientes en sala
-          </p>
-          <p class="text-xs" style="color: var(--color-outline-variant)">
-            No hay turnos con estado "Presente" para hoy.
           </p>
         </div>
 
@@ -273,7 +270,7 @@ async function iniciarConsulta(t: Turno) {
         <div
           v-if="!isLoading && turnos.length > 0"
           class="px-6 py-3 text-xs font-medium"
-          style="color: var(--color-outline); border-top: 1px solid #f0f1f5"
+          style="color: var(--color-outline); border-top: 1px solid var(--color-surface-container-low)"
         >
           {{ turnos.length }} paciente{{ turnos.length !== 1 ? "s" : "" }} en sala
         </div>

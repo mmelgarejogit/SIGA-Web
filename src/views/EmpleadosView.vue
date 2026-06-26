@@ -36,7 +36,7 @@ const activeFilters = ref<string[]>([])
 const searchQuery = ref("")
 
 const statusOptions = [
-  { value: "activo",   label: "Activo",   dot: "#16a34a" },
+  { value: "activo",   label: "Activo",   dot: "var(--color-success)" },
   { value: "inactivo", label: "Inactivo", dot: "var(--color-outline)" },
 ]
 
@@ -119,7 +119,7 @@ function formatDate(iso: string) {
 
 function statusStyle(isActive: boolean) {
   return isActive
-    ? { bg: "#dcfce7", dot: "#16a34a", text: "#166534", label: "Activo" }
+    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
     : {
         bg: "var(--color-surface-container-highest)",
         dot: "var(--color-outline)",
@@ -147,7 +147,7 @@ const cargoOptionsActivos = computed(() =>
 function inputStyle(hasError: boolean) {
   const base = 'border-radius: 12px; '
   return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: #FFF8F7;'
+    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
     : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
@@ -383,7 +383,7 @@ async function confirmDelete() {
         </div>
 
         <div v-else class="rounded-2xl overflow-hidden"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: 0 1px 3px rgba(196, 197, 213, 0.25); outline: 1px solid rgba(196, 197, 213, 0.15)">
+          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="filtered" :loading="isLoading" emptyText="No hay empleados para mostrar.">
 
             <template #empleado="{ item: e }">
@@ -433,7 +433,7 @@ async function confirmDelete() {
 
           <!-- Footer -->
           <div class="px-6 py-4"
-            style="border-top: 1px solid rgba(196, 197, 213, 0.12); background-color: var(--color-surface-container-lowest)">
+            style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
             <span class="text-sm" style="color: var(--color-on-surface-variant)">
               Mostrando
               <strong style="color: var(--color-on-surface)">{{ filtered.length }}</strong>

@@ -49,32 +49,32 @@ onMounted(load)
 
 function estadoBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    Borrador:           { bg: "#F3F4F6", text: "#6B7280",  label: "Borrador" },
-    Confirmada:         { bg: "#EDE9FE", text: "#7C3AED",  label: "Confirmada" },
-    EnProceso:          { bg: "#DBEAFE", text: "#1D4ED8",  label: "En proceso" },
-    ListaParaCobrar:    { bg: "#FEF3C7", text: "#92400E",  label: "Lista para cobrar" },
-    ComprobanteEmitido: { bg: "#DCFCE7", text: "#166534",  label: "Comprobante emitido" },
-    Cancelada:          { bg: "#F3F4F6", text: "#9CA3AF",  label: "Cancelada" },
+    Borrador:           { bg: "var(--color-surface-container)", text: "var(--color-outline)",  label: "Borrador" },
+    Confirmada:         { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)",  label: "Confirmada" },
+    EnProceso:          { bg: "var(--color-info-container)", text: "var(--color-on-info-container)",  label: "En proceso" },
+    ListaParaCobrar:    { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)",  label: "Lista para cobrar" },
+    ComprobanteEmitido: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)",  label: "Comprobante emitido" },
+    Cancelada:          { bg: "var(--color-surface-container)", text: "var(--color-outline)",  label: "Cancelada" },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 function estadoTPBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    PendienteEnvio: { bg: "#FEF3C7", text: "#92400E", label: "Pendiente envío" },
-    Enviado:        { bg: "#DBEAFE", text: "#1D4ED8", label: "Enviado al lab" },
-    Recibido:       { bg: "#DCFCE7", text: "#166534", label: "Recibido" },
+    PendienteEnvio: { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", label: "Pendiente envío" },
+    Enviado:        { bg: "var(--color-info-container)", text: "var(--color-on-info-container)", label: "Enviado al lab" },
+    Recibido:       { bg: "var(--color-success-container)", text: "var(--color-on-success-container)", label: "Recibido" },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 function estadoDevBadge(estado: string) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    Pendiente:  { bg: "#FEF3C7", text: "#92400E", label: "Pendiente" },
-    Confirmada: { bg: "#DCFCE7", text: "#166534", label: "Confirmada" },
-    Rechazada:  { bg: "#FEE2E2", text: "#991B1B", label: "Rechazada" },
+    Pendiente:  { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", label: "Pendiente" },
+    Confirmada: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)", label: "Confirmada" },
+    Rechazada:  { bg: "var(--color-error-container)", text: "var(--color-on-error-container)", label: "Rechazada" },
   }
-  return map[estado] ?? { bg: "#F3F4F6", text: "#6B7280", label: estado }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
 }
 
 // ── Flags de estado ───────────────────────────────────────────────────────────
@@ -257,7 +257,7 @@ async function submitGestionDev() {
                 >{{ estadoBadge(venta.estado).label }}</span>
                 <span
                   class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                  :style="venta.tipo === 'TrabajoAPedido' ? 'background:#F0FDF4;color:#166534' : 'background:#EFF6FF;color:#1D4ED8'"
+                  :style="venta.tipo === 'TrabajoAPedido' ? 'background:#F0FDF4;color:var(--color-on-success-container)' : 'background:#EFF6FF;color:var(--color-on-info-container)'"
                 >{{ venta.tipo === "TrabajoAPedido" ? "Trabajo a pedido" : "Directa" }}</span>
               </div>
               <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -300,8 +300,8 @@ async function submitGestionDev() {
             <div class="lg:col-span-2 space-y-6">
 
               <!-- Líneas -->
-              <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Líneas de venta</h3>
                 </div>
                 <table class="w-full text-sm">
@@ -314,7 +314,7 @@ async function submitGestionDev() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="l in venta.lineas" :key="l.id" style="border-top: 1px solid rgba(196,197,213,0.08)">
+                    <tr v-for="l in venta.lineas" :key="l.id" style="border-top: 1px solid var(--color-hairline-soft)">
                       <td class="px-6 py-3" style="color: var(--color-on-surface)">
                         {{ l.descripcion }}
                         <span class="ml-2 text-xs px-1.5 py-0.5 rounded" style="background: var(--color-surface-container-high); color: var(--color-outline)">{{ l.categoriaFiscal }}</span>
@@ -328,8 +328,8 @@ async function submitGestionDev() {
               </div>
 
               <!-- Cobros -->
-              <div v-if="venta.cobros.length || venta.condicionVenta === 'Credito'" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              <div v-if="venta.cobros.length || venta.condicionVenta === 'Credito'" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cobros</h3>
                 </div>
                 <div class="p-6 space-y-3">
@@ -341,11 +341,11 @@ async function submitGestionDev() {
                   >
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center gap-2">
-                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:#DCFCE7;color:#166534">{{ c.tipo }}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:var(--color-success-container);color:var(--color-on-success-container)">{{ c.tipo }}</span>
                         <span class="text-xs" style="color: var(--color-on-surface-variant)">{{ formatDate(c.fecha) }}</span>
-                        <span v-if="c.anulado" class="text-xs px-1.5 py-0.5 rounded" style="background:#FEE2E2;color:#991B1B">Anulado</span>
+                        <span v-if="c.anulado" class="text-xs px-1.5 py-0.5 rounded" style="background:var(--color-error-container);color:var(--color-on-error-container)">Anulado</span>
                       </div>
-                      <span class="font-bold" style="color:#166534">{{ formatPrice(c.montoTotal) }}</span>
+                      <span class="font-bold" style="color:var(--color-on-success-container)">{{ formatPrice(c.montoTotal) }}</span>
                     </div>
                     <div class="flex gap-3 flex-wrap">
                       <span v-for="l in c.lineas" :key="l.id" class="text-xs px-2 py-1 rounded-lg" style="background:var(--color-surface-container-low); color: var(--color-on-surface-variant)">
@@ -357,8 +357,8 @@ async function submitGestionDev() {
               </div>
 
               <!-- Trabajo a pedido -->
-              <div v-if="venta.trabajoPedido" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              <div v-if="venta.trabajoPedido" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Pedido al laboratorio</h3>
                   <span
                     class="px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -381,7 +381,7 @@ async function submitGestionDev() {
                         v-for="t in venta.trabajoPedido.tratamientos"
                         :key="t.id"
                         class="px-2 py-0.5 rounded-full text-xs font-medium"
-                        style="background:#EDE9FE;color:#5B21B6"
+                        style="background:color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest));color:var(--color-tertiary)"
                       >{{ t.nombre }}</span>
                     </div>
                   </div>
@@ -405,15 +405,15 @@ async function submitGestionDev() {
               </div>
 
               <!-- Devoluciones -->
-              <div v-if="venta.devoluciones.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
-                <div class="px-6 py-4" style="border-bottom: 1px solid rgba(196,197,213,0.12)">
+              <div v-if="venta.devoluciones.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Devoluciones</h3>
                 </div>
                 <div class="p-6 space-y-4">
-                  <div v-for="d in venta.devoluciones" :key="d.id" class="rounded-xl p-4" style="border: 1px solid rgba(196,197,213,0.2)">
+                  <div v-for="d in venta.devoluciones" :key="d.id" class="rounded-xl p-4" style="border: 1px solid var(--color-hairline)">
                     <div class="flex items-start justify-between mb-3">
                       <div>
-                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full mr-2" style="background:#FEF3C7;color:#92400E">{{ d.tipo }}</span>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full mr-2" style="background:var(--color-warning-container);color:var(--color-on-warning-container)">{{ d.tipo }}</span>
                         <span class="text-xs" style="color:var(--color-on-surface-variant)">{{ d.solicitadoPorNombre }}</span>
                       </div>
                       <div class="flex items-center gap-2">
@@ -448,7 +448,7 @@ async function submitGestionDev() {
             <div class="space-y-6">
 
               <!-- Totales -->
-              <div class="rounded-2xl p-6 space-y-3" style="background-color: var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div class="rounded-2xl p-6 space-y-3" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Resumen</h3>
                 <div v-if="venta.montoExento > 0" class="flex justify-between text-sm">
                   <span style="color:var(--color-on-surface-variant)">Exento</span>
@@ -462,40 +462,40 @@ async function submitGestionDev() {
                   <span style="color:var(--color-on-surface-variant)">Gravado 10%</span>
                   <span style="color:var(--color-on-surface)">{{ formatPrice(venta.montoGravado10) }}</span>
                 </div>
-                <div class="flex justify-between font-bold text-base pt-2" style="border-top: 1px solid rgba(196,197,213,0.2)">
+                <div class="flex justify-between font-bold text-base pt-2" style="border-top: 1px solid var(--color-hairline)">
                   <span style="color:var(--color-on-surface)">Total</span>
                   <span style="color:var(--color-primary)">{{ formatPrice(venta.total) }}</span>
                 </div>
                 <template v-if="venta.condicionVenta === 'Credito'">
                   <div class="flex justify-between text-sm">
                     <span style="color:var(--color-on-surface-variant)">Seña</span>
-                    <span style="color:#166534">{{ formatPrice(venta.montoSeña) }}</span>
+                    <span style="color:var(--color-on-success-container)">{{ formatPrice(venta.montoSeña) }}</span>
                   </div>
                   <div class="flex justify-between text-sm">
                     <span style="color:var(--color-on-surface-variant)">Total cobrado</span>
-                    <span style="color:#166534">{{ formatPrice(venta.totalCobrado) }}</span>
+                    <span style="color:var(--color-on-success-container)">{{ formatPrice(venta.totalCobrado) }}</span>
                   </div>
                   <div v-if="venta.saldoPendiente > 0" class="flex justify-between text-sm font-semibold">
-                    <span style="color:#92400E">Saldo pendiente</span>
-                    <span style="color:#92400E">{{ formatPrice(venta.saldoPendiente) }}</span>
+                    <span style="color:var(--color-on-warning-container)">Saldo pendiente</span>
+                    <span style="color:var(--color-on-warning-container)">{{ formatPrice(venta.saldoPendiente) }}</span>
                   </div>
                 </template>
               </div>
 
               <!-- Comprobante emitido -->
               <div v-if="venta.comprobante" class="rounded-2xl p-6" style="background:#F0FDF4; border: 1px solid #BBF7D0">
-                <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:#166534">Comprobante</h3>
-                <p class="text-sm font-semibold mb-1" style="color:#166534">{{ venta.comprobante.tipo }}</p>
+                <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:var(--color-on-success-container)">Comprobante</h3>
+                <p class="text-sm font-semibold mb-1" style="color:var(--color-on-success-container)">{{ venta.comprobante.tipo }}</p>
                 <p class="text-xs" style="color:var(--color-on-surface-variant)">Emitido: {{ new Date(venta.comprobante.fechaEmision).toLocaleDateString("es-PY") }}</p>
-                <div v-if="venta.comprobante.estado === 'Anulado'" class="mt-2 text-xs px-2 py-1 rounded" style="background:#FEE2E2;color:#991B1B">
+                <div v-if="venta.comprobante.estado === 'Anulado'" class="mt-2 text-xs px-2 py-1 rounded" style="background:var(--color-error-container);color:var(--color-on-error-container)">
                   Anulado: {{ venta.comprobante.motivoAnulacion }}
                 </div>
               </div>
 
               <!-- Factura emitida -->
               <div v-if="venta.factura" class="rounded-2xl p-6" style="background:#EFF6FF; border: 1px solid #BFDBFE">
-                <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:#1D4ED8">Factura</h3>
-                <p class="text-sm font-semibold" style="color:#1D4ED8">N° {{ venta.factura.numeroFactura }}</p>
+                <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:var(--color-on-info-container)">Factura</h3>
+                <p class="text-sm font-semibold" style="color:var(--color-on-info-container)">N° {{ venta.factura.numeroFactura }}</p>
                 <p class="text-xs mt-1" style="color:var(--color-on-surface-variant)">Timbrado {{ venta.factura.timbrado }} · Est. {{ venta.factura.establecimiento }}</p>
                 <p class="text-xs mt-1" style="color:var(--color-on-surface-variant)">{{ formatDate(venta.factura.fechaEmision) }}</p>
                 <div class="mt-3 pt-3 space-y-1" style="border-top:1px solid rgba(191,219,254,0.5)">
@@ -509,7 +509,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Observaciones -->
-              <div v-if="venta.observaciones" class="rounded-2xl p-5" style="background:var(--color-surface-container-lowest); box-shadow: 0 2px 12px rgba(0,40,142,0.06)">
+              <div v-if="venta.observaciones" class="rounded-2xl p-5" style="background:var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <h3 class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--color-outline)">Observaciones</h3>
                 <p class="text-sm" style="color:var(--color-on-surface-variant)">{{ venta.observaciones }}</p>
               </div>
@@ -646,7 +646,7 @@ async function submitGestionDev() {
                   class="w-20 px-3 py-2 rounded-lg text-sm outline-none text-center"
                   style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-lowest);color:var(--color-on-surface)"
                 />
-                <button v-if="devLineas.length > 1" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:#FEE2E2;color:#991B1B" @click="removeDevLinea(i)">
+                <button v-if="devLineas.length > 1" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--color-error-container);color:var(--color-on-error-container)" @click="removeDevLinea(i)">
                   <span class="material-symbols-outlined" style="font-size:14px">close</span>
                 </button>
               </div>
