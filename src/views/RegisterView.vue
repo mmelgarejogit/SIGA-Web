@@ -635,7 +635,7 @@ async function handleSubmit() {
         class="absolute bottom-8 left-0 right-0 px-12 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest"
         style="color: var(--color-outline-variant)"
       >
-        <span>© 2024 SIGA-Óptica</span>
+        <span>© 2026 SIGA-Óptica</span>
         <div class="flex gap-6">
           <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Privacidad</a>
           <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Términos</a>
