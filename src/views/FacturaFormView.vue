@@ -287,7 +287,7 @@ function inputStyle(hasError = false) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <div v-if="isLoading" class="flex items-center justify-center py-20">
           <span class="material-symbols-outlined animate-spin text-4xl" style="color: var(--color-primary)">progress_activity</span>
@@ -323,7 +323,7 @@ function inputStyle(hasError = false) {
           <div class="rounded-2xl p-6 mb-6"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Origen de la factura</h3>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label
                 v-for="opt in [{ v: 'Directa', label: 'Compra directa', desc: 'Sin OC previa', icon: 'shopping_bag' }, { v: 'ConOC', label: 'Con OC', desc: 'Vinculada a OC confirmada', icon: 'shopping_cart' }]"
                 :key="opt.v"
@@ -353,7 +353,7 @@ function inputStyle(hasError = false) {
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <!-- OC selector -->
               <div v-if="origen === 'ConOC'">
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
@@ -402,7 +402,7 @@ function inputStyle(hasError = false) {
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Fecha emisión -->
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
@@ -454,7 +454,7 @@ function inputStyle(hasError = false) {
               <p class="text-sm font-medium" style="color: var(--color-outline)">Seleccioná una OC para ver sus ítems.</p>
             </div>
 
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</th>
@@ -486,7 +486,7 @@ function inputStyle(hasError = false) {
                   <td></td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
 
           <!-- Ítems Directa -->
@@ -508,7 +508,7 @@ function inputStyle(hasError = false) {
               </button>
             </div>
 
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="width: 200px; color: var(--color-outline)">Producto / Stock</th>
@@ -560,7 +560,7 @@ function inputStyle(hasError = false) {
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </table></div>
 
             <!-- Mensaje sobre productos a stock -->
             <div v-if="itemsConProducto > 0" class="px-6 py-3 flex items-center gap-2 text-xs"
@@ -588,7 +588,7 @@ function inputStyle(hasError = false) {
               <p class="text-sm font-medium">Agregá ítems para ver el resumen fiscal.</p>
             </div>
 
-            <div v-else class="grid grid-cols-2 gap-6">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <!-- Desglose por tipo de IVA -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between text-sm">

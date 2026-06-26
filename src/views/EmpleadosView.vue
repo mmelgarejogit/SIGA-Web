@@ -352,10 +352,10 @@ async function confirmDelete() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Page header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Gestión de Empleados</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -481,7 +481,7 @@ async function confirmDelete() {
           {{ createError }}
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="createForm.firstName" type="text" placeholder="Juan"
@@ -496,7 +496,7 @@ async function confirmDelete() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nro. de Cédula *</label>
             <input v-model="createForm.ci" type="text" placeholder="12345678"
@@ -510,7 +510,7 @@ async function confirmDelete() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email *</label>
             <input v-model="createForm.email" type="email" placeholder="empleado@optica.com"
@@ -525,7 +525,7 @@ async function confirmDelete() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cargo *</label>
             <SearchableSelect
@@ -571,7 +571,7 @@ async function confirmDelete() {
           {{ editError }}
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="editForm.firstName" type="text"
@@ -592,7 +592,7 @@ async function confirmDelete() {
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cargo *</label>
             <SearchableSelect
@@ -611,7 +611,7 @@ async function confirmDelete() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Ingreso *</label>
             <DateInput v-model="editForm.fechaIngreso" :has-error="!!editErrors.fechaIngreso" />

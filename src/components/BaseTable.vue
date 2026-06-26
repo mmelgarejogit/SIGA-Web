@@ -34,7 +34,8 @@ const isEmpty = () => {
       outline: 1px solid var(--color-hairline);
     "
   >
-    <table class="w-full text-left">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[640px] text-left">
       <thead>
         <tr style="background-color: var(--color-surface-container-low)">
           <!-- Slot-based header -->
@@ -104,6 +105,7 @@ const isEmpty = () => {
           </tr>
         </slot>
       </tbody>
-    </table>
+      </table>
+    </div>
   </div>
 </template>

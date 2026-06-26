@@ -336,10 +336,10 @@ async function confirmActivate() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Categorías de Producto</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -506,7 +506,7 @@ async function confirmActivate() {
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
             :style="inputStyle(false)" />
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Margen (%)</label>
             <input v-model.number="createForm.margen" type="number" min="0" max="1000" step="0.01" placeholder="0"
@@ -560,7 +560,7 @@ async function confirmActivate() {
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
             :style="inputStyle(false)" />
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Margen (%)</label>
             <input v-model.number="editForm.margen" type="number" min="0" max="1000" step="0.01" placeholder="0"

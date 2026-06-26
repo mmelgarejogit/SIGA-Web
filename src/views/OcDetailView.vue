@@ -166,7 +166,7 @@ async function submitDevolucion() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -260,7 +260,7 @@ async function submitDevolucion() {
           <div v-show="activeTab === 'detalle'">
             <div class="rounded-2xl overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
-              <table class="w-full text-sm">
+              <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr style="background-color: var(--color-surface-container-low)">
                     <th class="text-left px-6 py-4 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -294,7 +294,7 @@ async function submitDevolucion() {
                     <td class="px-6 py-4 text-right font-extrabold" style="color: var(--color-primary); font-size: 1rem">{{ formatPrice(pedidoTotal()) }}</td>
                   </tr>
                 </tfoot>
-              </table>
+              </table></div>
             </div>
           </div>
 
@@ -344,7 +344,7 @@ async function submitDevolucion() {
               </div>
 
               <!-- Fechas -->
-              <div class="grid grid-cols-3 gap-0" style="border-bottom: 1px solid var(--color-hairline-soft)">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0" style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <div class="px-6 py-4">
                   <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de emisión</p>
                   <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ formatDate(pedido.factura.fechaEmision) }}</p>
@@ -477,7 +477,7 @@ async function submitDevolucion() {
 
             <div v-else class="rounded-2xl overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
-              <table class="w-full text-sm">
+              <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr style="background-color: var(--color-surface-container-low)">
                     <th class="text-left px-6 py-4 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -497,7 +497,7 @@ async function submitDevolucion() {
                     <td class="px-6 py-4 text-right text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(dev.createdAt) }}</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
             </div>
           </div>
 

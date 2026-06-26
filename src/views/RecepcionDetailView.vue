@@ -60,7 +60,7 @@ function estadoOCLabel(estado: EstadoPedido) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -114,7 +114,7 @@ function estadoOCLabel(estado: EstadoPedido) {
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
-            <div class="grid grid-cols-2 gap-x-12 gap-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-3">
               <div class="flex justify-between text-sm">
                 <span class="font-medium" style="color: var(--color-outline)">Proveedor</span>
                 <span class="font-semibold" style="color: var(--color-on-surface)">{{ recepcion.proveedorNombre }}</span>
@@ -164,7 +164,7 @@ function estadoOCLabel(estado: EstadoPedido) {
               <p class="text-sm font-medium">Sin ítems registrados.</p>
             </div>
 
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-4 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -205,7 +205,7 @@ function estadoOCLabel(estado: EstadoPedido) {
                   <td colspan="3"></td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
 
         </template>

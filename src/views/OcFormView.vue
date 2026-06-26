@@ -213,7 +213,7 @@ function inputStyle(hasError = false) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -262,7 +262,7 @@ function inputStyle(hasError = false) {
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Datos generales</h3>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               <!-- Campo proveedor (ocupa ambas columnas) -->
               <div class="col-span-2 flex flex-col gap-1.5">
@@ -336,7 +336,7 @@ function inputStyle(hasError = false) {
               <p class="text-sm font-medium">Agregá al menos un producto a esta orden.</p>
             </div>
 
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -385,7 +385,7 @@ function inputStyle(hasError = false) {
                   <td></td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
 
           <!-- Footer acciones -->
@@ -409,7 +409,7 @@ function inputStyle(hasError = false) {
       <div class="space-y-5">
 
         <!-- Filtros -->
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre</label>
             <input

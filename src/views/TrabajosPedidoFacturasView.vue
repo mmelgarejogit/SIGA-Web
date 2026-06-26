@@ -126,9 +126,9 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -143,7 +143,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
 
         <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <FilterChips v-model="filtroFactura" :options="filtroOptions" placeholder="Factura" />
-          <SearchInput v-model="search" placeholder="Buscar por cliente, lab o n° factura…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente, lab o n° factura…" class="w-full sm:w-72" />
         </div>
 
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
@@ -203,7 +203,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               class="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
           </div>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Timbrado</label>
               <input v-model="factForm.timbrado" type="text"

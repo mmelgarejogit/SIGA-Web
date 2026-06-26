@@ -226,7 +226,7 @@ async function submitGestionDev() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Volver -->
         <button
@@ -245,7 +245,7 @@ async function submitGestionDev() {
         <template v-else-if="venta">
 
           <!-- Encabezado -->
-          <div class="flex items-start justify-between mb-8 flex-wrap gap-4">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8 flex-wrap gap-4">
             <div>
               <div class="flex items-center gap-3 mb-2 flex-wrap">
                 <h1 class="text-4xl font-extrabold tracking-tight font-mono" style="color: var(--color-primary)">
@@ -304,7 +304,7 @@ async function submitGestionDev() {
                 <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Líneas de venta</h3>
                 </div>
-                <table class="w-full text-sm">
+                <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr style="background-color: var(--color-surface-container-low)">
                       <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</th>
@@ -324,7 +324,7 @@ async function submitGestionDev() {
                       <td class="px-6 py-3 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(l.subtotal) }}</td>
                     </tr>
                   </tbody>
-                </table>
+                </table></div>
               </div>
 
               <!-- Cobros -->
@@ -365,7 +365,7 @@ async function submitGestionDev() {
                     :style="`background-color: ${estadoTPBadge(venta.trabajoPedido.estado).bg}; color: ${estadoTPBadge(venta.trabajoPedido.estado).text}`"
                   >{{ estadoTPBadge(venta.trabajoPedido.estado).label }}</span>
                 </div>
-                <div class="p-6 grid grid-cols-2 gap-4 text-sm">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Laboratorio</p>
                     <p style="color: var(--color-on-surface)">{{ venta.trabajoPedido.laboratorioNombre }}</p>
@@ -603,7 +603,7 @@ async function submitGestionDev() {
   <BaseModal :open="showDevolucion" size="lg" title="Devolución / Cambio" @close="showDevolucion = false">
     <template #body>
       <div class="space-y-5">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Tipo *</label>
             <select v-model="devTipo" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)">

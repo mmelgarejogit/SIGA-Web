@@ -104,7 +104,7 @@ function goEmitir() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <button class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
           style="color: var(--color-primary)" @click="router.push('/ventas/cobros-pendientes')">
@@ -154,7 +154,7 @@ function goEmitir() {
                 <div class="rounded-2xl p-6" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                   <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Pago</h3>
 
-                  <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha</label>
                       <input v-model="fecha" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />

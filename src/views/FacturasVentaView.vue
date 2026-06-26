@@ -139,10 +139,10 @@ async function descargarPdf(item: Venta) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas de Venta</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -231,7 +231,7 @@ async function descargarPdf(item: Venta) {
           </div>
 
           <!-- Data -->
-          <table v-else class="w-full">
+          <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
             <thead style="background-color: var(--color-surface-container-low)">
               <tr>
                 <th v-for="h in ['Nro. Factura', 'Cliente', 'Tipo', 'Condición', 'Fecha Emisión', 'Total', 'IVA total']"
@@ -310,7 +310,7 @@ async function descargarPdf(item: Venta) {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <p class="text-sm" style="color: var(--color-on-surface-variant)">

@@ -145,7 +145,7 @@ async function submit() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="flex items-center gap-3 mb-8">
@@ -200,7 +200,7 @@ async function submit() {
               </p>
             </div>
 
-            <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
                 <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Fecha de emisión</p>
                 <p style="color: var(--color-on-surface)">{{ formatDate(egreso.fechaEmision) }}</p>
@@ -232,7 +232,7 @@ async function submit() {
               {{ saveError }}
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Fecha de pago -->
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">

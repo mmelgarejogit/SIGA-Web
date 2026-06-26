@@ -107,7 +107,7 @@ async function confirmarAnulacion() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -170,7 +170,7 @@ async function confirmarAnulacion() {
           </div>
 
           <!-- Grid: datos + fiscal -->
-          <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
 
             <!-- Datos generales -->
             <div class="rounded-2xl p-6"
@@ -264,7 +264,7 @@ async function confirmarAnulacion() {
               <p class="text-sm font-medium">Sin ítems registrados.</p>
             </div>
 
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-4 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Descripción</th>
@@ -301,7 +301,7 @@ async function confirmarAnulacion() {
                   <td class="px-6 py-4 text-right font-extrabold" style="color: var(--color-primary); font-size: 1rem">{{ formatMonto(factura.montoTotal) }}</td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
 
         </template>

@@ -143,7 +143,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -302,7 +302,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-5" style="color: var(--color-primary)">Detalles del movimiento</h3>
 
-            <div class="grid grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
               <!-- Fecha y hora -->
               <div class="col-span-2">

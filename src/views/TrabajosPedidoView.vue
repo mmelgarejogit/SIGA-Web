@@ -103,9 +103,9 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Pedidos a Laboratorio</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -116,7 +116,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
 
         <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <FilterChips v-model="estadoFiltro" :options="estadoOptions" placeholder="Estado" @update:model-value="load" />
-          <SearchInput v-model="search" placeholder="Buscar por cliente, comprobante o laboratorio…" class="w-72" />
+          <SearchInput v-model="search" placeholder="Buscar por cliente, comprobante o laboratorio…" class="w-full sm:w-72" />
         </div>
 
         <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
@@ -187,7 +187,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
 
           <!-- Especificaciones ópticas -->
-          <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Laboratorio</p>
               <p style="color: var(--color-on-surface)">{{ selected.laboratorioNombre || "—" }}</p>
@@ -213,7 +213,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <div>
             <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Receta</p>
             <div v-if="tieneReceta" class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-outline-variant)">
-              <table class="w-full text-sm">
+              <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr style="background-color: var(--color-surface-container-low)">
                     <th class="px-4 py-2 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Ojo</th>
@@ -239,7 +239,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                     <td class="px-4 py-2 text-right font-mono" style="color: var(--color-on-surface)">{{ fmtDiop(selected.receta?.oiAdicion) }}</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
               <div v-if="selected.receta?.distanciaInterpupilar || selected.receta?.observaciones"
                 class="px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1" style="border-top: 1px solid var(--color-hairline-soft); background-color: var(--color-surface-container-lowest)">
                 <span v-if="selected.receta?.distanciaInterpupilar" class="text-xs" style="color: var(--color-on-surface-variant)">

@@ -85,7 +85,7 @@ onMounted(load)
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="mb-8">
@@ -123,7 +123,7 @@ onMounted(load)
                 class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Razón Social</label>
                 <input v-model="form.razonSocial" type="text" :disabled="!canEdit"
@@ -142,7 +142,7 @@ onMounted(load)
                 class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
                 <input v-model="form.telefono" type="text" placeholder="+54 11 1234-5678" :disabled="!canEdit"

@@ -169,7 +169,7 @@ function cancel() {
             </Transition>
 
             <!-- Nombre + Apellido -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold uppercase tracking-wider"

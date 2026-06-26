@@ -463,9 +463,9 @@ function menuItems(t: Turno): ContextMenuItem[] {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- ── HEADER ──────────────────────────────────────────────────── -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Agenda</h1>
             <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
@@ -499,7 +499,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
         </div>
 
         <!-- ── STATS CARDS ─────────────────────────────────────────────── -->
-        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           <div
             v-for="card in [
               { key: 'total', label: 'Total', value: stats.total, color: 'var(--color-on-surface)' },

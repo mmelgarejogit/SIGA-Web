@@ -157,10 +157,10 @@ async function confirmDelete() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Especialidades</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -196,7 +196,7 @@ async function confirmDelete() {
               <p class="mt-3 text-sm font-medium" style="color: var(--color-outline)">No hay especialidades registradas.</p>
             </div>
 
-            <table v-else class="w-full">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Nombre</th>
@@ -227,7 +227,7 @@ async function confirmDelete() {
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </table></div>
 
             <!-- Footer conteo -->
             <div v-if="filtered.length > 0" class="px-6 py-4"

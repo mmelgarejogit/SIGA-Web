@@ -312,7 +312,7 @@ const guardarLabel = computed(() =>
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
         <div class="flex items-center gap-4 mb-6">
@@ -339,7 +339,7 @@ const guardarLabel = computed(() =>
           </button>
         </div>
 
-        <div class="grid grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <!-- Columna principal -->
           <div class="col-span-2 space-y-6">
             <ClienteSelector v-model="selectedCliente" />
@@ -545,7 +545,7 @@ const guardarLabel = computed(() =>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Descripción *</label>
           <input v-model="lineaManualForm.descripcion" type="text" placeholder="Consulta, servicio, etc." class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Cantidad</label>
             <input v-model.number="lineaManualForm.cantidad" type="number" min="1" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />

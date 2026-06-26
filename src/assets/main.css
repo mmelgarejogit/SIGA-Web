@@ -231,6 +231,11 @@
       color var(--duration-base) var(--ease-standard);
   }
 
+  /* Bloquea el scroll de fondo cuando el drawer del sidebar está abierto (mobile). */
+  body.drawer-open {
+    overflow: hidden;
+  }
+
   h1,
   h2,
   h3,

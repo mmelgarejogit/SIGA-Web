@@ -167,7 +167,7 @@ async function handleSubmit() {
           </h1>
         </div>
 
-        <div class="grid grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
           <div class="space-y-2">
             <p
               class="text-xs uppercase tracking-widest font-bold"

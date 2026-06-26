@@ -261,9 +261,9 @@ async function confirmDeactivate() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Timbrados</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -361,7 +361,7 @@ async function confirmDeactivate() {
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
         {{ createError }}
       </div>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="createForm.numeroTimbrado" type="text" placeholder="Ej: 12345678"
@@ -420,7 +420,7 @@ async function confirmDeactivate() {
         <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">error</span>
         {{ editError }}
       </div>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="editForm.numeroTimbrado" type="text"

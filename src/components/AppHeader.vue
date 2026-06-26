@@ -3,10 +3,12 @@ import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useThemeStore } from "@/stores/theme"
+import { useSidebarStore } from "@/stores/sidebar"
 
 const router = useRouter()
 const authStore = useAuthStore()
 const theme = useThemeStore()
+const sidebar = useSidebarStore()
 
 const isDark = computed(() => theme.mode === "dark")
 
@@ -62,7 +64,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 
 <template>
   <header
-    class="fixed top-0 right-0 z-40 flex justify-between items-center px-8 h-16"
+    class="fixed top-0 right-0 z-40 flex justify-between items-center px-4 sm:px-6 lg:px-8 h-16"
     style="
       left: var(--sidebar-width);
       transition:
@@ -73,8 +75,15 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
       border-bottom: 1px solid var(--color-hairline);
     "
   >
-    <!-- Left: placeholder para título de sección -->
-    <div class="flex items-center">
+    <!-- Left: hamburguesa (mobile) + título -->
+    <div class="flex items-center gap-2">
+      <button
+        class="hamburger lg:hidden p-2 -ml-1 rounded-full transition-colors"
+        aria-label="Abrir menú"
+        @click="sidebar.toggleMobile()"
+      >
+        <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant)">menu</span>
+      </button>
       <h2 class="text-base font-semibold" style="color: var(--color-primary)">SIGA Óptica</h2>
     </div>
 
@@ -236,7 +245,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 <style scoped>
 .theme-toggle:hover,
 .icon-btn:hover,
-.user-btn:hover {
+.user-btn:hover,
+.hamburger:hover {
   background-color: var(--color-surface-container-low);
 }
 .icon-btn.is-active,

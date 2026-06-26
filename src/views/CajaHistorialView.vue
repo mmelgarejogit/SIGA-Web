@@ -94,10 +94,10 @@ function duracion(apertura: string, cierre?: string): string {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Historial de Caja</h1>
             <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
@@ -205,7 +205,7 @@ function duracion(apertura: string, cierre?: string): string {
 
     <div v-else-if="detalle" class="space-y-5">
       <!-- Info general -->
-      <div class="rounded-xl p-4 grid grid-cols-2 gap-4" style="background-color: var(--color-surface-container-low)">
+      <div class="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4" style="background-color: var(--color-surface-container-low)">
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Apertura</p>
           <p class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ fmtDt(detalle.fechaApertura) }}</p>
@@ -230,7 +230,7 @@ function duracion(apertura: string, cierre?: string): string {
       </div>
 
       <!-- Resumen financiero -->
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div class="rounded-xl p-4 text-center" style="background-color: var(--color-success-container)">
           <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-on-success-container)">Ingresos</p>
           <p class="text-lg font-extrabold" style="color: var(--color-on-success-container)">{{ fmt(detalle.totalIngresos) }}</p>
@@ -248,7 +248,7 @@ function duracion(apertura: string, cierre?: string): string {
       <!-- Arqueo (solo si hay cierre) -->
       <div v-if="detalle.fechaCierre" class="rounded-xl p-4 space-y-3" style="background-color: var(--color-surface-container-low)">
         <p class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Arqueo de efectivo</p>
-        <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-center">
           <div>
             <p class="text-xs mb-1" style="color: var(--color-on-surface-variant)">Esperado</p>
             <p class="font-bold" style="color: var(--color-on-surface)">{{ fmt(detalle.efectivoEsperado ?? 0) }}</p>

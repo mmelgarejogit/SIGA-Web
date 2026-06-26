@@ -149,7 +149,7 @@ async function handleSubmit() {
           </h1>
         </div>
 
-        <div class="grid grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
           <div class="space-y-2">
             <p
               class="text-xs uppercase tracking-widest font-bold"
@@ -268,7 +268,7 @@ async function handleSubmit() {
 
           <form @submit.prevent="handleSubmit" class="space-y-5" novalidate>
             <!-- Nombre / Apellido -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Nombre -->
               <div class="relative">
                 <label
@@ -361,7 +361,7 @@ async function handleSubmit() {
             </div>
 
             <!-- CI / Fecha nacimiento -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- CI -->
               <div class="relative">
                 <label
