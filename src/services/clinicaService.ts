@@ -196,6 +196,38 @@ export async function downloadRecetaPdf(consultaId: number, patientLastName: str
   }
 }
 
+// ── Portal del paciente (solo sus propias consultas/recetas) ────────────────────
+
+export async function getMisConsultas(): Promise<ConsultaClinica[]> {
+  const { data } = await http.get<ConsultaClinica[]>("/api/consultas/mis-consultas")
+  return data
+}
+
+export async function descargarMiRecetaPdf(consultaId: number, patientLastName: string): Promise<void> {
+  try {
+    const { data } = await http.get(`/api/consultas/${consultaId}/mi-receta/pdf`, {
+      responseType: "blob",
+    })
+    const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `receta_${patientLastName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    if (err?.response?.data instanceof Blob) {
+      const text = await err.response.data.text()
+      try {
+        const json = JSON.parse(text)
+        throw new Error(json.message ?? text)
+      } catch {
+        throw new Error(text)
+      }
+    }
+    throw err
+  }
+}
+
 export async function cambiarEstadoConsulta(id: number, estadoConfigId: number): Promise<ConsultaClinica> {
   const { data } = await http.patch<ConsultaClinica>(`/api/consultas/${id}/estado`, { estadoConfigId })
   return data

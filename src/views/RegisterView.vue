@@ -4,6 +4,7 @@ import { useRouter } from "vue-router"
 import VueHcaptcha from "@hcaptcha/vue3-hcaptcha"
 import { registerPatient } from "@/services/authService"
 import BaseButton from "@/components/BaseButton.vue"
+import AuthHero from "@/components/AuthHero.vue"
 
 const router = useRouter()
 
@@ -102,79 +103,12 @@ async function handleSubmit() {
     class="min-h-screen flex flex-col md:flex-row"
     style="background-color: var(--color-surface); color: var(--color-on-surface)"
   >
-    <!-- ── LEFT PANEL ── -->
-    <section
-      class="hidden md:flex md:w-[55%] relative overflow-hidden items-center justify-center"
-      style="background-color: var(--color-primary-container)"
-    >
-      <div class="absolute inset-0 z-0">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB316X6IevMlGCue86yPBEHEtWRntvBzkXBlUqImB4RKgBaS2T9139462GjkuVAQjtmTJEGZkyd7N81l5Wq09m9vTDSS6YAKqWKquTlepD5qqjabt_hvhR2jjTz_VLg15HM_lX8RrqhWOQO70O3CVHt3q_Ci8DG1qF-ev67n9zA7mRn6v9auHmg9DqK-iBx8ATd1UHET5_ko3LskskKQeG9xt1_Ut46H1aOOHZfu9f2ehzY3DLaWTG1h9V1UgB3HGEb0raHHIeyw"
-          alt=""
-          class="w-full h-full object-cover"
-          style="opacity: 0.6; mix-blend-mode: overlay"
-        />
-        <div
-          class="absolute inset-0"
-          style="
-            background: linear-gradient(to top right, var(--color-primary), transparent);
-            opacity: 0.8;
-          "
-        ></div>
-      </div>
-
-      <div
-        class="absolute bottom-[-10%] right-[-10%] w-96 h-96 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255, 255, 255, 0.1)"
-      ></div>
-      <div
-        class="absolute bottom-[-5%] right-[-5%] w-64 h-64 rounded-full pointer-events-none z-0"
-        style="border: 1px solid rgba(255, 255, 255, 0.18)"
-      ></div>
-
-      <div class="relative z-10 p-12 lg:p-24 max-w-2xl w-full">
-        <div class="mb-14">
-          <span
-            class="inline-block px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase mb-8"
-            style="
-              background-color: var(--color-secondary-fixed);
-              color: var(--color-on-secondary-fixed);
-            "
-            >Portal de Pacientes</span
-          >
-
-          <h1 class="text-5xl lg:text-7xl font-extrabold text-white leading-tight tracking-tighter">
-            Tu salud visual, en tus
-            <span style="color: var(--color-secondary-container)"> manos.</span>
-          </h1>
-        </div>
-
-        <div class="grid grid-cols-2 gap-8">
-          <div class="space-y-2">
-            <p
-              class="text-xs uppercase tracking-widest font-bold"
-              style="color: rgba(255, 255, 255, 0.5)"
-            >
-              Acceso
-            </p>
-            <p class="text-white text-base font-medium leading-snug">
-              Gestioná tus turnos desde cualquier lugar.
-            </p>
-          </div>
-          <div class="space-y-2">
-            <p
-              class="text-xs uppercase tracking-widest font-bold"
-              style="color: rgba(255, 255, 255, 0.5)"
-            >
-              Seguimiento
-            </p>
-            <p class="text-white text-base font-medium leading-snug">
-              Consultá tu historial de citas y recetas.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- ── LEFT PANEL (hero de refracción) ── -->
+    <AuthHero
+      eyebrow="Portal de pacientes"
+      title="Tu visión, en foco."
+      subtitle="Reservá turnos y seguí tu historial óptico desde donde estés."
+    />
 
     <!-- ── RIGHT PANEL ── -->
     <section
@@ -268,7 +202,7 @@ async function handleSubmit() {
 
           <form @submit.prevent="handleSubmit" class="space-y-5" novalidate>
             <!-- Nombre / Apellido -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Nombre -->
               <div class="relative">
                 <label
@@ -361,7 +295,7 @@ async function handleSubmit() {
             </div>
 
             <!-- CI / Fecha nacimiento -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- CI -->
               <div class="relative">
                 <label
@@ -701,7 +635,7 @@ async function handleSubmit() {
         class="absolute bottom-8 left-0 right-0 px-12 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest"
         style="color: var(--color-outline-variant)"
       >
-        <span>© 2024 SIGA-Óptica</span>
+        <span>© 2026 SIGA-Óptica</span>
         <div class="flex gap-6">
           <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Privacidad</a>
           <a href="#" class="hover:text-[var(--color-primary)] transition-colors">Términos</a>

@@ -505,9 +505,9 @@ function menuItems(p: Producto): ContextMenuItem[] {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Productos</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -545,7 +545,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
           <SearchInput
             :model-value="search"
             placeholder="Buscar por nombre o SKU..."
-            class="w-72"
+            class="w-full sm:w-72"
             @update:model-value="onSearch"
           />
         </div>
@@ -758,7 +758,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
       </div>
 
       <form @submit.prevent="submitCreate" class="space-y-5">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="createForm.nombre" type="text" required
@@ -783,7 +783,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
             :style="inputStyle(false)" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca</label>
             <SearchableSelect
@@ -805,7 +805,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Color</label>
             <input v-model="createForm.color" type="text" placeholder="Opcional"
@@ -881,7 +881,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
             <input v-model="editForm.nombre" type="text" required
@@ -906,7 +906,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
             :style="inputStyle(false)" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca</label>
             <SearchableSelect
@@ -928,7 +928,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Color</label>
             <input v-model="editForm.color" type="text" placeholder="Opcional"

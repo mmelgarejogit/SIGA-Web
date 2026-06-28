@@ -148,10 +148,10 @@ async function submitRechazar() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Aprobaciones de Caja</h1>
             <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
@@ -236,7 +236,7 @@ async function submitRechazar() {
       <p class="text-sm font-medium" style="color: var(--color-error)">{{ detalleError }}</p>
     </div>
     <div v-else-if="detalle" class="space-y-5">
-      <div class="rounded-xl p-4 grid grid-cols-2 gap-3" style="background-color: var(--color-surface-container-low)">
+      <div class="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3" style="background-color: var(--color-surface-container-low)">
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Cajero</p>
           <p class="font-semibold" style="color: var(--color-on-surface)">{{ detalle.abiertaPorNombre }}</p>
@@ -255,7 +255,7 @@ async function submitRechazar() {
         </div>
       </div>
 
-      <div class="rounded-xl p-4 grid grid-cols-3 gap-4" style="background-color: var(--color-surface-container-low)">
+      <div class="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" style="background-color: var(--color-surface-container-low)">
         <div class="text-center">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Efectivo esperado</p>
           <p class="font-extrabold text-lg" style="color: var(--color-primary)">{{ fmt(detalle.efectivoEsperado ?? 0) }}</p>
@@ -273,7 +273,7 @@ async function submitRechazar() {
         </div>
       </div>
 
-      <div class="rounded-xl p-4 grid grid-cols-2 gap-3" style="background-color: var(--color-surface-container-low)">
+      <div class="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-3" style="background-color: var(--color-surface-container-low)">
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Total ingresos</p>
           <p class="font-extrabold" style="color: var(--color-on-success-container)">+{{ fmt(detalle.totalIngresos) }}</p>

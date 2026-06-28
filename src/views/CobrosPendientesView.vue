@@ -113,10 +113,10 @@ function menuItems(v: Venta): ContextMenuItem[] {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Cobros Pendientes</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -137,7 +137,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
 
             <!-- Filtros -->
             <div class="flex items-center justify-end">
-              <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-72" />
+              <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-full sm:w-72" />
             </div>
 
             <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">

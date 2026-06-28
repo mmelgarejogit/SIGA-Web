@@ -59,7 +59,7 @@ onUnmounted(() => {
           <!-- header -->
           <div
             v-if="props.title"
-            class="flex items-center justify-between px-8 pt-8 pb-6"
+            class="flex items-center justify-between px-5 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-6"
             style="border-bottom: 1px solid var(--color-hairline)"
           >
             <h3
@@ -78,14 +78,14 @@ onUnmounted(() => {
           </div>
 
           <!-- body -->
-          <div class="px-8 py-6 max-h-[70vh] overflow-y-auto">
+          <div class="px-5 py-5 sm:px-8 sm:py-6 max-h-[75vh] overflow-y-auto">
             <slot name="body"><slot /></slot>
           </div>
 
           <!-- footer -->
           <div
             v-if="$slots.footer"
-            class="px-8 py-6 flex justify-end gap-3"
+            class="px-5 py-5 sm:px-8 sm:py-6 flex justify-end gap-3"
             style="border-top: 1px solid var(--color-hairline)"
           >
             <slot name="footer" />

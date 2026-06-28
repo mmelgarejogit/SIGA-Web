@@ -51,6 +51,20 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_mis_turnos",
   },
   {
+    id: "mi-historial",
+    label: "Mi Historial",
+    icon: "clinical_notes",
+    route: "/mi-historial",
+    permission: "ver_mis_turnos",
+  },
+  {
+    id: "mis-recetas",
+    label: "Mis Recetas",
+    icon: "prescriptions",
+    route: "/mis-recetas",
+    permission: "ver_mis_turnos",
+  },
+  {
     id: "clinica",
     label: "Clínica",
     icon: "medical_services",

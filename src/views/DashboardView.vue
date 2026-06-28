@@ -322,7 +322,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!--  DASHBOARD PACIENTE                                    -->
@@ -332,9 +332,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
           <!-- Saludo -->
           <div class="mb-8 flex items-end justify-between" style="padding-right: 4rem">
             <div>
-              <p class="text-sm font-bold uppercase tracking-[0.2em] mb-2"
-                 style="color: var(--color-primary)">
-                {{ greeting }}, {{ firstName }}
+              <p class="dash-eyebrow">
+                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
               <h1 class="text-4xl font-extrabold tracking-tight leading-tight"
                   style="color: var(--color-on-surface)">
@@ -522,9 +521,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 
           <div class="mb-10 flex items-end justify-between" style="padding-right: 8rem">
             <div>
-              <p class="text-sm font-bold uppercase tracking-[0.2em] mb-2"
-                 style="color: var(--color-primary)">
-                {{ greeting }}, {{ firstName }}
+              <p class="dash-eyebrow">
+                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
               <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
                   style="color: var(--color-on-surface)">
@@ -642,9 +640,8 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 
           <div class="mb-10 flex items-end justify-between" style="padding-right: 8rem">
             <div>
-              <p class="text-sm font-bold uppercase tracking-[0.2em] mb-2"
-                 style="color: var(--color-primary)">
-                {{ greeting }}, {{ firstName }}
+              <p class="dash-eyebrow">
+                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
               <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
                   style="color: var(--color-on-surface)">
@@ -740,3 +737,25 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
     </main>
   </div>
 </template>
+
+<style scoped>
+/* Eco del hero de auth: etiqueta de instrumento (mono) + tick focal cian. */
+.dash-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 0.65rem;
+}
+.dash-tick {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--color-secondary);
+}
+</style>

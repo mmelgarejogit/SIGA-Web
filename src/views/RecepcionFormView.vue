@@ -226,7 +226,7 @@ function inputStyle(hasError = false) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <div v-if="isLoading" class="flex items-center justify-center py-20">
           <span class="material-symbols-outlined animate-spin text-4xl" style="color: var(--color-primary)">progress_activity</span>
@@ -261,7 +261,7 @@ function inputStyle(hasError = false) {
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">1. Factura y origen</h3>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Factura de Compra *
@@ -302,7 +302,7 @@ function inputStyle(hasError = false) {
             </div>
 
             <!-- Info autocompletada -->
-            <div v-if="selectedFactura" class="grid grid-cols-3 gap-4 mb-4 p-4 rounded-xl"
+            <div v-if="selectedFactura" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 p-4 rounded-xl"
               style="background-color: var(--color-surface-container-low)">
               <div>
                 <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Proveedor</p>
@@ -366,7 +366,7 @@ function inputStyle(hasError = false) {
               <p class="font-bold text-sm" style="color: var(--color-on-surface)">Esta OC ya recibió todos sus ítems.</p>
             </div>
 
-            <table v-else class="w-full text-sm">
+            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -411,7 +411,7 @@ function inputStyle(hasError = false) {
                   <td colspan="3"></td>
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
 
           <!-- ─── SECCIÓN 3: Historial ───────────────────────────────────────── -->
@@ -480,7 +480,7 @@ function inputStyle(hasError = false) {
   <BaseModal :show="showFacturaModal" title="Seleccionar Factura de Compra" size="lg" @close="showFacturaModal = false">
 
     <!-- Filtros -->
-    <div class="grid grid-cols-2 gap-3 mb-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
       <div>
         <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Proveedor</label>
         <SearchableSelect
@@ -508,7 +508,7 @@ function inputStyle(hasError = false) {
         <p class="text-sm font-medium" style="color: var(--color-outline)">Sin resultados para los filtros aplicados.</p>
       </div>
 
-      <table v-else class="w-full text-sm">
+      <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
         <thead style="background-color: var(--color-surface-container-low)">
           <tr>
             <th v-for="h in ['Nro. Factura', 'Proveedor', 'OC', 'Pend.', 'Emisión']" :key="h"
@@ -538,7 +538,7 @@ function inputStyle(hasError = false) {
             <td class="px-4 py-3 text-xs" style="color: var(--color-on-surface-variant)">{{ formatDate(f.fechaEmision) }}</td>
           </tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
 
     <template #footer>

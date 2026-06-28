@@ -127,10 +127,10 @@ const pendientesCount = computed(() => pedidos.value.length)
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Aprobación de OC</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -219,7 +219,7 @@ const pendientesCount = computed(() => pedidos.value.length)
 
             <!-- Ítems de la OC -->
             <div class="px-6 py-4">
-              <table class="w-full text-sm mb-4">
+              <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm mb-4">
                 <thead>
                   <tr style="border-bottom: 1px solid var(--color-hairline-soft)">
                     <th class="text-left pb-2 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -237,7 +237,7 @@ const pendientesCount = computed(() => pedidos.value.length)
                     <td class="py-2 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatPrice(item.cantidad * item.precioUnitario) }}</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
 
               <!-- Observaciones -->
               <p v-if="p.observaciones" class="text-sm italic mb-4" style="color: var(--color-on-surface-variant)">

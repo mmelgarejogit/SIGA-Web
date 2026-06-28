@@ -462,9 +462,9 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Page header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Consultas</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -687,7 +687,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
           </p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label
               class="text-xs font-bold uppercase tracking-wider"
@@ -716,7 +716,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label
               class="text-xs font-bold uppercase tracking-wider"
@@ -752,7 +752,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label
               class="text-xs font-bold uppercase tracking-wider"
@@ -857,7 +857,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
               </div>
 
               <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr>
                       <th
@@ -970,10 +970,10 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
                       </td>
                     </tr>
                   </tbody>
-                </table>
+                </table></div>
               </div>
 
-              <div class="grid grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1.5">
                   <label
                     class="text-xs font-bold uppercase tracking-wider"

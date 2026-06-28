@@ -96,6 +96,7 @@
      ════════════════════════════════════════════════════════════ */
   --font-headline: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   /* ════════════════════════════════════════════════════════════
      BORDER RADIUS  (escala sana — reemplaza la rota de antes)
@@ -226,9 +227,17 @@
     font-family: var(--font-body);
     background-color: var(--color-surface);
     color: var(--color-on-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     transition:
       background-color var(--duration-base) var(--ease-standard),
       color var(--duration-base) var(--ease-standard);
+  }
+
+  /* Bloquea el scroll de fondo cuando el drawer del sidebar está abierto (mobile). */
+  body.drawer-open {
+    overflow: hidden;
   }
 
   h1,
@@ -238,6 +247,8 @@
   h5,
   h6 {
     font-family: var(--font-headline);
+    letter-spacing: -0.014em;
+    text-wrap: balance;
   }
 
   /* Anillo de foco visible y accesible para teclado.

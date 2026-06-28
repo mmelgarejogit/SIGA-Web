@@ -345,7 +345,7 @@ async function submit() {
             <p v-if="errors.ci" class="text-xs font-medium" style="color: var(--color-error)">{{ errors.ci }}</p>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre *</label>
               <input v-model="form.firstName" type="text" placeholder="Ana" class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(!!errors.firstName)" />
@@ -358,7 +358,7 @@ async function submit() {
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Nacimiento *</label>
               <BirthDateInput v-model="form.birthDate" :has-error="!!errors.birthDate" />
@@ -381,7 +381,7 @@ async function submit() {
             {{ errors.contact }}
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
               <input v-model="form.phoneNumber" type="tel" placeholder="0972123456" class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(!!errors.contact)" />
@@ -410,7 +410,7 @@ async function submit() {
           />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
               Razón Social <span v-if="form.tipoFacturacion === 'Juridica'">*</span>
@@ -432,7 +432,7 @@ async function submit() {
           <input v-model="form.direccion" type="text" placeholder="Av. Mariscal López 1234, Asunción" class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email de Facturación</label>
             <input v-model="form.email" type="email" placeholder="facturacion@empresa.com" class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(!!errors.email)" />

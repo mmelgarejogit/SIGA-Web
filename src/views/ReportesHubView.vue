@@ -59,7 +59,7 @@ function abrir(reporte: ReporteCard) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Header -->
         <div class="mb-8">
           <h1 class="text-4xl font-extrabold tracking-tight mb-2">Reportes</h1>

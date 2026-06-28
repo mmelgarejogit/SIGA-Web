@@ -251,9 +251,9 @@ function exportCsv() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8 gap-4 flex-wrap">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8 gap-4 flex-wrap">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Reportes de Ventas</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -315,7 +315,7 @@ function exportCsv() {
         <!-- Contenido -->
         <template v-else-if="reporte">
           <!-- KPIs -->
-          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5 mb-8">
             <KpiCard v-for="kpi in kpis" :key="kpi.title" v-bind="kpi" />
           </div>
 
@@ -502,7 +502,7 @@ function exportCsv() {
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                   <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Top productos</h3>
                 </div>
-                <table class="w-full text-sm">
+                <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                   <tbody>
                     <tr
                       v-for="(p, i) in reporte.topProductos"
@@ -517,7 +517,7 @@ function exportCsv() {
                       <td colspan="3" class="px-6 py-8 text-center" style="color: var(--color-outline)">Sin productos vendidos</td>
                     </tr>
                   </tbody>
-                </table>
+                </table></div>
               </div>
 
               <div
@@ -527,7 +527,7 @@ function exportCsv() {
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                   <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Top servicios</h3>
                 </div>
-                <table class="w-full text-sm">
+                <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                   <tbody>
                     <tr
                       v-for="(s, i) in reporte.topServicios"
@@ -542,7 +542,7 @@ function exportCsv() {
                       <td colspan="3" class="px-6 py-8 text-center" style="color: var(--color-outline)">Sin servicios vendidos</td>
                     </tr>
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </div>
 
@@ -554,7 +554,7 @@ function exportCsv() {
               <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
                 <h3 class="text-base font-extrabold" style="color: var(--color-primary)">Cobros por cajero</h3>
               </div>
-              <table class="w-full text-sm">
+              <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr style="border-bottom: 1px solid var(--color-hairline)">
                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cajero</th>
@@ -576,7 +576,7 @@ function exportCsv() {
                     <td colspan="3" class="px-6 py-8 text-center" style="color: var(--color-outline)">Sin cobros en el período</td>
                   </tr>
                 </tbody>
-              </table>
+              </table></div>
             </div>
           </template>
         </template>

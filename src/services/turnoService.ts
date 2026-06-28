@@ -20,6 +20,12 @@ export interface SlotDisponible {
   horaFin: string
 }
 
+export interface ProfesionalDisponible {
+  id: number
+  nombre: string
+  especialidad?: string
+}
+
 export interface CreateTurnoRequest {
   professionalId: number
   patientId: number
@@ -55,6 +61,13 @@ export async function getSlotsDisponibles(
 ): Promise<SlotDisponible[]> {
   const { data } = await http.get<SlotDisponible[]>(
     `/api/turnos/disponibles?professionalId=${professionalId}&fecha=${fecha}`,
+  )
+  return data
+}
+
+export async function getProfesionalesDisponibles(fecha: string): Promise<ProfesionalDisponible[]> {
+  const { data } = await http.get<ProfesionalDisponible[]>(
+    `/api/turnos/profesionales-disponibles?fecha=${fecha}`,
   )
   return data
 }

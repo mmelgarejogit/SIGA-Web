@@ -200,10 +200,10 @@ async function confirmDeactivate() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
-        <div class="flex items-start justify-between mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Tratamientos</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">

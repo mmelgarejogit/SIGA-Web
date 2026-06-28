@@ -11,6 +11,18 @@ const route = useRoute()
 const auth = useAuthStore()
 const sidebar = useSidebarStore()
 
+// En mobile el sidebar es un drawer expandido; el colapso a iconos es solo de desktop.
+const effectiveCollapsed = computed(() => !sidebar.isMobile && sidebar.collapsed)
+
+const navStyle = computed(() => {
+  const base =
+    "background-color: #1e3a5f; min-width: 0; transition: transform 0.28s ease, width 0.25s ease;"
+  if (sidebar.isMobile) {
+    return base + `width: 280px; transform: translateX(${sidebar.mobileOpen ? "0" : "-100%"});`
+  }
+  return base + "width: var(--sidebar-width); transform: none;"
+})
+
 // ── Accordion state ─────────────────────────────────────────
 const expandedGroupId = ref<string | null>(null)
 
@@ -20,6 +32,7 @@ function toggleGroup(id: string) {
 
 function navigate(routePath: string) {
   router.push(routePath)
+  sidebar.closeMobile()
 }
 
 // ── Expand sidebar + group when collapsed group is clicked ──
@@ -115,19 +128,24 @@ watch(
 </script>
 
 <template>
+  <!-- Overlay del drawer (solo mobile, cuando está abierto) -->
+  <Transition name="sb-overlay">
+    <div
+      v-if="sidebar.isMobile && sidebar.mobileOpen"
+      class="fixed inset-0 z-50"
+      style="background-color: rgba(0, 0, 0, 0.45)"
+      @click="sidebar.closeMobile()"
+    />
+  </Transition>
+
   <nav
-    class="fixed left-0 top-0 bottom-0 z-50 flex flex-col py-6 shadow-2xl overflow-hidden"
-    style="
-      background-color: #1e3a5f;
-      width: var(--sidebar-width);
-      transition: width 0.25s ease;
-      min-width: 0;
-    "
+    class="fixed left-0 top-0 bottom-0 z-[60] flex flex-col py-6 shadow-2xl overflow-hidden"
+    :style="navStyle"
   >
     <!-- Logo -->
     <div
       class="mb-8 flex items-center gap-3 overflow-hidden flex-shrink-0"
-      :class="sidebar.collapsed ? 'justify-center px-0' : 'px-6'"
+      :class="effectiveCollapsed ? 'justify-center px-0' : 'px-6'"
       style="transition: padding 0.25s ease"
     >
       <div
@@ -144,7 +162,7 @@ watch(
           >visibility</span
         >
       </div>
-      <div class="overflow-hidden" style="transition: opacity 0.2s ease, width 0.25s ease" :style="sidebar.collapsed ? 'opacity: 0; width: 0;' : 'opacity: 1; width: auto;'">
+      <div class="overflow-hidden" style="transition: opacity 0.2s ease, width 0.25s ease" :style="effectiveCollapsed ? 'opacity: 0; width: 0;' : 'opacity: 1; width: auto;'">
         <h1 class="text-xl font-black text-white uppercase tracking-widest leading-none whitespace-nowrap">
           SIGA-Óptica
         </h1>
@@ -162,7 +180,7 @@ watch(
           :expanded="expandedGroupId === item.id"
           :active="item.id === activeItemId || item.id === activeGroupId"
           :active-child-route="item.id === activeGroupId ? activeChildRoute : null"
-          :collapsed="sidebar.collapsed"
+          :collapsed="effectiveCollapsed"
           @navigate="navigate"
           @toggle="toggleGroup(item.id)"
           @collapsed-group-click="onCollapsedGroupClick(item.id)"
@@ -170,23 +188,27 @@ watch(
       </div>
     </div>
 
-    <!-- Toggle button -->
-    <div class="px-3 mt-2 flex-shrink-0" :class="sidebar.collapsed ? 'flex justify-center' : ''">
+    <!-- Toggle button (colapsar — solo desktop) -->
+    <div
+      v-if="!sidebar.isMobile"
+      class="px-3 mt-2 flex-shrink-0"
+      :class="effectiveCollapsed ? 'flex justify-center' : ''"
+    >
       <button
         @click="sidebar.toggle"
         class="collapse-btn flex items-center py-2 px-3 rounded-xl w-full"
-        :class="sidebar.collapsed ? 'justify-center gap-0' : 'gap-2'"
-        :title="sidebar.collapsed ? 'Expandir menú' : 'Colapsar menú'"
+        :class="effectiveCollapsed ? 'justify-center gap-0' : 'gap-2'"
+        :title="effectiveCollapsed ? 'Expandir menú' : 'Colapsar menú'"
       >
         <span
           class="material-symbols-outlined"
           style="font-size: 18px; display: inline-flex; align-items: center; justify-content: center; transform-origin: center; transition: transform 0.25s ease; flex-shrink: 0;"
-          :style="{ transform: sidebar.collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }"
+          :style="{ transform: effectiveCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }"
         >chevron_left</span>
         <span
           class="text-xs font-medium overflow-hidden whitespace-nowrap"
           style="transition: opacity 0.2s ease, max-width 0.25s ease"
-          :style="sidebar.collapsed ? 'opacity: 0; max-width: 0;' : 'opacity: 1; max-width: 120px;'"
+          :style="effectiveCollapsed ? 'opacity: 0; max-width: 0;' : 'opacity: 1; max-width: 120px;'"
         >
           Colapsar menú
         </span>
@@ -225,5 +247,15 @@ watch(
 .collapse-btn:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Overlay del drawer (fade) ───────────────────────────────────────────────── */
+.sb-overlay-enter-active,
+.sb-overlay-leave-active {
+  transition: opacity 0.25s ease;
+}
+.sb-overlay-enter-from,
+.sb-overlay-leave-to {
+  opacity: 0;
 }
 </style>

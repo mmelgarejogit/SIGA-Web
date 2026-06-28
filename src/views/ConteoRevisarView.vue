@@ -173,7 +173,7 @@ function descargarPdf() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Loading -->
         <div v-if="isLoading" class="flex items-center justify-center py-20">
@@ -290,7 +290,7 @@ function descargarPdf() {
               </div>
             </div>
 
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
@@ -343,7 +343,7 @@ function descargarPdf() {
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           <!-- Footer de acciones (solo si Pendiente) -->

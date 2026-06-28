@@ -188,7 +188,7 @@ function inputStyle(hasError = false) {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="flex items-center gap-3 mb-8">
@@ -206,7 +206,7 @@ function inputStyle(hasError = false) {
         <!-- Selector de tipo -->
         <div class="mb-8">
           <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Tipo de egreso</p>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <button
               v-for="t in tiposNuevo" :key="t.key"
               @click="selectTipo(t.key)"
@@ -299,7 +299,7 @@ function inputStyle(hasError = false) {
             </div>
 
             <!-- Monto y Fecha -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
                 <input v-model.number="form.monto" type="number" step="1" min="0" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
@@ -311,7 +311,7 @@ function inputStyle(hasError = false) {
             </div>
 
             <!-- Método de pago y Vencimiento -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
                 <select v-model="form.metodoPago" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">

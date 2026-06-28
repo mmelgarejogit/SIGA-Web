@@ -97,7 +97,7 @@ async function emitir() {
     <AppSidebar />
     <AppHeader />
     <main style="margin-left: var(--sidebar-width); padding-top: 64px">
-      <div class="p-8">
+      <div class="p-4 sm:p-6 lg:p-8">
 
         <button class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
           style="color: var(--color-primary)" @click="router.back()">
@@ -140,7 +140,7 @@ async function emitir() {
                   <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Tipo de documento</h3>
 
                   <!-- Selector -->
-                  <div class="grid grid-cols-2 gap-3 mb-6">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                     <button
                       type="button"
                       class="flex items-center gap-3 px-4 py-3 text-left transition-all"
@@ -198,7 +198,7 @@ async function emitir() {
                         style="background-color:#EFF6FF;color:var(--color-primary)">
                         Próximo: {{ selectedTimbrado.numeroCompletoPreview }}
                       </div>
-                      <div class="grid grid-cols-2 gap-3">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Establecimiento</label>
                           <input :value="selectedTimbrado?.establecimiento" type="text" disabled
