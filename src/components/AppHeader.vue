@@ -32,6 +32,14 @@ const position = computed(() => {
   return "Usuario"
 })
 
+// Sucursal del usuario; los usuarios globales (admin) ven "Todas las sucursales".
+const sucursalLabel = computed(() => {
+  if (!user.value) return ""
+  if (user.value.sucursalNombre) return user.value.sucursalNombre
+  if (authStore.hasPermission("ver_todas_sucursales")) return "Todas las sucursales"
+  return ""
+})
+
 const initials = computed(() => {
   if (!user.value) return "?"
   return `${user.value.firstName?.[0] ?? ""}${user.value.lastName?.[0] ?? ""}`.toUpperCase() || "?"
@@ -85,6 +93,15 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant)">menu</span>
       </button>
       <h2 class="text-base font-semibold" style="color: var(--color-primary)">SIGA Óptica</h2>
+      <span
+        v-if="sucursalLabel"
+        class="hidden sm:inline-flex items-center gap-1.5 ml-2 px-3 py-1 rounded-full text-xs font-bold"
+        style="background-color: var(--color-surface-container-high); color: var(--color-on-surface-variant)"
+        :title="`Sucursal: ${sucursalLabel}`"
+      >
+        <span class="material-symbols-outlined" style="font-size: 14px">store</span>
+        {{ sucursalLabel }}
+      </span>
     </div>
 
     <!-- Right: acciones + usuario -->

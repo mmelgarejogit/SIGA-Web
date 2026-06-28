@@ -12,6 +12,8 @@ export interface LoginResponse {
   lastName: string
   specialty?: string
   professionalId?: number
+  sucursalId?: number
+  sucursalNombre?: string
   roleClaims: string[]
   permissions: string[]
 }

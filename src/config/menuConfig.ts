@@ -170,6 +170,12 @@ export const menuConfig: MenuItem[] = [
         permission: "ver_inventario",
       },
       {
+        label: "Transferencias",
+        icon: "sync_alt",
+        route: "/stock/transferencias",
+        permission: "transferir_stock",
+      },
+      {
         label: "Aprobaciones",
         icon: "task_alt",
         route: "/stock/aprobaciones",
@@ -435,6 +441,12 @@ export const menuConfig: MenuItem[] = [
         icon: "settings",
         route: "/admin/config",
         permission: "gestionar_configuracion",
+      },
+      {
+        label: "Sucursales",
+        icon: "store",
+        route: "/admin/sucursales",
+        permission: "ver_sucursales",
       },
       {
         label: "Ubicaciones",

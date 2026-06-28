@@ -17,6 +17,7 @@ import {
   selfBookTurno,
   solicitarCancelacionTurno,
 } from "@/services/turnoService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
 
 // ── Estados que cuentan como "turno activo" (alineado con el backend) ──────────
 const ACTIVE_STATES = ["Pendiente", "Confirmado", "Presente"]
@@ -173,6 +174,8 @@ function onDayClick(cell: DayCell) {
 
 const showBookModal = ref(false)
 const selectedDate = ref("")
+const sucursales = ref<Sucursal[]>([])
+const selectedSucursalId = ref<number | null>(null)
 const profesionales = ref<ProfesionalDisponible[]>([])
 const isLoadingProfs = ref(false)
 const selectedProf = ref<ProfesionalDisponible | null>(null)
@@ -185,17 +188,35 @@ const bookError = ref("")
 
 async function openBookModal(dateStr: string) {
   selectedDate.value = dateStr
+  selectedSucursalId.value = null
   selectedProf.value = null
+  profesionales.value = []
   slots.value = []
   selectedSlot.value = ""
   bookMotivo.value = ""
   bookError.value = ""
   showBookModal.value = true
 
+  try {
+    sucursales.value = await getSucursales(true)
+    // Si hay una sola sucursal, autoseleccionarla y cargar profesionales directamente.
+    const unica = sucursales.value[0]
+    if (sucursales.value.length === 1 && unica) await selectSucursal(unica.id)
+  } catch (err: unknown) {
+    bookError.value = err instanceof Error ? err.message : "Error al cargar sucursales."
+  }
+}
+
+async function selectSucursal(id: number) {
+  selectedSucursalId.value = id
+  selectedProf.value = null
+  slots.value = []
+  selectedSlot.value = ""
   isLoadingProfs.value = true
   profesionales.value = []
+  bookError.value = ""
   try {
-    profesionales.value = await getProfesionalesDisponibles(dateStr)
+    profesionales.value = await getProfesionalesDisponibles(selectedDate.value, id)
   } catch (err: unknown) {
     bookError.value = err instanceof Error ? err.message : "Error al cargar profesionales."
   } finally {
@@ -209,7 +230,7 @@ async function selectProf(p: ProfesionalDisponible) {
   slots.value = []
   isLoadingSlots.value = true
   try {
-    slots.value = await getSlotsDisponibles(p.id, selectedDate.value)
+    slots.value = await getSlotsDisponibles(p.id, selectedDate.value, selectedSucursalId.value ?? undefined)
   } catch (err: unknown) {
     bookError.value = err instanceof Error ? err.message : "Error al cargar horarios."
   } finally {
@@ -218,11 +239,12 @@ async function selectProf(p: ProfesionalDisponible) {
 }
 
 async function submitBooking() {
-  if (!selectedProf.value || !selectedSlot.value) return
+  if (!selectedSucursalId.value || !selectedProf.value || !selectedSlot.value) return
   isBooking.value = true
   bookError.value = ""
   try {
     const payload: SelfBookTurnoRequest = {
+      sucursalId: selectedSucursalId.value,
       professionalId: selectedProf.value.id,
       fechaHora: `${selectedDate.value}T${selectedSlot.value}Z`,
       motivo: bookMotivo.value.trim() || undefined,
@@ -557,8 +579,34 @@ async function confirmCancelRequest() {
         {{ bookError }}
       </div>
 
-      <!-- Paso 1: profesional -->
-      <div class="mb-5">
+      <!-- Paso 1: sucursal (si hay más de una) -->
+      <div v-if="sucursales.length > 1" class="mb-5">
+        <label class="text-xs font-bold uppercase tracking-wider block mb-2" style="color: var(--color-outline)">
+          Sucursal
+        </label>
+        <div class="flex flex-col gap-2">
+          <button
+            v-for="s in sucursales"
+            :key="s.id"
+            type="button"
+            class="flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all"
+            :style="
+              selectedSucursalId === s.id
+                ? 'background-color: var(--color-primary); color: var(--color-on-primary);'
+                : 'background-color: var(--color-surface-container-low); color: var(--color-on-surface); border: 1px solid var(--color-hairline);'
+            "
+            @click="selectSucursal(s.id)"
+          >
+            <span class="text-sm font-bold">{{ s.nombre }}</span>
+            <span v-if="selectedSucursalId === s.id" class="material-symbols-outlined" style="font-size: 20px">
+              check_circle
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 2: profesional -->
+      <div v-if="selectedSucursalId" class="mb-5">
         <label class="text-xs font-bold uppercase tracking-wider block mb-2" style="color: var(--color-outline)">
           Profesional
         </label>

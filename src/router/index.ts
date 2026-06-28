@@ -480,6 +480,18 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Ubicaciones" },
     },
     {
+      path: "/admin/sucursales",
+      name: "admin-sucursales",
+      component: () => import("@/views/SucursalesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_sucursales", label: "Sucursales" },
+    },
+    {
+      path: "/stock/transferencias",
+      name: "stock-transferencias",
+      component: () => import("@/views/TransferenciasView.vue"),
+      meta: { requiresAuth: true, permission: "transferir_stock", label: "Transferencias" },
+    },
+    {
       path: "/egresos",
       name: "egresos",
       component: () => import("@/views/EgresosView.vue"),

@@ -14,6 +14,8 @@ export interface AppUser {
   email?: string
   phoneNumber?: string
   isActive: boolean
+  sucursalId?: number
+  sucursalNombre?: string
   roles: string[]
   createdAt: string
 }
@@ -32,5 +34,10 @@ export function clearUsersCache(): void {
 
 export async function deactivateUser(userId: number): Promise<void> {
   await http.delete(`/api/users/${userId}`)
+  _cache = null
+}
+
+export async function assignSucursal(userId: number, sucursalId: number | null): Promise<void> {
+  await http.put(`/api/users/${userId}/sucursal`, { sucursalId })
   _cache = null
 }

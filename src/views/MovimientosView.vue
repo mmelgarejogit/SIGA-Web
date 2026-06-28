@@ -59,6 +59,7 @@ const estadoOptions = [
 const columns = [
   { key: "fecha",    label: "Fecha movimiento" },
   { key: "producto", label: "Producto" },
+  { key: "sucursal", label: "Sucursal" },
   { key: "tipo",     label: "Tipo" },
   { key: "cantidad", label: "Cantidad" },
   { key: "motivo",   label: "Motivo" },
@@ -193,6 +194,10 @@ async function downloadPdf(m: MovimientoStock) {
 
             <template #producto="{ item }">
               <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.productoNombre }}</span>
+            </template>
+
+            <template #sucursal="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.sucursalNombre ?? "—" }}</span>
             </template>
 
             <template #tipo="{ item }">

@@ -6,7 +6,8 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type AppUser, getAppUsers, deactivateUser } from "@/services/userService"
+import { type AppUser, getAppUsers, deactivateUser, assignSucursal } from "@/services/userService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
 import {
   type Role,
   getRoles,
@@ -43,10 +44,6 @@ function avatarStyle(userId: number) {
 
 function initials(firstName: string, lastName: string) {
   return `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function statusStyle(isActive: boolean) {
@@ -165,6 +162,33 @@ async function handleDeactivate() {
   }
 }
 
+// ── Sucursal del usuario ───────────────────────────────────────────────────────
+const sucursales          = ref<Sucursal[]>([])
+const selectedSucursalId  = ref<number | "">("")
+const isSavingSucursal    = ref(false)
+const sucursalError       = ref("")
+
+const canManageSucursal = computed(() => auth.hasPermission("ver_sucursales") && auth.hasPermission("editar_usuario"))
+
+async function handleAssignSucursal() {
+  if (!managingUser.value || isSavingSucursal.value) return
+  isSavingSucursal.value = true
+  sucursalError.value = ""
+  try {
+    const id = selectedSucursalId.value === "" ? null : Number(selectedSucursalId.value)
+    await assignSucursal(managingUser.value.userId, id)
+    const u = users.value.find(u => u.userId === managingUser.value!.userId)
+    if (u) {
+      u.sucursalId = id ?? undefined
+      u.sucursalNombre = id === null ? undefined : sucursales.value.find(s => s.id === id)?.nombre
+    }
+  } catch (err: unknown) {
+    sucursalError.value = err instanceof Error ? err.message : "Error al asignar sucursal."
+  } finally {
+    isSavingSucursal.value = false
+  }
+}
+
 const showRolesModal      = ref(false)
 const managingUser        = ref<AppUser | null>(null)
 const userCurrentRoles    = ref<Role[]>([])
@@ -187,6 +211,8 @@ async function openRolesModal(user: AppUser) {
   rolesModalError.value = ""
   selectedRolesToAdd.value = []
   userCurrentRoles.value = []
+  selectedSucursalId.value = user.sucursalId ?? ""
+  sucursalError.value = ""
   try {
     const [userRoles, fetchedRoles] = await Promise.all([
       getRolesByUser(user.userId),
@@ -239,13 +265,22 @@ async function handleRemoveRole(roleId: number) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-onMounted(loadUsers)
+onMounted(async () => {
+  await loadUsers()
+  if (canManageSucursal.value) {
+    try {
+      sucursales.value = await getSucursales(true)
+    } catch {
+      /* silencioso */
+    }
+  }
+})
 
 const userColumns = [
   { key: "usuario",  label: "Usuario" },
   { key: "ci",       label: "C.I." },
   { key: "tipo",     label: "Tipo" },
-  { key: "registro", label: "Registro" },
+  { key: "sucursal", label: "Sucursal" },
   { key: "estado",   label: "Estado" },
   { key: "acciones", label: "Acciones", align: "right" as const },
 ]
@@ -360,8 +395,14 @@ const userColumns = [
               </span>
             </template>
 
-            <template #registro="{ item }">
-              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</span>
+            <template #sucursal="{ item }">
+              <span v-if="item.sucursalNombre" class="inline-flex items-center gap-1.5 text-sm" style="color: var(--color-on-surface-variant)">
+                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">store</span>
+                {{ item.sucursalNombre }}
+              </span>
+              <span v-else class="text-sm" style="color: var(--color-outline)">
+                {{ item.type === "Administrador" ? "Todas" : "—" }}
+              </span>
             </template>
 
             <template #estado="{ item }">
@@ -454,7 +495,7 @@ const userColumns = [
     </main>
 
     <!-- ── MODAL: GESTIONAR ROLES DE USUARIO ─────────────────────────────────── -->
-    <BaseModal :show="showRolesModal" title="Gestionar Roles" size="lg" @close="showRolesModal = false">
+    <BaseModal :show="showRolesModal" title="Gestionar Usuario" size="lg" @close="showRolesModal = false">
       <div class="space-y-6">
 
         <!-- Info usuario -->
@@ -569,6 +610,28 @@ const userColumns = [
             class="flex items-center gap-2 text-sm py-2" style="color: var(--color-outline)">
             <span class="material-symbols-outlined" style="font-size: 16px">check_circle</span>
             Todos los roles disponibles están asignados.
+          </div>
+
+          <!-- Sucursal -->
+          <div v-if="canManageSucursal" class="pt-2" style="border-top: 1px solid var(--color-hairline-soft)">
+            <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Sucursal</p>
+            <div v-if="sucursalError" class="flex items-center gap-2 rounded-2xl px-4 py-2.5 mb-3 text-sm font-medium"
+              style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
+              <span class="material-symbols-outlined" style="font-size: 16px">error</span>
+              {{ sucursalError }}
+            </div>
+            <div class="flex items-center gap-3">
+              <select v-model="selectedSucursalId"
+                class="flex-1 px-4 h-12 text-sm outline-none appearance-none shadow-none"
+                style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);">
+                <option value="">Todas las sucursales (global)</option>
+                <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+              </select>
+              <BaseButton variant="primary" size="default" :disabled="isSavingSucursal" @click="handleAssignSucursal">
+                <span v-if="isSavingSucursal" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+                {{ isSavingSucursal ? "Guardando..." : "Guardar" }}
+              </BaseButton>
+            </div>
           </div>
         </template>
       </div>

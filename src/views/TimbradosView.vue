@@ -17,9 +17,11 @@ import {
   updateTimbrado,
   deactivateTimbrado,
 } from "@/services/timbradoService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
 
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_ventas")
+const sucursales = ref<Sucursal[]>([])
 
 const items = ref<Timbrado[]>([])
 const isLoading = ref(false)
@@ -67,6 +69,7 @@ const visiblePages = computed(() => {
 
 const columns = [
   { key: "numeroTimbrado",      label: "Timbrado" },
+  { key: "sucursal",            label: "Sucursal" },
   { key: "serie",                label: "Serie" },
   { key: "proximoNumeroPreview", label: "Próximo N°" },
   { key: "vigencia",            label: "Vigencia" },
@@ -86,7 +89,10 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  try { sucursales.value = await getSucursales(true) } catch { /* silencioso */ }
+})
 
 function menuItems(item: Timbrado): ContextMenuItem[] {
   return [
@@ -113,6 +119,7 @@ const showCreate  = ref(false)
 const isSaving    = ref(false)
 const createError = ref("")
 const createForm  = reactive<CreateTimbradoRequest>({
+  sucursalId: undefined,
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -126,6 +133,7 @@ function openCreate() {
   const today = new Date()
   const finVigencia = new Date(today)
   finVigencia.setFullYear(finVigencia.getFullYear() + 1)
+  createForm.sucursalId = auth.user?.sucursalId ?? sucursales.value[0]?.id
   createForm.numeroTimbrado = ""
   createForm.establecimiento = ""
   createForm.puntoExpedicion = ""
@@ -152,6 +160,7 @@ async function submitCreate() {
   isSaving.value = true
   try {
     await createTimbrado({
+      sucursalId: createForm.sucursalId,
       numeroTimbrado: createForm.numeroTimbrado.trim(),
       establecimiento: createForm.establecimiento.trim(),
       puntoExpedicion: createForm.puntoExpedicion.trim(),
@@ -176,6 +185,7 @@ const isEditSaving = ref(false)
 const editError    = ref("")
 const editingItem  = ref<Timbrado | null>(null)
 const editForm     = reactive<UpdateTimbradoRequest>({
+  sucursalId: undefined,
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -188,6 +198,7 @@ const editForm     = reactive<UpdateTimbradoRequest>({
 
 function openEdit(item: Timbrado) {
   editingItem.value = item
+  editForm.sucursalId = item.sucursalId
   editForm.numeroTimbrado = item.numeroTimbrado
   editForm.establecimiento = item.establecimiento
   editForm.puntoExpedicion = item.puntoExpedicion
@@ -209,6 +220,7 @@ async function submitEdit() {
   isEditSaving.value = true
   try {
     await updateTimbrado(editingItem.value.id, {
+      sucursalId: editForm.sucursalId,
       numeroTimbrado: editForm.numeroTimbrado.trim(),
       establecimiento: editForm.establecimiento.trim(),
       puntoExpedicion: editForm.puntoExpedicion.trim(),
@@ -296,6 +308,9 @@ async function confirmDeactivate() {
                 <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.numeroTimbrado }}</span>
               </div>
             </template>
+            <template #sucursal="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.sucursalNombre ?? "—" }}</span>
+            </template>
             <template #serie="{ item }">
               <span class="text-sm font-mono font-semibold" style="color: var(--color-on-surface-variant)">
                 {{ item.establecimiento }}-{{ item.puntoExpedicion }}
@@ -363,6 +378,14 @@ async function confirmDeactivate() {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
+          <select v-model="createForm.sucursalId"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
+        <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="createForm.numeroTimbrado" type="text" placeholder="Ej: 12345678"
             class="w-full px-4 py-3 rounded-xl text-sm outline-none"
@@ -421,6 +444,14 @@ async function confirmDeactivate() {
         {{ editError }}
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
+          <select v-model="editForm.sucursalId"
+            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
         <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="editForm.numeroTimbrado" type="text"

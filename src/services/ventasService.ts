@@ -127,6 +127,8 @@ export interface Devolucion {
 export interface Venta {
   id: number
   numeroComprobante: string
+  sucursalId: number
+  sucursalNombre?: string
   clienteId?: number
   clienteNombre: string
   recetaId?: number
