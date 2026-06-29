@@ -11,6 +11,9 @@ export interface Turno {
   solicitudCancelacion: boolean
   motivo?: string
   notas?: string
+  estadoCustomId?: number
+  estadoCustomNombre?: string
+  estadoCustomColor?: string
   createdAt: string
   updatedAt: string
 }
@@ -45,12 +48,14 @@ export async function getTurnos(
     fecha?: string
     professionalId?: number
     estado?: string
+    patientId?: number
   } = {},
 ): Promise<Turno[]> {
   const q = new URLSearchParams()
   if (params.fecha) q.set("fecha", params.fecha)
   if (params.professionalId) q.set("professionalId", String(params.professionalId))
   if (params.estado) q.set("estado", params.estado)
+  if (params.patientId) q.set("patientId", String(params.patientId))
   const { data } = await http.get<Turno[]>(`/api/turnos?${q}`)
   return data
 }

@@ -21,12 +21,12 @@ import { getEmpleados, type Empleado } from "@/services/empleadosService"
 
 const router = useRouter()
 
-type TipoNuevo = "Honorario" | "GastoGeneral" | "Salario"
+type TipoNuevo = "PagoPersonal" | "GastoGeneral"
+type SubTipoPersonal = "Profesional" | "Empleado"
 
 const tiposNuevo: { key: TipoNuevo; label: string; icon: string; desc: string }[] = [
-  { key: "GastoGeneral", label: "Gasto General", icon: "payments", desc: "Gastos operativos categorizados" },
-  { key: "Honorario", label: "Honorario", icon: "person_check", desc: "Pago a profesionales por período" },
-  { key: "Salario", label: "Salario", icon: "badge", desc: "Pago de salario a empleado" },
+  { key: "GastoGeneral",  label: "Gasto General",    icon: "payments",      desc: "Gastos operativos categorizados" },
+  { key: "PagoPersonal",  label: "Pago de Personal", icon: "person_check",  desc: "Honorarios a profesionales o salarios a empleados" },
 ]
 
 // ── Catálogos ──────────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ onMounted(async () => {
 // ── Formulario ─────────────────────────────────────────────────────────────────
 
 const selectedTipo = ref<TipoNuevo | null>(null)
+const subTipoPersonal = ref<SubTipoPersonal>("Profesional")
 const isSaving = ref(false)
 const formError = ref("")
 
@@ -60,17 +61,15 @@ const form = reactive({
   fechaEmision: new Date().toISOString().slice(0, 10),
   fechaVencimiento: "",
   metodoPago: "Efectivo",
-  // Honorario
   professionalId: 0,
   periodo: null as string | null,
-  // GastoGeneral
   categoriaGastoId: 0,
-  // Salario
   empleadoId: 0,
 })
 
 function selectTipo(t: TipoNuevo) {
   selectedTipo.value = t
+  subTipoPersonal.value = "Profesional"
   formError.value = ""
   Object.assign(form, {
     monto: 0, concepto: "", observaciones: "",
@@ -83,9 +82,16 @@ function selectTipo(t: TipoNuevo) {
   })
 }
 
+function selectSubTipo(s: SubTipoPersonal) {
+  subTipoPersonal.value = s
+  form.professionalId = 0
+  form.empleadoId = 0
+  form.periodo = null
+  formError.value = ""
+}
+
 function tipoColor(key: TipoNuevo) {
-  if (key === "Honorario") return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" }
-  if (key === "Salario") return { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" }
+  if (key === "PagoPersonal") return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" }
   return { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" }
 }
 
@@ -97,10 +103,10 @@ async function submit() {
   if (!form.monto || form.monto <= 0) { formError.value = "El monto debe ser mayor a 0."; return }
   if (!form.fechaEmision) { formError.value = "La fecha es obligatoria."; return }
   if (!form.metodoPago) { formError.value = "El método de pago es obligatorio."; return }
-  if (selectedTipo.value === "Honorario" && !form.professionalId) { formError.value = "Seleccioná un profesional."; return }
-  if (selectedTipo.value === "Honorario" && !form.periodo) { formError.value = "El período es obligatorio."; return }
+  if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Profesional" && !form.professionalId) { formError.value = "Seleccioná un profesional."; return }
+  if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Profesional" && !form.periodo) { formError.value = "El período es obligatorio."; return }
+  if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Empleado" && !form.empleadoId) { formError.value = "Seleccioná un empleado."; return }
   if (selectedTipo.value === "GastoGeneral" && !form.categoriaGastoId) { formError.value = "Seleccioná una categoría."; return }
-  if (selectedTipo.value === "Salario" && !form.empleadoId) { formError.value = "Seleccioná un empleado."; return }
 
   isSaving.value = true
   try {
@@ -111,13 +117,13 @@ async function submit() {
       fechaEmision: form.fechaEmision,
       fechaVencimiento: form.fechaVencimiento || undefined,
     }
-    if (selectedTipo.value === "Honorario") {
+    if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Profesional") {
       await crearHonorario({
         ...base,
         professionalId: form.professionalId,
         periodo: form.periodo ?? "",
       })
-    } else if (selectedTipo.value === "Salario") {
+    } else if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Empleado") {
       await crearSalario({
         ...base,
         empleadoId: form.empleadoId,
@@ -241,38 +247,46 @@ function inputStyle(hasError = false) {
               {{ formError }}
             </div>
 
-            <!-- Profesional (Honorario) -->
-            <div v-if="selectedTipo === 'Honorario'">
+            <!-- Toggle Profesional / Empleado (PagoPersonal) -->
+            <div v-if="selectedTipo === 'PagoPersonal'">
+              <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Tipo de pago</label>
+              <div class="inline-flex rounded-xl overflow-hidden" style="border: 1px solid var(--color-outline-variant)">
+                <button
+                  type="button"
+                  @click="selectSubTipo('Profesional')"
+                  class="px-5 h-10 text-sm font-semibold transition-colors"
+                  :style="subTipoPersonal === 'Profesional'
+                    ? 'background-color: #6D28D9; color: #fff;'
+                    : 'background-color: var(--color-surface); color: var(--color-on-surface-variant);'"
+                >Profesional</button>
+                <button
+                  type="button"
+                  @click="selectSubTipo('Empleado')"
+                  class="px-5 h-10 text-sm font-semibold transition-colors"
+                  :style="subTipoPersonal === 'Empleado'
+                    ? 'background-color: #6D28D9; color: #fff;'
+                    : 'background-color: var(--color-surface); color: var(--color-on-surface-variant);'"
+                >Empleado</button>
+              </div>
+            </div>
+
+            <!-- Selector persona -->
+            <div v-if="selectedTipo === 'PagoPersonal' && subTipoPersonal === 'Profesional'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Profesional *</label>
-              <SearchableSelect
-                v-model="form.professionalId"
-                :options="profesionalOptions"
-                placeholder="Seleccionar profesional"
-                null-label="Seleccionar profesional"
-              />
+              <SearchableSelect v-model="form.professionalId" :options="profesionalOptions" placeholder="Seleccionar profesional" null-label="Seleccionar profesional" />
             </div>
-
-            <!-- Período (Honorario) -->
-            <div v-if="selectedTipo === 'Honorario'" class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Período *</label>
-              <MonthPicker v-model="form.periodo" placeholder="Seleccionar período" />
-            </div>
-
-            <!-- Empleado (Salario) -->
-            <div v-if="selectedTipo === 'Salario'">
+            <div v-if="selectedTipo === 'PagoPersonal' && subTipoPersonal === 'Empleado'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Empleado *</label>
-              <SearchableSelect
-                v-model="form.empleadoId"
-                :options="empleadoOptions"
-                placeholder="Seleccionar empleado"
-                null-label="Seleccionar empleado"
-              />
+              <SearchableSelect v-model="form.empleadoId" :options="empleadoOptions" placeholder="Seleccionar empleado" null-label="Seleccionar empleado" />
             </div>
 
-            <!-- Período (Salario) -->
-            <div v-if="selectedTipo === 'Salario'" class="flex flex-col gap-1.5">
-              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Período</label>
-              <MonthPicker v-model="form.periodo" placeholder="Opcional" />
+            <!-- Período -->
+            <div v-if="selectedTipo === 'PagoPersonal'" class="flex flex-col gap-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
+                Período <span v-if="subTipoPersonal === 'Profesional'" style="color: var(--color-error)">*</span>
+                <span v-else class="font-normal normal-case" style="color: var(--color-outline)"> (opcional)</span>
+              </label>
+              <MonthPicker v-model="form.periodo" :placeholder="subTipoPersonal === 'Profesional' ? 'Seleccionar período' : 'Opcional'" />
             </div>
 
             <!-- Categoría (GastoGeneral) -->

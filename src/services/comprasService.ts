@@ -255,6 +255,7 @@ export interface RegistrarFacturaDirectaRequest {
   fechaEmision: string
   fechaVencimiento?: string
   condicionVenta: string
+  metodoPago?: string
   observaciones?: string
   items: FacturaItemLineaRequest[]
 }
@@ -263,10 +264,8 @@ export interface RegistrarFacturaPedidoRequest {
   nroFactura: string
   fechaEmision: string
   fechaVencimiento?: string
-  montoExento: number
-  montoGravado5: number
-  montoGravado10: number
   condicionVenta: string
+  metodoPago?: string
   observaciones?: string
   /** Si se omite, los ítems se copian automáticamente desde la OC con IVA 10% */
   items?: FacturaItemLineaRequest[]

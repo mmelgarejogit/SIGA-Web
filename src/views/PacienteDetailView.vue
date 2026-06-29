@@ -109,7 +109,7 @@ type TabId = "info" | "citas" | "clinico" | "ventas"
 
 const ALL_TABS: { id: TabId; label: string; icon: string; available: boolean; permission: string | null }[] = [
   { id: "info",    label: "Información",     icon: "badge",               available: true,  permission: null },
-  { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_calendario" },
+  { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_agenda" },
   { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true, permission: "ver_historia_clinica" },
   { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: false, permission: "ver_ventas" },
 ]
@@ -139,11 +139,6 @@ async function loadPatient() {
 }
 
 onMounted(loadPatient)
-
-watch(activeTab, (tab) => {
-  if (tab === "clinico" && !consultas.value.length) loadConsultas()
-  if (tab === "citas" && !citas.value.length) loadCitas()
-})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -239,8 +234,7 @@ async function loadCitas() {
   if (!patientId.value) return
   isLoadingCitas.value = true
   try {
-    const all = await getTurnos()
-    citas.value = all.filter((t) => t.patientId === patientId.value)
+    citas.value = await getTurnos({ patientId: patientId.value })
   } catch {
     citas.value = []
   } finally {

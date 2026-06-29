@@ -135,8 +135,7 @@ const efectivoEsperado = computed(() =>
 const diferenciaPreview = computed(() => Number(efectivoContado.value || 0) - efectivoEsperado.value)
 
 function abrirCerrar() {
-  // Pre-cargamos el conteo con el efectivo esperado: si cuadra, el cajero solo confirma.
-  efectivoContado.value = String(efectivoEsperado.value)
+  efectivoContado.value = ""
   observacion.value     = ""
   cerrarError.value     = ""
   cierreResult.value    = null
@@ -460,18 +459,17 @@ function confirmarCierreYSalir() {
       </div>
 
       <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
-          <span class="text-xs font-semibold" style="color: var(--color-outline)">Esperado: {{ fmt(efectivoEsperado) }}</span>
-        </div>
+        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
         <input
           v-model="efectivoContado"
           type="number"
           min="0"
+          placeholder="0"
           class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
           style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
         />
-        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
+        <p v-if="efectivoContado !== ''" class="text-xs mt-1 font-medium"
+          :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
           {{ diferenciaPreview === 0
               ? "✓ Coincide con lo esperado"
               : `Diferencia: ${diferenciaPreview > 0 ? "+" : "−"}${fmt(diferenciaPreview)}` }}

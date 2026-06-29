@@ -67,8 +67,8 @@ async function submitGestion() {
     await gestionarAprobacion(selectedItem.value.id, { accion: accion.value, observacion: observacion.value || undefined })
     showModal.value = false
     await load()
-  } catch (e: any) {
-    gestionError.value = e?.response?.data?.message ?? "Error al procesar"
+  } catch (e) {
+    gestionError.value = e instanceof Error ? e.message : "Error al procesar"
   } finally {
     isGestion.value = false
   }
@@ -137,15 +137,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.laboratorioNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</td>
                 <td class="px-6 py-4 text-right" @click.stop>
-                  <div v-if="canManage" class="flex items-center justify-end gap-2">
-                    <button class="w-9 h-9 rounded-full flex items-center justify-center bg-green-100 hover:scale-105 transition-all" title="Aprobar" @click="openModal(item, 'Aprobar')">
-                      <span class="material-symbols-outlined text-green-700" style="font-size:18px">check_circle</span>
-                    </button>
-                    <button class="w-9 h-9 rounded-full flex items-center justify-center bg-red-100 hover:scale-105 transition-all" title="Rechazar" @click="openModal(item, 'Rechazar')">
-                      <span class="material-symbols-outlined text-red-600" style="font-size:18px">cancel</span>
-                    </button>
-                  </div>
-                  <RowContextMenu v-else :items="menuItems(item)" />
+                  <RowContextMenu :items="menuItems(item)" />
                 </td>
               </tr>
             </template>

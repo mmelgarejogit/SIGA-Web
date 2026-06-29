@@ -11,6 +11,7 @@ import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { type TrabajoPedidoListDto } from "@/services/ventasService"
 import { getPedidos } from "@/services/laboratorioService"
+import { imprimirOrdenTrabajo } from "@/utils/ordenTrabajoPrint"
 
 const router = useRouter()
 
@@ -92,8 +93,9 @@ const tieneReceta = computed(() => {
 
 function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   return [
-    { type: "item", label: "Ver pedido",  icon: "description", action: () => verReferencia(item) },
-    { type: "item", label: "Ver venta",   icon: "open_in_new", action: () => router.push(`/ventas/${item.ventaId}`) },
+    { type: "item", label: "Ver pedido",     icon: "description", action: () => verReferencia(item) },
+    { type: "item", label: "Imprimir orden", icon: "print",       action: () => imprimirOrdenTrabajo(item) },
+    { type: "item", label: "Ver venta",      icon: "open_in_new", action: () => router.push(`/ventas/${item.ventaId}`) },
   ]
 }
 </script>
@@ -262,6 +264,10 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
       </template>
       <template #footer>
         <BaseButton variant="secondary" class="flex-1" @click="showRef = false">Cerrar</BaseButton>
+        <BaseButton variant="secondary" class="flex-1" @click="selected && imprimirOrdenTrabajo(selected)">
+          <span class="material-symbols-outlined align-middle" style="font-size:18px">print</span>
+          Imprimir orden
+        </BaseButton>
         <BaseButton variant="primary" class="flex-1" @click="selected && router.push(`/ventas/${selected.ventaId}`)">Ver venta completa</BaseButton>
       </template>
     </BaseModal>
