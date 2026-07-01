@@ -36,8 +36,3 @@ export async function deactivateUser(userId: number): Promise<void> {
   await http.delete(`/api/users/${userId}`)
   _cache = null
 }
-
-export async function assignSucursal(userId: number, sucursalId: number | null): Promise<void> {
-  await http.put(`/api/users/${userId}/sucursal`, { sucursalId })
-  _cache = null
-}

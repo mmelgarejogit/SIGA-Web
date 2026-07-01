@@ -98,7 +98,7 @@ const kpis = computed(() => {
       icon: "receipt_long",
       badge: "Compras",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
     {
@@ -158,7 +158,7 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const estadoColors: Record<string, string> = {
   Borrador: "var(--color-outline)",
-  Confirmada: "#2563eb",
+  Confirmada: "var(--color-chart-1)",
   RecibidaParcial: "var(--color-warning)",
   RecibidaTotal: "var(--color-success)",
   Cancelada: "var(--color-error)",
@@ -419,7 +419,7 @@ function exportCsv() {
 
             <!-- Por proveedor -->
             <div
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
             >
               <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">

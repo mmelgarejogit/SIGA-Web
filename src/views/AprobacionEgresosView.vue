@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -79,7 +80,7 @@ function tipoLabel(tipo: string) {
 function tipoColor(tipo: string) {
   return {
     FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
     GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
   }[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
@@ -129,13 +130,6 @@ function openRechazar(e: Egreso) {
   rechazarMotivo.value = ""
   rechazarError.value = ""
   showRechazar.value = true
-}
-
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
 async function submitRechazar() {

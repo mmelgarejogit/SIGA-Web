@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -81,7 +82,7 @@ function tipoIcon(tipo: string) {
 function tipoColor(tipo: string): { bg: string; color: string } {
   return {
     FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
     GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
     Salario:       { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" },
   }[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
@@ -96,15 +97,6 @@ const referencia = computed(() => {
   if (e.tipo === "Salario") return [e.empleadoNombre, e.periodo].filter(Boolean).join(" · ")
   return ""
 })
-
-// ── inputStyle ────────────────────────────────────────────────────────────────
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 
 // ── Submit ─────────────────────────────────────────────────────────────────────
 
@@ -144,7 +136,7 @@ async function submit() {
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
@@ -155,7 +147,7 @@ async function submit() {
             <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-on-surface-variant)">arrow_back</span>
           </button>
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-1">Registrar Pago</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Registrar Pago</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               Confirmar el pago de la solicitud aprobada
             </p>
@@ -301,7 +293,7 @@ async function submit() {
                     <p class="text-sm font-bold" :style="form.esExterno ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-surface)'">
                       Pago externo (no afecta la caja)
                     </p>
-                    <p class="text-xs" :style="form.esExterno ? 'color: #B45309' : 'color: var(--color-outline)'">
+                    <p class="text-xs" :style="form.esExterno ? 'color: var(--color-on-warning-container)' : 'color: var(--color-outline)'">
                       El pago fue realizado desde fuera de la caja (ej: transferencia directa, pago del jefe)
                     </p>
                   </div>

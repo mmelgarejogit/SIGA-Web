@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -142,13 +143,6 @@ function openEdit(c: CargoEmpleado) {
   Object.assign(editForm, { nombre: c.nombre, descripcion: c.descripcion ?? "", activo: c.activo })
   editError.value = ""
   showEdit.value = true
-}
-
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
 async function submitEdit() {

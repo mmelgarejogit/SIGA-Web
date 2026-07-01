@@ -196,7 +196,7 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="flex items-center gap-4 mb-6 flex-wrap">
+        <div class="flex items-center gap-4 mb-8 flex-wrap">
           <FilterChips
             :model-value="estadoFilter"
             :options="estadoOptions"

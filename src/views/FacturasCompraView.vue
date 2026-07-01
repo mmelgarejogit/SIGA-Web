@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import DateInput from "@/components/DateInput.vue"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -7,6 +9,8 @@ import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseTable from "@/components/BaseTable.vue"
+import BaseModal from "@/components/BaseModal.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   getFacturasCompra,
@@ -33,28 +37,31 @@ const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
 const search = ref("")
 
+const columns = [
+  { key: "nroFactura", label: "Nro. Factura" },
+  { key: "proveedor", label: "Proveedor" },
+  { key: "origen", label: "Origen" },
+  { key: "fechaEmision", label: "Fecha Emisión" },
+  { key: "montoTotal", label: "Monto Total" },
+  { key: "condicion", label: "Condición" },
+  { key: "estado", label: "Estado" },
+  { key: "acciones", label: "" },
+]
+
 const estadoOpciones = [
   { value: "vigente", label: "Vigente", dot: "var(--color-success)" },
   { value: "anulada", label: "Anulada", dot: "var(--color-outline)" },
 ]
 const condicionOpciones = [
-  { value: "Contado", label: "Contado", dot: "#0369a1" },
+  { value: "Contado", label: "Contado", dot: "var(--color-info)" },
   { value: "Credito", label: "Crédito", dot: "var(--color-tertiary)" },
 ]
 const origenOpciones = [
   { value: "ConOC", label: "Con OC", dot: "var(--color-on-info-container)" },
-  { value: "Directa", label: "Directa", dot: "#9333ea" },
+  { value: "Directa", label: "Directa", dot: "var(--color-tertiary)" },
 ]
 
 const proveedores = ref<Proveedor[]>([])
-const inputDesde = ref<HTMLInputElement | null>(null)
-const inputHasta = ref<HTMLInputElement | null>(null)
-
-function openPicker(input: HTMLInputElement | null) {
-  if (!input) return
-  if (typeof input.showPicker === "function") input.showPicker()
-  else input.focus()
-}
 
 const proveedorOptions = computed(() =>
   proveedores.value.map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
@@ -128,14 +135,14 @@ function formatMonto(n: number) {
 
 function estadoBadge(estado: string) {
   if (estado === "Anulado") return { text: "Anulada", bg: "var(--color-surface-container)", color: "var(--color-outline)", border: "var(--color-outline-variant)" }
-  if (estado === "Pagado")  return { text: "Pagada",  bg: "var(--color-success-container)", color: "var(--color-success)", border: "#BBF7D0" }
+  if (estado === "Pagado")  return { text: "Pagada",  bg: "var(--color-success-container)", color: "var(--color-success)", border: "var(--color-success-container)" }
   return { text: "Vigente", bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)", border: "var(--color-warning-container)" }
 }
 
 function origenBadge(f: FacturaCompraItem) {
   return f.pedidoProveedorId
     ? { text: "Con OC",  bg: "var(--color-info-container)", color: "var(--color-on-info-container)" }
-    : { text: "Directa", bg: "#F3E8FF", color: "var(--color-tertiary)" }
+    : { text: "Directa", bg: "var(--color-tertiary-fixed)", color: "var(--color-tertiary)" }
 }
 
 // ── Modal Anular ─────────────────────────────────────────────────────────────
@@ -167,13 +174,6 @@ async function confirmarAnulacion() {
   } finally {
     isAnulando.value = false
   }
-}
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
 }
 
 // ── Context menu ─────────────────────────────────────────────────────────────
@@ -231,7 +231,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
               :model-value="filtroEstado"
@@ -266,14 +266,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
             <div class="flex items-center gap-1.5">
               <!-- Desde -->
               <div class="flex items-center gap-1">
-                <div class="fc-date-wrap">
-                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaDesde }" @click="openPicker(inputDesde)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">calendar_today</span>
-                    <span>{{ filtroFechaDesde ? formatFilterDate(filtroFechaDesde) : 'Desde' }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputDesde" type="date" v-model="filtroFechaDesde" class="date-hidden" @change="applyFilters" />
-                </div>
+                <DateInput v-model="filtroFechaDesde" placeholder="Desde" @update:model-value="applyFilters" />
                 <button v-if="filtroFechaDesde" class="fc-date-clear" title="Limpiar" @click="filtroFechaDesde = ''; applyFilters()">×</button>
               </div>
 
@@ -281,14 +274,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
 
               <!-- Hasta -->
               <div class="flex items-center gap-1">
-                <div class="fc-date-wrap">
-                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaHasta }" @click="openPicker(inputHasta)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">event</span>
-                    <span>{{ filtroFechaHasta ? formatFilterDate(filtroFechaHasta) : 'Hasta' }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputHasta" type="date" v-model="filtroFechaHasta" class="date-hidden" @change="applyFilters" />
-                </div>
+                <DateInput v-model="filtroFechaHasta" placeholder="Hasta" @update:model-value="applyFilters" />
                 <button v-if="filtroFechaHasta" class="fc-date-clear" title="Limpiar" @click="filtroFechaHasta = ''; applyFilters()">×</button>
               </div>
             </div>
@@ -303,14 +289,8 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
-
-          <div v-if="isLoading" class="p-12 flex justify-center">
-            <span class="material-symbols-outlined animate-spin" style="font-size: 32px; color: var(--color-primary)">progress_activity</span>
-          </div>
-
-          <div v-else-if="facturas.length === 0" class="p-12 text-center">
+        <BaseTable :columns="columns" :items="facturas" :loading="isLoading" @row-click="f => router.push(`/compras/facturas/${f.id}`)">
+          <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style="background-color: var(--color-surface-container-low)">
               <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">receipt</span>
@@ -319,76 +299,44 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
             <p class="text-sm" style="color: var(--color-on-surface-variant)">
               No hay facturas que coincidan con los filtros aplicados.
             </p>
-          </div>
-
-          <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
-            <thead style="background-color: var(--color-surface-container-low)">
-              <tr>
-                <th v-for="h in ['Nro. Factura','Proveedor','Origen','Fecha Emisión','Monto Total','Condición','Estado']"
-                  :key="h"
-                  class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest"
-                  style="color: var(--color-outline)">
-                  {{ h }}
-                </th>
-                <th class="px-6 py-5" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="f in facturas"
-                :key="f.id"
-                class="hover:bg-surface-container-low cursor-pointer"
-                :class="{ 'opacity-60': f.estado === 'Anulado' }"
-                style="border-bottom: 1px solid var(--color-hairline-soft)"
-                @click.self="router.push(`/compras/facturas/${f.id}`)"
-              >
-                <td class="px-6 py-4">
-                  <span class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
-                    {{ f.nroFactura ?? "—" }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ f.proveedorNombre }}</span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-                    :style="`background-color: ${origenBadge(f).bg}; color: ${origenBadge(f).color}`">
-                    {{ origenBadge(f).text }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ formatDate(f.fechaEmision) }}
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="font-bold text-sm" style="color: var(--color-on-surface)">
-                    {{ formatMonto(f.montoTotal) }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ f.condicionVenta === "Credito" ? "Crédito" : "Contado" }}
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-                    :style="`background-color: ${estadoBadge(f.estado).bg}; color: ${estadoBadge(f.estado).color}; border: 1px solid ${estadoBadge(f.estado).border}`">
-                    {{ estadoBadge(f.estado).text }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <div class="flex justify-end">
-                    <RowContextMenu :items="menuItems(f)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table></div>
-        </div>
+          </template>
+          <template #nroFactura="{ item: f }">
+            <span class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
+              {{ f.nroFactura ?? "—" }}
+            </span>
+          </template>
+          <template #proveedor="{ item: f }">
+            <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ f.proveedorNombre }}</span>
+          </template>
+          <template #origen="{ item: f }">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="`background-color: ${origenBadge(f).bg}; color: ${origenBadge(f).color}`">
+              {{ origenBadge(f).text }}
+            </span>
+          </template>
+          <template #fechaEmision="{ item: f }">
+            {{ formatDate(f.fechaEmision) }}
+          </template>
+          <template #montoTotal="{ item: f }">
+            <span class="font-bold text-sm" style="color: var(--color-on-surface)">
+              {{ formatMonto(f.montoTotal) }}
+            </span>
+          </template>
+          <template #condicion="{ item: f }">
+            {{ f.condicionVenta === "Credito" ? "Crédito" : "Contado" }}
+          </template>
+          <template #estado="{ item: f }">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="`background-color: ${estadoBadge(f.estado).bg}; color: ${estadoBadge(f.estado).color}; border: 1px solid ${estadoBadge(f.estado).border}`">
+              {{ estadoBadge(f.estado).text }}
+            </span>
+          </template>
+          <template #acciones="{ item: f }">
+            <div class="flex justify-end" @click.stop>
+              <RowContextMenu :items="menuItems(f)" />
+            </div>
+          </template>
+        </BaseTable>
 
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           Mostrando {{ facturas.length }} de {{ totalCount }} facturas
@@ -398,67 +346,48 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
     </main>
 
     <!-- ── Modal Anular ───────────────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="showAnularModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0" style="background-color: rgba(24, 28, 32, 0.5)" @click="showAnularModal = false" />
-          <div class="relative w-full max-w-sm rounded-3xl overflow-hidden"
-            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-xl);">
-
-            <div class="flex items-center justify-between px-8 pt-8 pb-6"
-              style="border-bottom: 1px solid var(--color-hairline)">
-              <h3 class="text-xl font-extrabold" style="color: var(--color-error)">Anular Factura</h3>
-              <button class="p-1 rounded-full transition-colors" style="color: var(--color-outline)"
-                @click="showAnularModal = false">
-                <span class="material-symbols-outlined" style="font-size: 22px">close</span>
-              </button>
-            </div>
-
-            <div class="px-8 py-6 space-y-4">
-              <div class="p-4 rounded-2xl" style="background-color: var(--color-error-container)">
-                <p class="text-sm font-semibold" style="color: var(--color-error)">
-                  Vas a anular la factura
-                  <strong>{{ anularTarget?.nroFactura ?? "sin número" }}</strong>
-                  de <strong>{{ anularTarget?.proveedorNombre }}</strong>.
-                </p>
-                <p v-if="anularTarget?.pedidoProveedorId" class="text-xs mt-1" style="color: var(--color-error)">
-                  La OC asociada volverá a estado Confirmada.
-                </p>
-              </div>
-
-              <div>
-                <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">
-                  Motivo de anulación <span style="color: var(--color-error)">*</span>
-                </label>
-                <textarea
-                  v-model="motivoAnulacion"
-                  rows="3"
-                  placeholder="Indicá el motivo de la anulación…"
-                  class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none transition-all resize-none"
-                  :style="inputStyle(!!anularError)"
-                  maxlength="500"
-                />
-                <p v-if="anularError" class="mt-1 text-xs font-medium" style="color: var(--color-error)">
-                  {{ anularError }}
-                </p>
-              </div>
-            </div>
-
-            <div class="px-8 py-6 flex justify-between"
-              style="border-top: 1px solid var(--color-hairline)">
-              <BaseButton variant="secondary" @click="showAnularModal = false" :disabled="isAnulando">
-                Cancelar
-              </BaseButton>
-              <BaseButton variant="danger" :disabled="isAnulando" @click="confirmarAnulacion">
-                <span v-if="isAnulando" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
-                <span v-else class="material-symbols-outlined" style="font-size: 18px">block</span>
-                {{ isAnulando ? "Anulando…" : "Anular Factura" }}
-              </BaseButton>
-            </div>
-          </div>
+    <BaseModal :show="showAnularModal" title="Anular Factura" size="sm" @close="showAnularModal = false">
+      <div class="space-y-4">
+        <div class="p-4 rounded-2xl" style="background-color: var(--color-error-container)">
+          <p class="text-sm font-semibold" style="color: var(--color-error)">
+            Vas a anular la factura
+            <strong>{{ anularTarget?.nroFactura ?? "sin número" }}</strong>
+            de <strong>{{ anularTarget?.proveedorNombre }}</strong>.
+          </p>
+          <p v-if="anularTarget?.pedidoProveedorId" class="text-xs mt-1" style="color: var(--color-error)">
+            La OC asociada volverá a estado Confirmada.
+          </p>
         </div>
-      </Transition>
-    </Teleport>
+
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">
+            Motivo de anulación <span style="color: var(--color-error)">*</span>
+          </label>
+          <textarea
+            v-model="motivoAnulacion"
+            rows="3"
+            placeholder="Indicá el motivo de la anulación…"
+            class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none transition-all resize-none"
+            :style="inputStyle(!!anularError)"
+            maxlength="500"
+          />
+          <p v-if="anularError" class="mt-1 text-xs font-medium" style="color: var(--color-error)">
+            {{ anularError }}
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <BaseButton variant="secondary" @click="showAnularModal = false" :disabled="isAnulando">
+          Cancelar
+        </BaseButton>
+        <BaseButton variant="danger" :disabled="isAnulando" @click="confirmarAnulacion">
+          <span v-if="isAnulando" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+          <span v-else class="material-symbols-outlined" style="font-size: 18px">block</span>
+          {{ isAnulando ? "Anulando…" : "Anular Factura" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -505,7 +434,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
 .fc-date-trigger.active {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background: #EEF2FF;
+  background: var(--color-primary-fixed);
 }
 
 /* Wrapper so the hidden input is anchored at the button position */

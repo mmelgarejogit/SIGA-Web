@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -96,13 +97,6 @@ function openRechazar(p: PedidoCompras) {
   showRechazarModal.value = true
 }
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
-
 async function submitRechazar() {
   if (!rechazarTarget.value) return
   rechazandoId.value  = rechazarTarget.value.id
@@ -177,7 +171,7 @@ const pendientesCount = computed(() => pedidos.value.length)
           <!-- Contador -->
           <div class="flex items-center gap-2 mb-2">
             <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold"
-              style="background-color: var(--color-primary); color: #fff">
+              style="background-color: var(--color-primary); color: var(--color-on-primary)">
               {{ pendientesCount }}
             </span>
             <span class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
@@ -187,7 +181,7 @@ const pendientesCount = computed(() => pedidos.value.length)
 
           <!-- Card por OC -->
           <div v-for="p in pedidos" :key="p.id"
-            class="rounded-2xl overflow-hidden"
+            class="rounded-lg overflow-hidden"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <!-- Header de card -->

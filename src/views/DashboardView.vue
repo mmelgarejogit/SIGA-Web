@@ -115,7 +115,7 @@ const profKpis = computed(() => [
     icon:      "calendar_month",
     badge:     "Mes",
     badgeType: "neutral" as const,
-    iconBg:    "#E2DFFF",
+    iconBg:    "var(--color-tertiary-fixed)",
     iconColor: "var(--color-tertiary)",
   },
   {
@@ -237,7 +237,7 @@ const kpis = computed(() => [
     icon:     "sell",
     badge:    "Esta semana",
     badgeType: "neutral" as const,
-    iconBg:   "#E2DFFF",
+    iconBg:   "var(--color-tertiary-fixed)",
     iconColor: "var(--color-tertiary)",
   },
   {
@@ -335,8 +335,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
               <p class="dash-eyebrow">
                 <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
-              <h1 class="text-4xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
+              <h1 class="text-4xl font-extrabold tracking-tight leading-tight">
                 Tu salud visual,<br />
                 <span style="color: var(--color-primary)">en un vistazo.</span>
               </h1>
@@ -427,7 +426,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Acciones rápidas (1/3 ancho) -->
             <div class="flex flex-col gap-4">
               <div class="rounded-3xl p-7"
-                   style="background-color: #00288e;
+                   style="background-color: var(--color-primary);
                           box-shadow: var(--shadow-lg);">
                 <span class="material-symbols-outlined mb-4 block"
                       style="color: rgba(255,255,255,0.7); font-size: 28px;
@@ -524,8 +523,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
               <p class="dash-eyebrow">
                 <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
-              <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
+              <h1 class="text-5xl font-extrabold tracking-tight leading-tight">
                 Tu actividad,<br />
                 <span style="color: var(--color-primary)">de un vistazo.</span>
               </h1>
@@ -643,8 +641,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
               <p class="dash-eyebrow">
                 <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
               </p>
-              <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
+              <h1 class="text-5xl font-extrabold tracking-tight leading-tight">
                 Su óptica en<br />
                 <span style="color: var(--color-primary)">foco absoluto.</span>
               </h1>
@@ -724,7 +721,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
               @click="toggleFabMenu"
               class="w-14 h-14 shadow-2xl hover:scale-105 z-50"
               :style="showFabMenu
-                ? 'background-color: #1E3A5F; box-shadow: 0 8px 32px rgba(0,40,142,0.35);'
+                ? 'background-color: color-mix(in srgb, var(--color-primary) 80%, black); box-shadow: 0 8px 32px rgba(0,40,142,0.35);'
                 : 'background-color: var(--color-primary); box-shadow: 0 8px 32px rgba(0,40,142,0.35);'"
             >
               <span class="material-symbols-outlined" :style="fabIconStyle">add</span>

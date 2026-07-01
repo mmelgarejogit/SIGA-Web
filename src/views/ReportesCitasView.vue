@@ -112,7 +112,7 @@ const kpis = computed(() => {
       icon: "stethoscope",
       badge: "Realizadas",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
     {
@@ -147,7 +147,7 @@ function pct(v: number): string {
 const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const estadoColors: Record<string, string> = {
-  Pendiente: "#2563eb",
+  Pendiente: "var(--color-chart-1)",
   Confirmado: "var(--color-tertiary)",
   Completado: "var(--color-success)",
   Cancelado: "var(--color-error)",

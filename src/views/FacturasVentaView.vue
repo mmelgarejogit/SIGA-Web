@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DateInput from "@/components/DateInput.vue"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -6,6 +7,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import BaseTable from "@/components/BaseTable.vue"
 import { type Venta, getVentas, getVentaById } from "@/services/ventasService"
 import { getConfiguracion } from "@/services/configService"
 import { useFacturaVentaPdf } from "@/composables/useFacturaVentaPdf"
@@ -18,28 +20,32 @@ const loadError   = ref("")
 const search      = ref("")
 const isDownloading = ref<number | null>(null)
 
+const columns = [
+  { key: "nroFactura", label: "Nro. Factura" },
+  { key: "cliente", label: "Cliente" },
+  { key: "tipo", label: "Tipo" },
+  { key: "condicion", label: "Condición" },
+  { key: "fecha", label: "Fecha Emisión" },
+  { key: "total", label: "Total" },
+  { key: "ivaTotal", label: "IVA total" },
+  { key: "acciones", label: "" },
+]
+
 // ── Filtros ──────────────────────────────────────────────────────────────────
 const filtroTipo      = ref<string[]>([])
 const filtroCondicion = ref<string[]>([])
 const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
-const inputDesde = ref<HTMLInputElement | null>(null)
-const inputHasta = ref<HTMLInputElement | null>(null)
 
 const tipoOpciones = [
   { value: "Directa",        label: "Directa",   dot: "var(--color-on-info-container)" },
   { value: "TrabajoAPedido", label: "A pedido",  dot: "var(--color-tertiary)" },
 ]
 const condicionOpciones = [
-  { value: "Contado", label: "Contado", dot: "#0369a1" },
+  { value: "Contado", label: "Contado", dot: "var(--color-info)" },
   { value: "Credito", label: "Crédito", dot: "var(--color-tertiary)" },
 ]
 
-function openPicker(input: HTMLInputElement | null) {
-  if (!input) return
-  if (typeof input.showPicker === "function") input.showPicker()
-  else input.focus()
-}
 
 function formatFilterDate(d: string) {
   return new Date(d + "T12:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short" })
@@ -91,14 +97,14 @@ const formatDate = (s?: string) =>
 
 function tipoBadge(tipo: string) {
   return tipo === "TrabajoAPedido"
-    ? { text: "A pedido", bg: "#F3E8FF", color: "var(--color-tertiary)" }
+    ? { text: "A pedido", bg: "var(--color-tertiary-fixed)", color: "var(--color-tertiary)" }
     : { text: "Directa",  bg: "var(--color-info-container)", color: "var(--color-on-info-container)" }
 }
 
 function condicionBadge(c: string) {
   return c === "Credito"
     ? { text: "Crédito", bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" }
-    : { text: "Contado", bg: "#EFF6FF", color: "#0369a1" }
+    : { text: "Contado", bg: "var(--color-info-container)", color: "var(--color-info)" }
 }
 
 // ── Acciones ─────────────────────────────────────────────────────────────────
@@ -152,7 +158,7 @@ async function descargarPdf(item: Venta) {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
               v-model="filtroTipo"
@@ -168,28 +174,14 @@ async function descargarPdf(item: Venta) {
             <!-- Date range -->
             <div class="flex items-center gap-1.5">
               <div class="flex items-center gap-1">
-                <div class="fv-date-wrap">
-                  <button type="button" class="fv-date-trigger" :class="{ active: filtroFechaDesde }" @click="openPicker(inputDesde)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">calendar_today</span>
-                    <span>{{ filtroFechaDesde ? formatFilterDate(filtroFechaDesde) : "Desde" }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputDesde" type="date" v-model="filtroFechaDesde" class="date-hidden" />
-                </div>
+                <DateInput v-model="filtroFechaDesde" placeholder="Desde" />
                 <button v-if="filtroFechaDesde" class="fv-date-clear" title="Limpiar" @click="filtroFechaDesde = ''">×</button>
               </div>
 
               <span style="color: var(--color-outline); font-size: 13px; font-weight: 500">—</span>
 
               <div class="flex items-center gap-1">
-                <div class="fv-date-wrap">
-                  <button type="button" class="fv-date-trigger" :class="{ active: filtroFechaHasta }" @click="openPicker(inputHasta)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">event</span>
-                    <span>{{ filtroFechaHasta ? formatFilterDate(filtroFechaHasta) : "Hasta" }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputHasta" type="date" v-model="filtroFechaHasta" class="date-hidden" />
-                </div>
+                <DateInput v-model="filtroFechaHasta" placeholder="Hasta" />
                 <button v-if="filtroFechaHasta" class="fv-date-clear" title="Limpiar" @click="filtroFechaHasta = ''">×</button>
               </div>
             </div>
@@ -210,16 +202,8 @@ async function descargarPdf(item: Venta) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
-
-          <!-- Loading -->
-          <div v-if="isLoading" class="p-12 flex justify-center">
-            <span class="material-symbols-outlined animate-spin" style="font-size: 32px; color: var(--color-primary)">progress_activity</span>
-          </div>
-
-          <!-- Empty -->
-          <div v-else-if="ventasFiltradas.length === 0" class="p-12 text-center">
+        <BaseTable :columns="columns" :items="ventasFiltradas" :loading="isLoading" @row-click="v => router.push(`/ventas/${v.id}`)">
+          <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style="background-color: var(--color-surface-container-low)">
               <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">receipt</span>
@@ -228,90 +212,50 @@ async function descargarPdf(item: Venta) {
             <p class="text-sm" style="color: var(--color-on-surface-variant)">
               No hay facturas que coincidan con los filtros aplicados.
             </p>
-          </div>
-
-          <!-- Data -->
-          <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
-            <thead style="background-color: var(--color-surface-container-low)">
-              <tr>
-                <th v-for="h in ['Nro. Factura', 'Cliente', 'Tipo', 'Condición', 'Fecha Emisión', 'Total', 'IVA total']"
-                  :key="h"
-                  class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest"
-                  style="color: var(--color-outline)">
-                  {{ h }}
-                </th>
-                <th class="px-6 py-5" />
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="v in ventasFiltradas"
-                :key="v.id"
-                class="hover:bg-surface-container-low cursor-pointer"
-                style="border-bottom: 1px solid var(--color-hairline-soft)"
-                @click="router.push(`/ventas/${v.id}`)"
-              >
-                <!-- Nro. Factura + comprobante ref -->
-                <td class="px-6 py-4">
-                  <p class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
-                    {{ v.factura?.numeroFactura ?? "—" }}
-                  </p>
-                  <p class="text-xs mt-0.5" style="color: var(--color-outline)">
-                    {{ v.numeroComprobante }}
-                    <template v-if="v.factura?.timbrado">
-                      · Timb. {{ v.factura.timbrado }}
-                    </template>
-                  </p>
-                </td>
-
-                <!-- Cliente -->
-                <td class="px-6 py-4">
-                  <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</span>
-                </td>
-
-                <!-- Tipo -->
-                <td class="px-6 py-4">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-                    :style="`background-color: ${tipoBadge(v.tipo).bg}; color: ${tipoBadge(v.tipo).color}`">
-                    {{ tipoBadge(v.tipo).text }}
-                  </span>
-                </td>
-
-                <!-- Condición -->
-                <td class="px-6 py-4">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-                    :style="`background-color: ${condicionBadge(v.condicionVenta).bg}; color: ${condicionBadge(v.condicionVenta).color}`">
-                    {{ condicionBadge(v.condicionVenta).text }}
-                  </span>
-                </td>
-
-                <!-- Fecha -->
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ formatDate(v.factura?.fechaEmision) }}
-                </td>
-
-                <!-- Total -->
-                <td class="px-6 py-4">
-                  <span class="font-bold text-sm" style="color: var(--color-primary)">
-                    {{ formatPrice(v.factura?.total ?? v.total) }}
-                  </span>
-                </td>
-
-                <!-- IVA -->
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ formatPrice((v.factura?.iva5 ?? 0) + (v.factura?.iva10 ?? 0)) }}
-                </td>
-
-                <!-- Acciones -->
-                <td class="px-6 py-4" @click.stop>
-                  <div class="flex justify-end">
-                    <RowContextMenu :items="menuItems(v)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table></div>
-        </div>
+          </template>
+          <template #nroFactura="{ item: v }">
+            <p class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
+              {{ v.factura?.numeroFactura ?? "—" }}
+            </p>
+            <p class="text-xs mt-0.5" style="color: var(--color-outline)">
+              {{ v.numeroComprobante }}
+              <template v-if="v.factura?.timbrado">
+                · Timb. {{ v.factura.timbrado }}
+              </template>
+            </p>
+          </template>
+          <template #cliente="{ item: v }">
+            <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</span>
+          </template>
+          <template #tipo="{ item: v }">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="`background-color: ${tipoBadge(v.tipo).bg}; color: ${tipoBadge(v.tipo).color}`">
+              {{ tipoBadge(v.tipo).text }}
+            </span>
+          </template>
+          <template #condicion="{ item: v }">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="`background-color: ${condicionBadge(v.condicionVenta).bg}; color: ${condicionBadge(v.condicionVenta).color}`">
+              {{ condicionBadge(v.condicionVenta).text }}
+            </span>
+          </template>
+          <template #fecha="{ item: v }">
+            {{ formatDate(v.factura?.fechaEmision) }}
+          </template>
+          <template #total="{ item: v }">
+            <span class="font-bold text-sm" style="color: var(--color-primary)">
+              {{ formatPrice(v.factura?.total ?? v.total) }}
+            </span>
+          </template>
+          <template #ivaTotal="{ item: v }">
+            {{ formatPrice((v.factura?.iva5 ?? 0) + (v.factura?.iva10 ?? 0)) }}
+          </template>
+          <template #acciones="{ item: v }">
+            <div class="flex justify-end" @click.stop>
+              <RowContextMenu :items="menuItems(v)" />
+            </div>
+          </template>
+        </BaseTable>
 
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           Mostrando <strong style="color: var(--color-on-surface)">{{ ventasFiltradas.length }}</strong>
@@ -348,7 +292,7 @@ async function descargarPdf(item: Venta) {
 .fv-date-trigger.active {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background: #EEF2FF;
+  background: var(--color-primary-fixed);
 }
 .fv-date-wrap {
   position: relative;

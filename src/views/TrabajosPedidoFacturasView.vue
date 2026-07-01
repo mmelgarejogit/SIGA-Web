@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import DateInput from "@/components/DateInput.vue"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, onMounted, reactive } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -125,7 +128,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
@@ -141,12 +144,12 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <FilterChips v-model="filtroFactura" :options="filtroOptions" placeholder="Factura" />
           <SearchInput v-model="search" placeholder="Buscar por cliente, lab o n° factura…" class="w-full sm:w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos recibidos">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -200,33 +203,27 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">N° Factura *</label>
             <input v-model="factForm.numeroFactura" type="text" placeholder="001-001-0000001"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
+              class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Timbrado</label>
               <input v-model="factForm.timbrado" type="text"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
+                class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                :style="inputStyle()" />
             </div>
             <div>
               <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Fecha Emisión *</label>
-              <input v-model="factForm.fechaEmision" type="date"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
+              <DateInput v-model="factForm.fechaEmision" />
             </div>
           </div>
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Monto *</label>
-            <input v-model.number="factForm.monto" type="number" min="0"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
+            <MontoInput :model-value="factForm.monto ?? null" @update:model-value="factForm.monto = $event ?? 0" />
           </div>
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observaciones</label>
-            <textarea v-model="factForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-              style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+            <textarea v-model="factForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all" :style="inputStyle()"></textarea>
           </div>
           <p v-if="emitError" class="text-xs font-medium" style="color:var(--color-error)">{{ emitError }}</p>
         </div>

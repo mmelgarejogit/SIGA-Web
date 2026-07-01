@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, computed, watch, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -90,24 +91,6 @@ async function loadHistory() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(id: number) {
-  return (
-    AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
-  )
-}
-
-function initials(fn: string, ln: string) {
-  return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
     day: "2-digit",
@@ -175,9 +158,7 @@ const recetaColumns = [
                 :key="p.id"
                 type="button"
                 @mousedown.prevent="selectPatient(p)"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-                onmouseout="this.style.backgroundColor = 'transparent'"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface"
               >
                 <div
                   class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, statusStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, computed, watch, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -131,28 +132,6 @@ watch(searchQuery, () => {
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.06)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.06)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.08)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(c: Cliente) {
-  return AVATAR_PALETTE[(c.id ?? 0) % AVATAR_PALETTE.length]!
-}
-
-function initials(c: Cliente) {
-  return `${c.firstName[0] ?? ""}${c.lastName[0] ?? ""}`.toUpperCase()
-}
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 
 onMounted(loadClientes)
 
@@ -426,7 +405,7 @@ async function confirmEstado() {
         <!-- Table -->
         <div
           v-else
-          class="rounded-2xl overflow-hidden"
+          class="rounded-lg overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
             box-shadow: var(--shadow-sm);
@@ -443,9 +422,9 @@ async function confirmEstado() {
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  :style="`background-color: ${avatarStyle(c).bg}; color: ${avatarStyle(c).color};`"
+                  :style="`background-color: ${avatarStyle(c.id).bg}; color: ${avatarStyle(c.id).color};`"
                 >
-                  {{ initials(c) }}
+                  {{ initials(c.firstName, c.lastName) }}
                 </div>
                 <div>
                   <div class="font-bold text-sm" style="color: var(--color-on-surface)">
@@ -481,12 +460,10 @@ async function confirmEstado() {
               </div>
             </template>
             <template #estado="{ item: c }">
-              <span
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                :class="c.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
-              >
-                <span class="w-1.5 h-1.5 rounded-full" :class="c.isActive ? 'bg-green-600' : 'bg-red-400'"></span>
-                {{ c.isActive ? "Activo" : "Inactivo" }}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                :style="`background-color: ${statusStyle(c.isActive).bg}; color: ${statusStyle(c.isActive).text};`">
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(c.isActive).dot};`"></span>
+                {{ c.isActive ? 'Activo' : 'Inactivo' }}
               </span>
             </template>
             <template #acciones="{ item: c }">

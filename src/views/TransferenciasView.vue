@@ -5,7 +5,9 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
+import { inputStyle } from "@/composables/useFieldStyles"
 import {
   type Transferencia,
   getTransferencias,
@@ -85,6 +87,16 @@ const isSearchingProd = ref(false)
 const destinos = computed(() =>
   sucursales.value.filter(s => s.id !== (propiaSucursalId.value ?? form.sucursalOrigenId)),
 )
+
+const sucursalSelectOptions = computed(() => [
+  { value: null as number | null, label: "— Seleccionar —" },
+  ...sucursales.value.map(s => ({ value: s.id, label: s.nombre })),
+])
+
+const destinoSelectOptions = computed(() => [
+  { value: null as number | null, label: "— Seleccionar —" },
+  ...destinos.value.map(s => ({ value: s.id, label: s.nombre })),
+])
 
 function openCreate() {
   form.sucursalOrigenId = propiaSucursalId.value
@@ -237,22 +249,12 @@ async function submitCreate() {
 
         <div v-if="propiaSucursalId === null" class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Origen *</label>
-          <select v-model="form.sucursalOrigenId"
-            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option :value="null">— Seleccionar —</option>
-            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-          </select>
+          <SearchableSelect v-model="form.sucursalOrigenId" :options="sucursalSelectOptions" />
         </div>
 
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Destino *</label>
-          <select v-model="form.sucursalDestinoId"
-            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option :value="null">— Seleccionar —</option>
-            <option v-for="s in destinos" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-          </select>
+          <SearchableSelect v-model="form.sucursalDestinoId" :options="destinoSelectOptions" />
         </div>
 
         <!-- Productos -->
@@ -291,7 +293,7 @@ async function submitCreate() {
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Observaciones</label>
           <textarea v-model="form.observaciones" rows="2"
             class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            :style="inputStyle()" />
         </div>
       </div>
       <template #footer>

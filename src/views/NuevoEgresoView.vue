@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -34,6 +36,17 @@ const tiposNuevo: { key: TipoNuevo; label: string; icon: string; desc: string }[
 const categorias = ref<CategoriaGasto[]>([])
 const profesionales = ref<Professional[]>([])
 const empleados = ref<Empleado[]>([])
+
+const categoriaOptions = computed(() => categorias.value.filter(c => c.activo).map(c => ({ value: c.id, label: c.nombre })))
+
+const METODO_PAGO_OPTIONS = [
+  { value: "Efectivo", label: "Efectivo" },
+  { value: "Tarjeta", label: "Tarjeta" },
+  { value: "Transferencia", label: "Transferencia" },
+  { value: "Cheque", label: "Cheque" },
+]
+
+const metodoPagoOptions = computed(() => METODO_PAGO_OPTIONS.map(o => ({ value: o.value, label: o.label })))
 
 onMounted(async () => {
   const [cats, profs, emps] = await Promise.allSettled([getCategorias(), getProfessionals(), getEmpleados(true)])
@@ -84,7 +97,7 @@ function selectTipo(t: TipoNuevo) {
 }
 
 function tipoColor(key: TipoNuevo) {
-  if (key === "Honorario") return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" }
+  if (key === "Honorario") return { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" }
   if (key === "Salario") return { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" }
   return { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" }
 }
@@ -173,13 +186,6 @@ const profesionalOptions = computed(() =>
 const empleadoOptions = computed(() =>
   empleados.value.map(e => ({ value: e.id, label: `${e.firstName} ${e.lastName} — ${e.cargoNombre}` }))
 )
-
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
-}
 </script>
 
 <template>
@@ -198,7 +204,7 @@ function inputStyle(hasError = false) {
             <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-on-surface-variant)">arrow_back</span>
           </button>
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-1">Nueva Solicitud</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nueva Solicitud</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">El egreso quedará pendiente de aprobación</p>
           </div>
         </div>
@@ -279,10 +285,7 @@ function inputStyle(hasError = false) {
             <div v-if="selectedTipo === 'GastoGeneral'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Categoría *</label>
               <div class="flex gap-2">
-                <select v-model="form.categoriaGastoId" class="flex-1 px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">
-                  <option :value="0" disabled>Seleccionar categoría</option>
-                  <option v-for="c in categorias.filter(c => c.activo)" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                </select>
+                <SearchableSelect v-model="form.categoriaGastoId" :options="categoriaOptions" placeholder="Seleccionar categoría" class="flex-1" />
                 <button type="button" @click="openCreateCategoria"
                   class="flex-shrink-0 w-12 rounded-2xl flex items-center justify-center transition-colors hover:opacity-80"
                   style="background-color: var(--color-surface-container-low); border: 1px solid var(--color-outline-variant)"
@@ -302,7 +305,7 @@ function inputStyle(hasError = false) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-                <input v-model.number="form.monto" type="number" step="1" min="0" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
+                <MontoInput :model-value="form.monto ?? null" @update:model-value="form.monto = $event ?? 0" placeholder="0" />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha *</label>
@@ -314,12 +317,7 @@ function inputStyle(hasError = false) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
-                <select v-model="form.metodoPago" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)">
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Tarjeta">Tarjeta</option>
-                  <option value="Transferencia">Transferencia</option>
-                  <option value="Cheque">Cheque</option>
-                </select>
+                <SearchableSelect v-model="form.metodoPago" :options="metodoPagoOptions" placeholder="Método de pago" />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>

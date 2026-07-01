@@ -159,8 +159,8 @@ async function downloadPdf(m: MovimientoStock) {
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Movimientos de Stock</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Movimientos de Stock</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} registrado{{ totalCount !== 1 ? "s" : "" }}
             </p>
           </div>
@@ -171,7 +171,7 @@ async function downloadPdf(m: MovimientoStock) {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <FilterChips :model-value="tipoFilter" :options="tipoOptions" placeholder="Tipo" @update:model-value="onTipoChange" />
           <FilterChips :model-value="estadoFilter" :options="estadoOptions" placeholder="Estado" @update:model-value="onEstadoChange" />
         </div>
@@ -184,7 +184,7 @@ async function downloadPdf(m: MovimientoStock) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos registrados." @row-click="openDetail">
 
@@ -286,7 +286,7 @@ async function downloadPdf(m: MovimientoStock) {
           </span>
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="border: 1px solid var(--color-surface-variant)">
+        <div class="rounded-lg overflow-hidden" style="border: 1px solid var(--color-surface-variant)">
           <div class="grid grid-cols-2">
             <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--color-surface-variant); border-right: 1px solid var(--color-surface-variant)">
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Producto</p>
@@ -311,7 +311,7 @@ async function downloadPdf(m: MovimientoStock) {
           </div>
         </div>
 
-        <div v-if="detailTarget.estado !== 'Pendiente'" class="rounded-2xl overflow-hidden"
+        <div v-if="detailTarget.estado !== 'Pendiente'" class="rounded-lg overflow-hidden"
           :style="`border: 1px solid ${estadoBadge(detailTarget.estado).bg}`">
           <div class="px-5 py-2.5 flex items-center gap-2" :style="`background-color: ${estadoBadge(detailTarget.estado).bg}`">
             <span class="material-symbols-outlined" style="font-size: 16px" :style="`color: ${estadoBadge(detailTarget.estado).text}`">{{ estadoBadge(detailTarget.estado).icon }}</span>

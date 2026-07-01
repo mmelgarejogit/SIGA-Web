@@ -93,14 +93,14 @@ function duracion(apertura: string, cierre?: string): string {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Historial de Caja</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Caja</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ total }} sesión{{ total !== 1 ? "es" : "" }} registrada{{ total !== 1 ? "s" : "" }}
             </p>
           </div>

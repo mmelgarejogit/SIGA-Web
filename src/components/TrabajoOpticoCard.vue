@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import MontoInput from "@/components/MontoInput.vue"
 import {
   type Producto, type Tratamiento, type TipoLente,
   getProductos, getTratamientos, getTiposLente,
@@ -16,6 +18,8 @@ const allArmazones  = ref<Producto[]>([])
 const allTratam     = ref<Tratamiento[]>([])
 const allLabs       = ref<ProveedorSimple[]>([])
 const allTipos      = ref<TipoLente[]>([])
+
+const tipoLenteOptions = computed(() => allTipos.value.map(t => ({ value: t.id, label: t.nombre })))
 
 onMounted(async () => {
   const [arm, trat, labs, tipos] = await Promise.allSettled([
@@ -79,7 +83,6 @@ function clearLab() { props.state.laboratorio = null }
 const blur = (fn: () => void) => setTimeout(fn, 150)
 const dropStyle = "border-radius: 12px; background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); max-height: 200px; overflow-y: auto;"
 const inputStyle = "border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest);"
 </script>
 
 <template>
@@ -89,16 +92,16 @@ const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-va
     <!-- Armazón -->
     <div>
       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Armazón</label>
-      <div v-if="state.armazon" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: #EFF6FF; border: 1px solid #BFDBFE">
-        <span class="material-symbols-outlined" style="color:#1D4ED8">eyeglasses</span>
+      <div v-if="state.armazon" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: var(--color-info-container); border: 1px solid var(--color-info-container)">
+        <span class="material-symbols-outlined" style="color:var(--color-on-info-container)">eyeglasses</span>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-sm truncate" style="color:#1D4ED8">{{ state.armazon.nombre }}</p>
-          <p class="text-xs" style="color:#3B82F6">Stock: {{ state.armazon.stockActual }}</p>
+          <p class="font-semibold text-sm truncate" style="color:var(--color-on-info-container)">{{ state.armazon.nombre }}</p>
+          <p class="text-xs" style="color:var(--color-info)">Stock: {{ state.armazon.stockActual }}</p>
         </div>
-        <div class="flex items-center gap-1 text-xs" style="color:#3B82F6">Gs.
-          <input v-model.number="state.armazonPrecio" type="number" min="0" class="w-28 px-2 py-1 text-sm text-right" :style="priceStyle" />
+        <div class="flex items-center gap-1 text-xs" style="color:var(--color-info)">Gs.
+          <div class="w-28"><MontoInput compact align="right" :model-value="state.armazonPrecio ?? null" @update:model-value="state.armazonPrecio = $event ?? 0" /></div>
         </div>
-        <button type="button" @click="clearArmazon" class="p-1 rounded-full hover:bg-blue-100"><span class="material-symbols-outlined" style="font-size:18px;color:#3B82F6">close</span></button>
+        <button type="button" @click="clearArmazon" class="p-1 rounded-full hover:bg-blue-100"><span class="material-symbols-outlined" style="font-size:18px;color:var(--color-info)">close</span></button>
       </div>
       <div v-else-if="!state.armazonDelCliente" class="relative">
         <input v-model="armazonSearch" type="text" placeholder="Buscar armazón…" class="w-full px-4 h-12 text-sm outline-none" :style="inputStyle"
@@ -125,16 +128,15 @@ const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-va
       <div class="flex items-center gap-2">
         <div class="relative flex-1">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style="font-size:18px;color:var(--color-outline)">lens</span>
-          <select
-            :value="state.tipoLenteId ?? ''"
-            @change="selectTipoLente(($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : null)"
-            class="w-full pl-10 pr-4 h-12 text-sm outline-none appearance-none" :style="inputStyle">
-            <option value="">Seleccioná el diseño…</option>
-            <option v-for="t in allTipos" :key="t.id" :value="t.id">{{ t.nombre }}</option>
-          </select>
+          <SearchableSelect
+            :model-value="state.tipoLenteId"
+            :options="tipoLenteOptions"
+            placeholder="Seleccioná el diseño…"
+            @update:model-value="selectTipoLente($event !== null ? Number($event) : null)"
+          />
         </div>
         <div class="flex items-center gap-1 text-xs" style="color: var(--color-on-surface-variant)">Gs.
-          <input v-model.number="state.lentePrecio" type="number" min="0" class="w-28 px-2 py-1 text-sm text-right" :style="priceStyle" />
+          <div class="w-28"><MontoInput compact align="right" :model-value="state.lentePrecio ?? null" @update:model-value="state.lentePrecio = $event ?? 0" /></div>
         </div>
       </div>
       <p v-if="!allTipos.length" class="mt-1.5 text-xs" style="color: var(--color-outline)">
@@ -156,12 +158,12 @@ const priceStyle = "border-radius: 8px; border: 1px solid var(--color-outline-va
         </template>
       </div>
       <div v-if="state.tratamientos.length" class="mt-2 space-y-2">
-        <div v-for="sel in state.tratamientos" :key="sel.tratamiento.id" class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:#EDE9FE">
-          <span class="flex-1 text-sm font-semibold" style="color:#5B21B6">{{ sel.tratamiento.nombre }}</span>
-          <div class="flex items-center gap-1 text-xs" style="color:#5B21B6">Gs.
-            <input v-model.number="sel.precio" type="number" min="0" class="w-24 px-2 py-1 text-sm text-right" :style="priceStyle" />
+        <div v-for="sel in state.tratamientos" :key="sel.tratamiento.id" class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:var(--color-tertiary-fixed)">
+          <span class="flex-1 text-sm font-semibold" style="color:var(--color-on-tertiary-fixed-variant)">{{ sel.tratamiento.nombre }}</span>
+          <div class="flex items-center gap-1 text-xs" style="color:var(--color-on-tertiary-fixed-variant)">Gs.
+            <div class="w-24"><MontoInput compact align="right" :model-value="sel.precio ?? null" @update:model-value="sel.precio = $event ?? 0" /></div>
           </div>
-          <button type="button" @click="toggleTrat(sel.tratamiento)" class="p-1 rounded-full hover:bg-violet-100"><span class="material-symbols-outlined" style="font-size:16px;color:#5B21B6">close</span></button>
+          <button type="button" @click="toggleTrat(sel.tratamiento)" class="p-1 rounded-full hover:bg-violet-100"><span class="material-symbols-outlined" style="font-size:16px;color:var(--color-on-tertiary-fixed-variant)">close</span></button>
         </div>
       </div>
     </div>

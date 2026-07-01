@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, statusStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -121,22 +122,6 @@ watch(searchQuery, () => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.06)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.06)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.08)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(p: Patient) {
-  const idx = (p.id ?? 0) % AVATAR_PALETTE.length
-  return AVATAR_PALETTE[idx]!
-}
-
-function initials(p: Patient) {
-  return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase()
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
     day: "2-digit",
@@ -161,13 +146,6 @@ type CreateErrors = {
   email?: string
 }
 
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
 
 // ── Modal Crear ───────────────────────────────────────────────────────────────
 
@@ -379,7 +357,7 @@ async function confirmDelete() {
         <!-- Table -->
         <div
           v-else
-          class="rounded-2xl overflow-hidden"
+          class="rounded-lg overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
             box-shadow: var(--shadow-sm);
@@ -397,9 +375,9 @@ async function confirmDelete() {
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  :style="`background-color: ${avatarStyle(p).bg}; color: ${avatarStyle(p).color};`"
+                  :style="`background-color: ${avatarStyle(p.id).bg}; color: ${avatarStyle(p.id).color};`"
                 >
-                  {{ initials(p) }}
+                  {{ initials(p.firstName, p.lastName) }}
                 </div>
                 <div>
                   <div class="font-bold text-sm" style="color: var(--color-on-surface)">
@@ -424,15 +402,10 @@ async function confirmDelete() {
               }}</span>
             </template>
             <template #estado="{ item: p }">
-              <span
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                :class="p.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
-              >
-                <span
-                  class="w-1.5 h-1.5 rounded-full"
-                  :class="p.isActive ? 'bg-green-600' : 'bg-red-400'"
-                ></span>
-                {{ p.isActive ? "Activo" : "Inactivo" }}
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                :style="`background-color: ${statusStyle(p.isActive).bg}; color: ${statusStyle(p.isActive).text};`">
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(p.isActive).dot};`"></span>
+                {{ p.isActive ? 'Activo' : 'Inactivo' }}
               </span>
             </template>
             <template #acciones="{ item: p }">

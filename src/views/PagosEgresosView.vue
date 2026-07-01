@@ -80,7 +80,7 @@ function tipoIcon(tipo: string) {
 function tipoColor(tipo: string) {
   return ({
     FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
     GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
     Salario:       { bg: "var(--color-success-container)", color: "var(--color-on-success-container)" },
   } as Record<string, { bg: string; color: string }>)[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
@@ -101,7 +101,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
     <AppSidebar />
     <AppHeader />
 
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
@@ -127,7 +127,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest);
                  box-shadow: var(--shadow-sm);
                  outline: 1px solid var(--color-hairline)">

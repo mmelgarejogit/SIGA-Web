@@ -132,7 +132,7 @@ const kpis = computed(() => {
       icon: "inventory_2",
       badge: "Total",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
   ]
@@ -163,7 +163,7 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const CAT_COLORS = [
   "var(--color-on-info-container)", "var(--color-success)", "var(--color-tertiary)", "var(--color-warning)", "var(--color-error)",
-  "#0891b2", "#db2777", "#65a30d", "#9333ea", "#0d9488",
+  "var(--color-chart-5)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-tertiary)", "var(--color-chart-5)",
 ]
 
 const catChart = computed<CategoriaInventario[]>(() => {
@@ -451,7 +451,7 @@ function exportCsv() {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- Stock crítico -->
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -486,7 +486,7 @@ function exportCsv() {
 
               <!-- Top por valor -->
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">

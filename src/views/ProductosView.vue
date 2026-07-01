@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, statusStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -94,18 +95,6 @@ const columns = [
   { key: "acciones", label: "" },
 ]
 
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
-
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
-    : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
-}
 
 async function loadProductos() {
   isLoading.value = true
@@ -287,6 +276,11 @@ const motivosDisponibles = ref<MotivoMovimiento[]>([])
 const motivosFiltrados = computed(() =>
   motivosDisponibles.value.filter((m) => m.tipo === movForm.tipo || m.tipo === "Ambos"),
 )
+
+const motivoSelectOptions = computed(() => [
+  { value: null as number | null, label: "Sin motivo" },
+  ...motivosFiltrados.value.map(m => ({ value: m.id, label: m.nombre })),
+])
 
 function openMovimiento(p: Producto) {
   movProducto.value = p
@@ -561,7 +555,7 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable
             :columns="columns"
             :items="productos"
@@ -647,104 +641,77 @@ function menuItems(p: Producto): ContextMenuItem[] {
       </div>
     </main>
 
-    <!-- ── PANEL DETALLE ──────────────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="detail-overlay">
-        <div v-if="showDetail" class="fixed inset-0 z-40" style="background-color: rgba(24,28,32,0.35)"
-          @click.self="closeDetail" />
-      </Transition>
-      <Transition name="detail-panel">
-        <aside v-if="showDetail && detailProducto"
-          class="fixed top-0 right-0 h-screen z-50 flex flex-col overflow-hidden"
-          style="width: 400px; background-color: var(--color-surface-container-lowest); box-shadow: -8px 0 40px rgba(0,40,142,0.12)">
-
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0"
-            style="border-bottom: 1px solid var(--color-hairline)">
-            <h3 class="text-lg font-extrabold truncate pr-4" style="color: var(--color-primary)">
-              {{ detailProducto.nombre }}
-            </h3>
-            <button @click="closeDetail"
-              class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors hover:bg-surface-container-high"
-              style="color: var(--color-outline)">
-              <span class="material-symbols-outlined" style="font-size: 20px">close</span>
-            </button>
+    <!-- ── MODAL DETALLE ──────────────────────────────────────────────────────── -->
+    <BaseModal :show="showDetail && !!detailProducto" :title="detailProducto?.nombre ?? ''" size="lg" @close="closeDetail">
+      <template v-if="detailProducto">
+        <div class="space-y-5">
+          <!-- Imagen -->
+          <div class="w-full rounded-2xl overflow-hidden flex items-center justify-center"
+            style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid var(--color-hairline)">
+            <img v-if="detailProducto.imagenUrl"
+              :src="API_BASE + detailProducto.imagenUrl"
+              :alt="detailProducto.nombre"
+              class="w-full h-full object-contain" />
+            <div v-else class="flex flex-col items-center gap-2">
+              <span class="material-symbols-outlined" style="font-size: 56px; color: var(--color-outline)">image</span>
+              <span class="text-xs font-medium" style="color: var(--color-outline)">Sin imagen</span>
+            </div>
           </div>
 
-          <!-- Scrollable body -->
-          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-
-            <!-- Imagen -->
-            <div class="w-full rounded-2xl overflow-hidden flex items-center justify-center"
-              style="height: 220px; background-color: var(--color-surface-container-low); border: 1px solid var(--color-hairline)">
-              <img v-if="detailProducto.imagenUrl"
-                :src="API_BASE + detailProducto.imagenUrl"
-                :alt="detailProducto.nombre"
-                class="w-full h-full object-contain" />
-              <div v-else class="flex flex-col items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size: 56px; color: var(--color-outline)">image</span>
-                <span class="text-xs font-medium" style="color: var(--color-outline)">Sin imagen</span>
-              </div>
-            </div>
-
-            <!-- Estado + badges -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <span
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                :style="`background-color: ${statusStyle(detailProducto.isActive).bg}; color: ${statusStyle(detailProducto.isActive).text};`"
-              >
-                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(detailProducto.isActive).dot};`"></span>
-                {{ detailProducto.isActive ? "Activo" : "Inactivo" }}
-              </span>
-              <span v-if="detailProducto.descuentoCategoria > 0"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-                style="background-color:var(--color-info-container);color:var(--color-on-info-container)">
-                <span class="material-symbols-outlined" style="font-size:13px">percent</span>
-                {{ detailProducto.descuentoCategoria }}% dto. categoría
-              </span>
-            </div>
-
-            <!-- Info general -->
-            <div class="rounded-2xl overflow-hidden" style="border: 1px solid var(--color-hairline)">
-              <div v-for="row in [
-                { label: 'Categoría',  value: detailProducto.categoria },
-                { label: 'SKU',        value: detailProducto.sku ?? '—' },
-                { label: 'Marca',      value: detailProducto.marcaNombre ?? '—' },
-                { label: 'Modelo',     value: detailProducto.modeloNombre ?? '—' },
-                { label: 'Color',      value: detailProducto.color ?? '—' },
-                { label: 'Talle',      value: detailProducto.talle ?? '—' },
-              ]" :key="row.label"
-                class="flex items-center justify-between px-4 py-3"
-                style="border-bottom: 1px solid var(--color-hairline-soft)">
-                <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ row.label }}</span>
-                <span class="text-sm font-medium text-right" style="color: var(--color-on-surface); max-width: 220px">{{ row.value }}</span>
-              </div>
-            </div>
-
-            <!-- Descripción -->
-            <div v-if="detailProducto.descripcion">
-              <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Descripción</p>
-              <p class="text-sm leading-relaxed" style="color: var(--color-on-surface-variant)">{{ detailProducto.descripcion }}</p>
-            </div>
-
+          <!-- Estado + badges -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+              :style="`background-color: ${statusStyle(detailProducto.isActive).bg}; color: ${statusStyle(detailProducto.isActive).text};`"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(detailProducto.isActive).dot};`"></span>
+              {{ detailProducto.isActive ? "Activo" : "Inactivo" }}
+            </span>
+            <span v-if="detailProducto.descuentoCategoria > 0"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+              style="background-color:var(--color-info-container);color:var(--color-on-info-container)">
+              <span class="material-symbols-outlined" style="font-size:13px">percent</span>
+              {{ detailProducto.descuentoCategoria }}% dto. categoría
+            </span>
           </div>
 
-          <!-- Footer actions -->
-          <div v-if="canManage" class="flex gap-3 px-6 py-4 flex-shrink-0"
-            style="border-top: 1px solid var(--color-hairline)">
-            <BaseButton variant="secondary" size="default" class="flex-1" @click="openEdit(detailProducto); closeDetail()">
-              <span class="material-symbols-outlined" style="font-size:18px">edit</span>
-              Editar
-            </BaseButton>
-            <BaseButton v-if="detailProducto.isActive" variant="danger" size="default" class="flex-1"
-              @click="openDeactivate(detailProducto); closeDetail()">
-              <span class="material-symbols-outlined" style="font-size:18px">block</span>
-              Desactivar
-            </BaseButton>
+          <!-- Info general -->
+          <div class="rounded-lg overflow-hidden" style="border: 1px solid var(--color-hairline)">
+            <div v-for="row in [
+              { label: 'Categoría',  value: detailProducto.categoria },
+              { label: 'SKU',        value: detailProducto.sku ?? '—' },
+              { label: 'Marca',      value: detailProducto.marcaNombre ?? '—' },
+              { label: 'Modelo',     value: detailProducto.modeloNombre ?? '—' },
+              { label: 'Color',      value: detailProducto.color ?? '—' },
+              { label: 'Talle',      value: detailProducto.talle ?? '—' },
+            ]" :key="row.label"
+              class="flex items-center justify-between px-4 py-3"
+              style="border-bottom: 1px solid var(--color-hairline-soft)">
+              <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">{{ row.label }}</span>
+              <span class="text-sm font-medium text-right" style="color: var(--color-on-surface); max-width: 220px">{{ row.value }}</span>
+            </div>
           </div>
-        </aside>
-      </Transition>
-    </Teleport>
+
+          <!-- Descripción -->
+          <div v-if="detailProducto.descripcion">
+            <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Descripción</p>
+            <p class="text-sm leading-relaxed" style="color: var(--color-on-surface-variant)">{{ detailProducto.descripcion }}</p>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="canManage && detailProducto" #footer>
+        <BaseButton variant="secondary" @click="openEdit(detailProducto!); closeDetail()">
+          <span class="material-symbols-outlined" style="font-size:18px">edit</span>
+          Editar
+        </BaseButton>
+        <BaseButton v-if="detailProducto!.isActive" variant="danger"
+          @click="openDeactivate(detailProducto!); closeDetail()">
+          <span class="material-symbols-outlined" style="font-size:18px">block</span>
+          Desactivar
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- MODAL CREAR -->
     <BaseModal :show="showCreateModal" title="Nuevo Producto" size="lg" @close="showCreateModal = false">
@@ -1014,12 +981,12 @@ function menuItems(p: Producto): ContextMenuItem[] {
 
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Motivo</label>
-          <select v-model="movForm.motivoMovimientoId"
-            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)">
-            <option :value="undefined">Sin motivo</option>
-            <option v-for="m in motivosFiltrados" :key="m.id" :value="m.id">{{ m.nombre }}</option>
-          </select>
+          <SearchableSelect
+            :model-value="movForm.motivoMovimientoId ?? null"
+            :options="motivoSelectOptions"
+            null-label="Sin motivo"
+            @update:model-value="movForm.motivoMovimientoId = $event !== null ? Number($event) : undefined"
+          />
         </div>
       </div>
 

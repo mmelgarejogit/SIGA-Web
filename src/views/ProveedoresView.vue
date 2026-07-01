@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -219,13 +220,6 @@ function openEdit(p: Proveedor) {
   showModal.value = true
 }
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
-
 async function submit() {
   modalError.value = ""
   if (!form.nombre?.trim()) { modalError.value = "El nombre es obligatorio."; return }
@@ -324,7 +318,7 @@ async function confirmDeactivate() {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
               :model-value="estadoFilter"
@@ -349,7 +343,7 @@ async function confirmDeactivate() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
         <BaseTable :columns="columns" :items="proveedores" :loading="isLoading"
           empty-text="No hay proveedores registrados.">
 
@@ -532,7 +526,7 @@ async function confirmDeactivate() {
             @click="form.esLaboratorio = !form.esLaboratorio"
             class="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all"
             :style="form.esLaboratorio
-              ? 'background:#F0FDF4; border: 1.5px solid #86EFAC;'
+              ? 'background:var(--color-success-container); border: 1.5px solid var(--color-success);'
               : 'background:var(--color-surface-container-low); border: 1px solid var(--color-outline-variant);'"
           >
             <span
@@ -566,7 +560,7 @@ async function confirmDeactivate() {
 
         <!-- Tabla de contactos -->
         <div v-if="contactoRows.length > 0"
-          class="rounded-2xl overflow-hidden"
+          class="rounded-lg overflow-hidden"
           style="border: 1px solid var(--color-outline-variant)">
           <!-- Header -->
           <div class="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-0"

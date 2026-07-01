@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, watch, onMounted } from "vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -31,13 +32,6 @@ const TIPO_OPTIONS = [
 
 const ONLY_LETTERS = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s]+$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: var(--radius-md); "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 
 // ── Modo ────────────────────────────────────────────────────────────────────
 type Modo = "paciente" | "nueva"
@@ -314,17 +308,17 @@ async function submit() {
               </button>
             </div>
 
-            <div v-if="selectedPaciente" class="mt-3 flex items-center gap-3 px-4 py-3 rounded-xl" style="background: #EFF6FF; border: 1px solid #BFDBFE">
-              <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style="background: #DBEAFE; color: #1D4ED8">
+            <div v-if="selectedPaciente" class="mt-3 flex items-center gap-3 px-4 py-3 rounded-xl" style="background: var(--color-info-container); border: 1px solid var(--color-info-container)">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style="background: var(--color-info-container); color: var(--color-on-info-container)">
                 {{ selectedPaciente.firstName[0] }}{{ selectedPaciente.lastName[0] }}
               </div>
               <div class="flex-1">
-                <p class="font-semibold text-sm" style="color: #1D4ED8">{{ selectedPaciente.firstName }} {{ selectedPaciente.lastName }}</p>
-                <p class="text-xs" style="color: #3B82F6">CI: {{ selectedPaciente.ci }}</p>
+                <p class="font-semibold text-sm" style="color: var(--color-on-info-container)">{{ selectedPaciente.firstName }} {{ selectedPaciente.lastName }}</p>
+                <p class="text-xs" style="color: var(--color-info)">CI: {{ selectedPaciente.ci }}</p>
               </div>
-              <span v-if="isResolving" class="material-symbols-outlined animate-spin" style="font-size: 18px; color: #3B82F6">progress_activity</span>
+              <span v-if="isResolving" class="material-symbols-outlined animate-spin" style="font-size: 18px; color: var(--color-info)">progress_activity</span>
               <button v-else type="button" @click="clearPaciente" class="p-1 rounded-full transition-colors hover:bg-blue-100" title="Cambiar paciente">
-                <span class="material-symbols-outlined" style="font-size: 18px; color: #3B82F6">close</span>
+                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-info)">close</span>
               </button>
             </div>
             <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Se reutilizan los datos personales del paciente. Solo definís la facturación.</p>
@@ -376,7 +370,7 @@ async function submit() {
             </div>
           </div>
 
-          <div v-if="errors.contact" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium" style="background-color: #fff0c2; color: #7a5000">
+          <div v-if="errors.contact" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium" style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">
             <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
             {{ errors.contact }}
           </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials, statusStyle } from "@/composables/useFieldStyles"
 import { ref, computed, watch, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -6,8 +7,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type AppUser, getAppUsers, deactivateUser, assignSucursal } from "@/services/userService"
-import { type Sucursal, getSucursales } from "@/services/sucursalService"
+import { type AppUser, getAppUsers, deactivateUser } from "@/services/userService"
 import {
   type Role,
   getRoles,
@@ -21,13 +21,6 @@ const auth = useAuthStore()
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.06)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.06)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.08)", color: "var(--color-outline)" },
-]
-
 const ROLE_COLORS = [
   { bg: "rgba(0,40,142,0.10)", color: "var(--color-primary)", border: "rgba(0,40,142,0.2)" },
   { bg: "rgba(0,103,128,0.10)", color: "var(--color-secondary)", border: "rgba(0,103,128,0.2)" },
@@ -35,22 +28,7 @@ const ROLE_COLORS = [
   { bg: "rgba(186,26,26,0.10)", color: "var(--color-error)", border: "rgba(186,26,26,0.2)" },
 ]
 
-const AVATAR_FALLBACK = { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" }
 const ROLE_FALLBACK = { bg: "rgba(0,40,142,0.10)", color: "var(--color-primary)", border: "rgba(0,40,142,0.2)" }
-
-function avatarStyle(userId: number) {
-  return AVATAR_PALETTE[userId % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
-}
-
-function initials(firstName: string, lastName: string) {
-  return `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()
-}
-
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
-    : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)", label: "Inactivo" }
-}
 
 function userTypeStyle(type: AppUser["type"]) {
   if (type === "Profesional") return { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" }
@@ -162,33 +140,6 @@ async function handleDeactivate() {
   }
 }
 
-// ── Sucursal del usuario ───────────────────────────────────────────────────────
-const sucursales          = ref<Sucursal[]>([])
-const selectedSucursalId  = ref<number | "">("")
-const isSavingSucursal    = ref(false)
-const sucursalError       = ref("")
-
-const canManageSucursal = computed(() => auth.hasPermission("ver_sucursales") && auth.hasPermission("editar_usuario"))
-
-async function handleAssignSucursal() {
-  if (!managingUser.value || isSavingSucursal.value) return
-  isSavingSucursal.value = true
-  sucursalError.value = ""
-  try {
-    const id = selectedSucursalId.value === "" ? null : Number(selectedSucursalId.value)
-    await assignSucursal(managingUser.value.userId, id)
-    const u = users.value.find(u => u.userId === managingUser.value!.userId)
-    if (u) {
-      u.sucursalId = id ?? undefined
-      u.sucursalNombre = id === null ? undefined : sucursales.value.find(s => s.id === id)?.nombre
-    }
-  } catch (err: unknown) {
-    sucursalError.value = err instanceof Error ? err.message : "Error al asignar sucursal."
-  } finally {
-    isSavingSucursal.value = false
-  }
-}
-
 const showRolesModal      = ref(false)
 const managingUser        = ref<AppUser | null>(null)
 const userCurrentRoles    = ref<Role[]>([])
@@ -211,8 +162,6 @@ async function openRolesModal(user: AppUser) {
   rolesModalError.value = ""
   selectedRolesToAdd.value = []
   userCurrentRoles.value = []
-  selectedSucursalId.value = user.sucursalId ?? ""
-  sucursalError.value = ""
   try {
     const [userRoles, fetchedRoles] = await Promise.all([
       getRolesByUser(user.userId),
@@ -265,22 +214,17 @@ async function handleRemoveRole(roleId: number) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-onMounted(async () => {
-  await loadUsers()
-  if (canManageSucursal.value) {
-    try {
-      sucursales.value = await getSucursales(true)
-    } catch {
-      /* silencioso */
-    }
-  }
-})
+onMounted(loadUsers)
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
+}
 
 const userColumns = [
   { key: "usuario",  label: "Usuario" },
   { key: "ci",       label: "C.I." },
   { key: "tipo",     label: "Tipo" },
-  { key: "sucursal", label: "Sucursal" },
+  { key: "registro", label: "Registro" },
   { key: "estado",   label: "Estado" },
   { key: "acciones", label: "Acciones", align: "right" as const },
 ]
@@ -335,13 +279,10 @@ const userColumns = [
               <button
                 v-for="f in filters" :key="f.id"
                 @click="selectFilter(f.id)"
-                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left"
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left hover:bg-surface-container-low"
                 :style="activeFilter === f.id
                   ? 'background-color: rgba(0,40,142,0.06); color: var(--color-primary);'
                   : 'color: var(--color-on-surface-variant);'"
-                onmouseover="if (this.dataset.active !== 'true') this.style.backgroundColor = 'var(--color-surface-container-low)'"
-                onmouseout="if (this.dataset.active !== 'true') this.style.backgroundColor = ''"
-                :data-active="activeFilter === f.id"
               >
                 <span class="material-symbols-outlined" style="font-size: 18px; width: 18px; height: 18px">{{ f.icon }}</span>
                 {{ f.label }}
@@ -395,14 +336,8 @@ const userColumns = [
               </span>
             </template>
 
-            <template #sucursal="{ item }">
-              <span v-if="item.sucursalNombre" class="inline-flex items-center gap-1.5 text-sm" style="color: var(--color-on-surface-variant)">
-                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">store</span>
-                {{ item.sucursalNombre }}
-              </span>
-              <span v-else class="text-sm" style="color: var(--color-outline)">
-                {{ item.type === "Administrador" ? "Todas" : "—" }}
-              </span>
+            <template #registro="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</span>
             </template>
 
             <template #estado="{ item }">
@@ -495,7 +430,7 @@ const userColumns = [
     </main>
 
     <!-- ── MODAL: GESTIONAR ROLES DE USUARIO ─────────────────────────────────── -->
-    <BaseModal :show="showRolesModal" title="Gestionar Usuario" size="lg" @close="showRolesModal = false">
+    <BaseModal :show="showRolesModal" title="Gestionar Roles" size="lg" @close="showRolesModal = false">
       <div class="space-y-6">
 
         <!-- Info usuario -->
@@ -550,10 +485,8 @@ const userColumns = [
                 <button
                   @click="handleRemoveRole(role.id)"
                   :disabled="removingRoleId === role.id"
-                  class="w-5 h-5 rounded-full flex items-center justify-center transition-all disabled:opacity-50"
-                  style="background-color: rgba(0,0,0,0.08)"
-                  onmouseover="this.style.backgroundColor='rgba(186,26,26,0.15)'; this.style.color='var(--color-error)'"
-                  onmouseout="this.style.backgroundColor='rgba(0,0,0,0.08)'; this.style.color=''">
+                  class="w-5 h-5 rounded-full flex items-center justify-center transition-all disabled:opacity-50 hover:bg-error-container"
+                  style="background-color: rgba(0,0,0,0.08)">
                   <svg v-if="removingRoleId === role.id" class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -610,28 +543,6 @@ const userColumns = [
             class="flex items-center gap-2 text-sm py-2" style="color: var(--color-outline)">
             <span class="material-symbols-outlined" style="font-size: 16px">check_circle</span>
             Todos los roles disponibles están asignados.
-          </div>
-
-          <!-- Sucursal -->
-          <div v-if="canManageSucursal" class="pt-2" style="border-top: 1px solid var(--color-hairline-soft)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Sucursal</p>
-            <div v-if="sucursalError" class="flex items-center gap-2 rounded-2xl px-4 py-2.5 mb-3 text-sm font-medium"
-              style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
-              <span class="material-symbols-outlined" style="font-size: 16px">error</span>
-              {{ sucursalError }}
-            </div>
-            <div class="flex items-center gap-3">
-              <select v-model="selectedSucursalId"
-                class="flex-1 px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);">
-                <option value="">Todas las sucursales (global)</option>
-                <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-              </select>
-              <BaseButton variant="primary" size="default" :disabled="isSavingSucursal" @click="handleAssignSucursal">
-                <span v-if="isSavingSucursal" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
-                {{ isSavingSucursal ? "Guardando..." : "Guardar" }}
-              </BaseButton>
-            </div>
           </div>
         </template>
       </div>

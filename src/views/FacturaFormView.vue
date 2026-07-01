@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, reactive, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -57,6 +59,8 @@ const tipoIvaOpciones: { value: TipoIva; label: string }[] = [
   { value: "Iva5",   label: "IVA 5%" },
   { value: "Iva10",  label: "IVA 10%" },
 ]
+
+const tipoIvaSelectOptions = computed(() => tipoIvaOpciones.map(o => ({ value: o.value, label: o.label })))
 
 const ocItems = ref<ItemLinea[]>([])
 const directaItems = ref<ItemLinea[]>([newItemLinea()])
@@ -272,13 +276,6 @@ const condicionOptions = [
   { value: "Contado", label: "Contado" },
   { value: "Credito", label: "Crédito" },
 ]
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
 </script>
 
 <template>
@@ -329,7 +326,7 @@ function inputStyle(hasError = false) {
                 :key="opt.v"
                 class="flex items-center gap-3 px-4 py-4 rounded-xl cursor-pointer transition-all"
                 :style="origen === opt.v
-                  ? 'border: 1.5px solid var(--color-primary); background-color: #EEF2FF;'
+                  ? 'border: 1.5px solid var(--color-primary); background-color: var(--color-primary-fixed);'
                   : 'border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low);'"
               >
                 <input type="radio" :value="opt.v" v-model="origen" class="hidden" @change="onOrigenChange" />
@@ -471,11 +468,7 @@ function inputStyle(hasError = false) {
                   <td class="px-6 py-3 text-right" style="color: var(--color-on-surface-variant)">{{ formatMonto(item.precioUnitario) }}</td>
                   <td class="px-6 py-3 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatMonto(item.cantidad * item.precioUnitario) }}</td>
                   <td class="px-6 py-3">
-                    <select v-model="item.tipoIva"
-                      class="w-full px-2 py-1.5 appearance-none shadow-none text-xs outline-none"
-                      :style="inputStyle(false)">
-                      <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
+                    <SearchableSelect v-model="item.tipoIva" :options="tipoIvaSelectOptions" />
                   </td>
                 </tr>
               </tbody>
@@ -502,7 +495,7 @@ function inputStyle(hasError = false) {
               </div>
               <button @click="addItem"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
-                style="background-color: #EEF2FF; color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
+                style="background-color: var(--color-primary-fixed); color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
                 <span class="material-symbols-outlined" style="font-size: 18px">add</span>
                 Agregar ítem
               </button>
@@ -540,16 +533,11 @@ function inputStyle(hasError = false) {
                       :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
-                    <input v-model.number="item.precioUnitario" type="number" min="0" step="1"
-                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
-                      :style="inputStyle(false)" />
+                    <MontoInput :model-value="item.precioUnitario" align="right"
+                      @update:model-value="item.precioUnitario = $event ?? 0" />
                   </td>
                   <td class="px-3 py-3">
-                    <select v-model="item.tipoIva"
-                      class="w-full px-2 py-2 appearance-none shadow-none text-xs outline-none"
-                      :style="inputStyle(false)">
-                      <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
+                    <SearchableSelect v-model="item.tipoIva" :options="tipoIvaSelectOptions" />
                   </td>
                   <td class="px-3 py-3">
                     <button :disabled="directaItems.length <= 1" @click="removeItem(i)"
@@ -564,7 +552,7 @@ function inputStyle(hasError = false) {
 
             <!-- Mensaje sobre productos a stock -->
             <div v-if="itemsConProducto > 0" class="px-6 py-3 flex items-center gap-2 text-xs"
-              style="background-color: #EEF2FF; border-top: 1px solid rgba(0, 40, 142, 0.15); color: var(--color-primary)">
+              style="background-color: var(--color-primary-fixed); border-top: 1px solid rgba(0, 40, 142, 0.15); color: var(--color-primary)">
               <span class="material-symbols-outlined" style="font-size: 16px">inventory_2</span>
               <span><strong>{{ itemsConProducto }}</strong> ítem{{ itemsConProducto === 1 ? '' : 's' }} con producto seleccionado se sumará{{ itemsConProducto === 1 ? '' : 'n' }} al stock.</span>
             </div>

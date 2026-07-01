@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -41,13 +42,6 @@ const form = ref<CreatePatientRequest>({
 const errors = ref<FormErrors>({})
 const error = ref("")
 const saving = ref(false)
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 
 function validate(): boolean {
   const e: FormErrors = {}
@@ -110,7 +104,7 @@ function cancel() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="px-8 pt-10 pb-16 max-w-2xl mx-auto">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Breadcrumb -->
         <BaseButton variant="ghost" size="sm" class="mb-8" @click="cancel">
           <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
@@ -142,10 +136,10 @@ function cancel() {
               >
             </div>
             <div>
-              <h1 class="text-2xl font-extrabold" style="color: var(--color-on-surface)">
+              <h1 class="text-4xl font-extrabold tracking-tight mb-2">
                 Registrar Paciente
               </h1>
-              <p class="text-sm font-medium mt-0.5" style="color: var(--color-outline)">
+              <p class="font-medium" style="color: var(--color-on-surface-variant)">
                 Complete los datos del nuevo paciente
               </p>
             </div>

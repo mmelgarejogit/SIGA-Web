@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import DateInput from "@/components/DateInput.vue"
 import { ref, reactive, computed, onMounted, watch, nextTick } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -8,6 +10,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import ClienteSelector from "@/components/ClienteSelector.vue"
 import RecetaSelector from "@/components/RecetaSelector.vue"
 import TrabajoOpticoCard from "@/components/TrabajoOpticoCard.vue"
+import MontoInput from "@/components/MontoInput.vue"
 import {
   type AgregarLineaRequest, type CategoriaFiscal, type CondicionVenta, type TipoVenta, type Venta, type Servicio,
   crearVenta, actualizarVenta, confirmarVenta, getPresupuestos, getVentaById, getServicios, resolvePrecioServicio,
@@ -148,6 +151,11 @@ function confirmarServicioConTarifa() {
 // ── Línea manual ──────────────────────────────────────────────────────────────────
 const showLineaManual = ref(false)
 const lineaManualForm = reactive({ descripcion: "", cantidad: 1, precioUnitario: 0, descuento: 0, categoriaFiscal: "Gravado10" as CategoriaFiscal })
+const CATEGORIA_FISCAL_OPTIONS = [
+  { value: "Exento", label: "Exento" },
+  { value: "Gravado5", label: "IVA 5%" },
+  { value: "Gravado10", label: "IVA 10%" },
+]
 function addLineaManual() {
   if (!lineaManualForm.descripcion || lineaManualForm.precioUnitario <= 0) return
   lineas.value.push({ tipo: "Servicio", descripcion: lineaManualForm.descripcion, cantidad: lineaManualForm.cantidad, precioUnitario: lineaManualForm.precioUnitario, descuento: lineaManualForm.descuento, categoriaFiscal: lineaManualForm.categoriaFiscal })
@@ -345,26 +353,26 @@ const guardarLabel = computed(() =>
             <ClienteSelector v-model="selectedCliente" />
 
             <!-- Banner presupuestos del cliente -->
-            <div v-if="presupuestosDelCliente.length && !presupuestoCargado" class="rounded-2xl p-5" style="background:#FEF3C7;border:1.5px solid #FDE68A">
-              <p class="font-semibold text-sm mb-2" style="color:#92400E">
+            <div v-if="presupuestosDelCliente.length && !presupuestoCargado" class="rounded-2xl p-5" style="background:var(--color-warning-container);border:1.5px solid var(--color-warning-container)">
+              <p class="font-semibold text-sm mb-2" style="color:var(--color-on-warning-container)">
                 Este cliente tiene {{ presupuestosDelCliente.length }} presupuesto{{ presupuestosDelCliente.length !== 1 ? "s" : "" }} pendiente{{ presupuestosDelCliente.length !== 1 ? "s" : "" }}
               </p>
               <div class="space-y-2">
                 <button v-for="p in presupuestosDelCliente" :key="p.id" @click="cargarPresupuesto(p)"
-                  class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.01]" style="background:white;border:1px solid #FDE68A">
-                  <span class="font-mono font-semibold" style="color:#92400E">{{ p.numeroComprobante }}</span>
+                  class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all hover:scale-[1.01]" style="background:var(--color-surface-container-lowest);border:1px solid var(--color-warning-container)">
+                  <span class="font-mono font-semibold" style="color:var(--color-on-warning-container)">{{ p.numeroComprobante }}</span>
                   <span class="font-bold" style="color:var(--color-primary)">{{ formatPrice(p.total) }}</span>
                 </button>
               </div>
             </div>
 
             <!-- Presupuesto cargado -->
-            <div v-if="presupuestoCargado" class="rounded-2xl p-4 flex items-center justify-between" style="background:#F0FDF4;border:1.5px solid #BBF7D0">
+            <div v-if="presupuestoCargado" class="rounded-2xl p-4 flex items-center justify-between" style="background:var(--color-success-container);border:1.5px solid var(--color-success-container)">
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:20px;color:#166534">check_circle</span>
-                <p class="text-sm font-semibold" style="color:#166534">Presupuesto cargado: {{ presupuestoCargado.numeroComprobante }}</p>
+                <span class="material-symbols-outlined" style="font-size:20px;color:var(--color-on-success-container)">check_circle</span>
+                <p class="text-sm font-semibold" style="color:var(--color-on-success-container)">Presupuesto cargado: {{ presupuestoCargado.numeroComprobante }}</p>
               </div>
-              <button @click="limpiarPresupuesto" class="p-1 rounded-full hover:bg-green-100"><span class="material-symbols-outlined" style="font-size:16px;color:#166534">close</span></button>
+              <button @click="limpiarPresupuesto" class="p-1 rounded-full hover:bg-green-100"><span class="material-symbols-outlined" style="font-size:16px;color:var(--color-on-success-container)">close</span></button>
             </div>
 
             <!-- Laboratorio (presupuesto a pedido): la óptica queda bloqueada, pero el laboratorio es obligatorio para confirmar -->
@@ -404,8 +412,8 @@ const guardarLabel = computed(() =>
 
                 <!-- Buscador de productos -->
                 <div v-if="buscadorTipo === 'Producto'" class="relative">
-                  <input v-model="productoSearch" type="text" placeholder="Buscá un producto por nombre o SKU…" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                    style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
+                  <input v-model="productoSearch" type="text" placeholder="Buscá un producto por nombre o SKU…" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                    :style="inputStyle()"
                     @focus="showProductoDrop = true" @blur="hideProductoDrop" />
                   <div v-if="showProductoDrop && filteredProductos.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
                     style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
@@ -418,8 +426,8 @@ const guardarLabel = computed(() =>
 
                 <!-- Buscador de servicios -->
                 <div v-else class="relative">
-                  <input v-model="servicioSearch" type="text" placeholder="Buscá un servicio (consulta, ajuste…)" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                    style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"
+                  <input v-model="servicioSearch" type="text" placeholder="Buscá un servicio (consulta, ajuste…)" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                    :style="inputStyle()"
                     @focus="showServicioDrop = true" @blur="hideServicioDrop" />
                   <div v-if="showServicioDrop && filteredServicios.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
                     style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
@@ -453,15 +461,17 @@ const guardarLabel = computed(() =>
                       </label>
                       <label class="flex items-center gap-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">P.Unit</span>
-                        <input v-model.number="l.precioUnitario" type="number" min="0"
-                          class="w-24 px-2 py-1 rounded-lg text-xs outline-none"
-                          style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface)" />
+                        <div class="w-24">
+                          <MontoInput compact align="right" :model-value="l.precioUnitario ?? null"
+                            @update:model-value="l.precioUnitario = $event ?? 0" />
+                        </div>
                       </label>
                       <label class="flex items-center gap-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">Desc</span>
-                        <input v-model.number="l.descuento" type="number" min="0"
-                          class="w-20 px-2 py-1 rounded-lg text-xs outline-none"
-                          style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-lowest); color: var(--color-on-surface)" />
+                        <div class="w-20">
+                          <MontoInput compact align="right" :model-value="l.descuento ?? null"
+                            @update:model-value="l.descuento = $event ?? 0" />
+                        </div>
                       </label>
                     </div>
 
@@ -497,16 +507,16 @@ const guardarLabel = computed(() =>
                 </div>
                 <div>
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha</label>
-                  <input v-model="fechaVenta" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                  <DateInput v-model="fechaVenta" />
                 </div>
                 <div v-if="esPresupuesto">
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Validez (días)</label>
-                  <input v-model.number="validezDias" type="number" min="1" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                  <input v-model.number="validezDias" type="number" min="1" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
                   <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Vence el {{ fechaVencimiento }}</p>
                 </div>
                 <div>
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Observaciones</label>
-                  <textarea v-model="observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)"></textarea>
+                  <textarea v-model="observaciones" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
                 </div>
               </div>
             </div>
@@ -543,25 +553,21 @@ const guardarLabel = computed(() =>
       <div class="space-y-4">
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Descripción *</label>
-          <input v-model="lineaManualForm.descripcion" type="text" placeholder="Consulta, servicio, etc." class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+          <input v-model="lineaManualForm.descripcion" type="text" placeholder="Consulta, servicio, etc." class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Cantidad</label>
-            <input v-model.number="lineaManualForm.cantidad" type="number" min="1" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+            <input v-model.number="lineaManualForm.cantidad" type="number" min="1" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
           </div>
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Precio Unitario *</label>
-            <input v-model.number="lineaManualForm.precioUnitario" type="number" min="0" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)" />
+            <MontoInput :model-value="lineaManualForm.precioUnitario ?? null" @update:model-value="lineaManualForm.precioUnitario = $event ?? 0" placeholder="0" />
           </div>
         </div>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Categoría Fiscal</label>
-          <select v-model="lineaManualForm.categoriaFiscal" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low); color: var(--color-on-surface)">
-            <option value="Exento">Exento</option>
-            <option value="Gravado5">Gravado 5%</option>
-            <option value="Gravado10">Gravado 10%</option>
-          </select>
+          <SearchableSelect v-model="lineaManualForm.categoriaFiscal" :options="CATEGORIA_FISCAL_OPTIONS" placeholder="Categoría fiscal" />
         </div>
       </div>
     </template>

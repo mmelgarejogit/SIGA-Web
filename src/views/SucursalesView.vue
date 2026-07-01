@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
@@ -23,6 +26,14 @@ const sucursales = ref<Sucursal[]>([])
 const ciudades = ref<Ciudad[]>([])
 const isLoading = ref(false)
 const searchQuery = ref("")
+
+const columns = [
+  { key: "nombre", label: "Nombre" },
+  { key: "codigo", label: "Código" },
+  { key: "ciudad", label: "Ciudad" },
+  { key: "estado", label: "Estado" },
+  { key: "acciones", label: "" },
+]
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -57,12 +68,10 @@ async function load() {
 
 onMounted(load)
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
+const ciudadSelectOptions = computed(() => [
+  { value: null as number | null, label: "Sin ciudad" },
+  ...ciudades.value.map(c => ({ value: c.id, label: c.nombre })),
+])
 
 // ── Form compartido (crear / editar) ────────────────────────────────────────────
 function emptyForm() {
@@ -239,60 +248,38 @@ async function reactivate(s: Sucursal) {
 
         <!-- Tabla -->
         <template v-else>
-          <div class="rounded-2xl overflow-hidden"
+          <div class="rounded-lg overflow-hidden"
             style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
-            <div v-if="filtered.length === 0" class="py-16 text-center">
+            <BaseTable :columns="columns" :items="filtered" :loading="false">
+            <template #empty>
               <span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-outline-variant)">store</span>
               <p class="mt-3 text-sm font-medium" style="color: var(--color-outline)">No hay sucursales registradas.</p>
-            </div>
-
-            <div v-else class="overflow-x-auto"><table class="w-full min-w-[720px]">
-              <thead>
-                <tr style="background-color: var(--color-surface-container-low)">
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Nombre</th>
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Código</th>
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Ciudad</th>
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Estado</th>
-                  <th class="px-6 py-5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="s in filtered" :key="s.id"
-                  class="hover:bg-surface-container-low transition-colors"
-                  style="border-top: 1px solid var(--color-hairline-soft)">
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
-                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">store</span>
-                      </div>
-                      <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ s.nombre }}</span>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="text-sm font-mono" style="color: var(--color-on-surface-variant)">{{ s.codigo }}</span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ s.ciudadNombre || "—" }}</span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                      :style="s.isActive
-                        ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
-                        : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'">
-                      <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${s.isActive ? 'var(--color-success)' : 'var(--color-outline)'}`"></span>
-                      {{ s.isActive ? "Activa" : "Inactiva" }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="flex justify-end">
-                      <RowContextMenu :items="menuItems(s)" />
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table></div>
+            </template>
+            <template #nombre="{ item: s }">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
+                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">store</span>
+                </div>
+                <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ s.nombre }}</span>
+              </div>
+            </template>
+            <template #estado="{ item: s }">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                :style="s.isActive
+                  ? 'background-color: var(--color-success-container); color: var(--color-on-success-container)'
+                  : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'">
+                <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${s.isActive ? 'var(--color-success)' : 'var(--color-outline)'}`"></span>
+                {{ s.isActive ? "Activa" : "Inactiva" }}
+              </span>
+            </template>
+            <template #acciones="{ item: s }">
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(s)" />
+              </div>
+            </template>
+          </BaseTable>
 
             <div v-if="filtered.length > 0" class="px-6 py-4"
               style="border-top: 1px solid var(--color-hairline-soft)">
@@ -343,11 +330,12 @@ async function reactivate(s: Sucursal) {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Ciudad</label>
-            <select v-model="createForm.ciudadId"
-              class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle()">
-              <option value="">— Sin ciudad —</option>
-              <option v-for="c in ciudades" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="createForm.ciudadId === '' ? null : createForm.ciudadId"
+              :options="ciudadSelectOptions"
+              null-label="Sin ciudad"
+              @update:model-value="createForm.ciudadId = $event !== null ? Number($event) : ''"
+            />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Establecimiento</label>
@@ -403,11 +391,12 @@ async function reactivate(s: Sucursal) {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Ciudad</label>
-            <select v-model="editForm.ciudadId"
-              class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle()">
-              <option value="">— Sin ciudad —</option>
-              <option v-for="c in ciudades" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-            </select>
+            <SearchableSelect
+              :model-value="editForm.ciudadId === '' ? null : editForm.ciudadId"
+              :options="ciudadSelectOptions"
+              null-label="Sin ciudad"
+              @update:model-value="editForm.ciudadId = $event !== null ? Number($event) : ''"
+            />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Establecimiento</label>

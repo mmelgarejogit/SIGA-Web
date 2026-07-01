@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -229,7 +230,7 @@ async function submit() {
                   v-for="p in productosPaginados"
                   :key="p.id"
                   style="border-top: 1px solid var(--color-hairline-soft)"
-                  :style="cantidades[p.id] != null ? 'background-color: #F8FAFF' : ''"
+                  :style="cantidades[p.id] != null ? 'background-color: color-mix(in srgb, var(--color-primary) 6%, transparent)' : ''"
                 >
                   <td class="px-6 py-3">
                     <p class="font-semibold" style="color: var(--color-on-surface)">{{ p.nombre }}</p>
@@ -292,8 +293,8 @@ async function submit() {
               v-model="observaciones"
               rows="3"
               placeholder="Ej. Conteo parcial de lentes — categoría contactología"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+              class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all"
+              :style="inputStyle()"
             />
           </div>
 

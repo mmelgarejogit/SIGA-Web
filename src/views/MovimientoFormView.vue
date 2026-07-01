@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, reactive } from "vue"
 import { useRouter } from "vue-router"
+import { inputStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -267,9 +268,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                     :key="p.id"
                     type="button"
                     @click="seleccionarProducto(p)"
-                    class="w-full flex items-center gap-3 px-4 py-3 text-left transition-all"
-                    onmouseover="this.style.backgroundColor='var(--color-surface-container-low)'"
-                    onmouseout="this.style.backgroundColor=''"
+                    class="w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-surface-container-low"
                   >
                     <div class="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
                       style="background-color: var(--color-surface-container-high)">
@@ -310,8 +309,8 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                 <input
                   v-model="movForm.fechaMovimientoLocal"
                   type="datetime-local"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                  :style="inputStyle()"
                 />
               </div>
 
@@ -339,8 +338,8 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                   v-model.number="movForm.cantidad"
                   type="number"
                   min="1"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                  :style="inputStyle()"
                 />
               </div>
 

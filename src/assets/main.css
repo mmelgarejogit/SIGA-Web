@@ -127,6 +127,13 @@
   --duration-fast: 120ms;
   --duration-base: 180ms;
   --duration-slow: 250ms;
+
+  /* ── Paleta de charts (reportes) ──────────────────────────────── */
+  --color-chart-1: #2563eb;
+  --color-chart-2: #db2777;
+  --color-chart-3: #65a30d;
+  --color-chart-4: #9333ea;
+  --color-chart-5: #0d9488;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -201,6 +208,13 @@
   --color-hairline-soft: rgba(255, 255, 255, 0.06);
   --color-hairline: rgba(255, 255, 255, 0.12);
   --color-hairline-strong: rgba(255, 255, 255, 0.22);
+
+  /* Paleta de charts (más claros para visibilidad sobre fondo oscuro) */
+  --color-chart-1: #6ea8fe;
+  --color-chart-2: #f472b6;
+  --color-chart-3: #a3e635;
+  --color-chart-4: #c084fc;
+  --color-chart-5: #2dd4bf;
 
   /* Sombras más profundas sobre fondo oscuro */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);

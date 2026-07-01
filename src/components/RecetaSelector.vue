@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue"
+import DateInput from "@/components/DateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   type Receta,
   type CreateRecetaManualRequest,
@@ -24,6 +26,10 @@ const fmtFecha = (s: string) => {
 }
 const num = (n?: number | null) => (n == null ? "—" : n > 0 ? `+${n}` : `${n}`)
 
+const recetaOptions = computed(() => recetas.value.map(r => ({ value: r.id, label: `Receta ${fmtFecha(r.fechaEmision)} · ${r.esExterna ? "externa" : "clínica"}` })))
+
+const recetaNullLabel = computed(() => isLoading.value ? "Cargando…" : recetas.value.length ? "Sin receta (elegir)…" : "El cliente no tiene recetas")
+
 watch(() => props.clienteId, async (id) => {
   recetas.value = []
   showManual.value = false
@@ -35,11 +41,6 @@ watch(() => props.clienteId, async (id) => {
   } catch { recetas.value = [] }
   finally { isLoading.value = false }
 }, { immediate: true })
-
-function onSelect(e: Event) {
-  const v = (e.target as HTMLSelectElement).value
-  emit("update:modelValue", v ? Number(v) : null)
-}
 
 function clear() {
   emit("update:modelValue", null)
@@ -111,17 +112,12 @@ const inputStl = "border-radius: 8px; border: 1px solid var(--color-outline-vari
 
       <!-- Selección de receta existente -->
       <div v-if="!showManual">
-        <select
-          :value="modelValue ?? ''"
-          @change="onSelect"
-          class="w-full px-4 h-12 text-sm outline-none appearance-none"
-          style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
-        >
-          <option value="">{{ isLoading ? "Cargando…" : recetas.length ? "Sin receta (elegir)…" : "El cliente no tiene recetas" }}</option>
-          <option v-for="r in recetas" :key="r.id" :value="r.id">
-            Receta {{ fmtFecha(r.fechaEmision) }} · {{ r.esExterna ? "externa" : "clínica" }}
-          </option>
-        </select>
+        <SearchableSelect
+          :model-value="modelValue"
+          :options="recetaOptions"
+          :null-label="recetaNullLabel"
+          @update:model-value="emit('update:modelValue', $event !== null ? Number($event) : null)"
+        />
 
         <!-- Graduación de la receta seleccionada -->
         <div v-if="selected" class="mt-3 rounded-xl p-3" style="background: var(--color-surface-container-low); border: 1px solid rgba(196,197,213,0.2)">
@@ -152,7 +148,7 @@ const inputStl = "border-radius: 8px; border: 1px solid var(--color-outline-vari
       <div v-else class="space-y-3">
         <div class="flex items-center gap-3">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha</label>
-          <input v-model="manual.fechaEmision" type="date" class="px-3 py-1.5 text-sm outline-none" :style="inputStl" />
+          <DateInput v-model="manual.fechaEmision" />
         </div>
         <table class="w-full text-sm">
           <thead>

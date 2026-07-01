@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { jsPDF } from "jspdf"
@@ -306,7 +307,7 @@ function descargarPdf() {
                   v-for="linea in conteo.lineas"
                   :key="linea.id"
                   style="border-top: 1px solid var(--color-hairline-soft)"
-                  :style="linea.diferencia !== 0 ? 'background-color: #FFFBEB' : ''"
+                  :style="linea.diferencia !== 0 ? 'background-color: color-mix(in srgb, var(--color-warning) 12%, transparent)' : ''"
                 >
                   <td class="px-6 py-3">
                     <p class="font-semibold" style="color: var(--color-on-surface)">{{ linea.productoNombre }}</p>
@@ -410,8 +411,8 @@ function descargarPdf() {
           Observaciones (opcional)
         </label>
         <textarea v-model="obsAprobacion" rows="3"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all"
+          :style="inputStyle()" />
       </div>
 
       <div v-if="saveError" class="mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -142,7 +143,7 @@ function tipoIcon(tipo: string) {
 function tipoColor(tipo: string): { bg: string; color: string } {
   const map: Record<string, { bg: string; color: string }> = {
     FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario: { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    Honorario: { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
     GastoGeneral: { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
   }
   return map[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
@@ -207,13 +208,6 @@ async function submitAnular() {
   }
 }
 
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
-}
-
 // ── Menú contextual ───────────────────────────────────────────────────────────
 
 function menuItems(e: Egreso): ContextMenuItem[] {
@@ -252,14 +246,14 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <FilterChips :options="tipoOptions" :modelValue="tipoFiltros" placeholder="Tipo" @update:modelValue="setTipoFiltro" />
           <FilterChips :options="estadoOptions" :modelValue="estadoFiltros" placeholder="Estado" @update:modelValue="setEstadoFiltro" />
           <button
             @click="soloVencidos = !soloVencidos; applyFilter()"
             class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
             :style="soloVencidos
-              ? 'background-color: var(--color-error-container); color: var(--color-on-error-container); border: 1px solid #FCA5A5'
+              ? 'background-color: var(--color-error-container); color: var(--color-on-error-container); border: 1px solid var(--color-error-container)'
               : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface)'"
           >
             <span class="material-symbols-outlined" style="font-size: 16px">schedule</span>
@@ -275,7 +269,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest);
                  box-shadow: var(--shadow-sm);
                  outline: 1px solid var(--color-hairline)">
@@ -441,7 +435,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Motivo de rechazo -->
-        <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: #FEF2F2">
+        <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: var(--color-error-container)">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-on-error-container)">Motivo de rechazo</p>
           <p class="text-sm" style="color: var(--color-on-error-container)">{{ detalleEgreso.motivoRechazo }}</p>
         </div>

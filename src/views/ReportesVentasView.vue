@@ -108,7 +108,7 @@ const kpis = computed(() => {
       icon: "receipt_long",
       badge: "Comprob.",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
     {
@@ -156,7 +156,7 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const metodoColors: Record<string, string> = {
   Efectivo: "var(--color-success)",
-  Tarjeta: "#2563eb",
+  Tarjeta: "var(--color-chart-1)",
   Transferencia: "var(--color-tertiary)",
   Cheque: "var(--color-warning)",
 }
@@ -496,7 +496,7 @@ function exportCsv() {
             <!-- Top productos + servicios -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -521,7 +521,7 @@ function exportCsv() {
               </div>
 
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -548,7 +548,7 @@ function exportCsv() {
 
             <!-- Por cajero -->
             <div
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
             >
               <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">

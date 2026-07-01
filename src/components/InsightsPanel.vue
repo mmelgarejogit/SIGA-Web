@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { getPatients, type Patient } from "@/services/patientService"
@@ -35,23 +36,6 @@ async function loadData() {
 }
 
 onMounted(loadData)
-
-function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase()
-}
-
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, var(--color-surface-container-lowest))", color: "var(--color-outline)" },
-]
-
-const AVATAR_FALLBACK = { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" }
-
-function avatarStyle(id: number) {
-  return AVATAR_PALETTE[id % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })

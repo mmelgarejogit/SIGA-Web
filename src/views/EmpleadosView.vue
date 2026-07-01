@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials, statusStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, onMounted } from "vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -22,9 +24,11 @@ import {
   desactivarEmpleado,
   getCargos,
 } from "@/services/empleadosService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
 
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_empleados")
+const sucursales = ref<Sucursal[]>([])
 
 // ── Estado ──────────────────────────────────────────────────────────────────────
 
@@ -80,7 +84,8 @@ async function loadAll() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const [emps, cargsList] = await Promise.all([getEmpleados(), getCargos()])
+    const [emps, cargsList, sucs] = await Promise.all([getEmpleados(), getCargos(), getSucursales(true)])
+    sucursales.value = sucs
     empleados.value = emps
     cargos.value = cargsList
   } catch (err: unknown) {
@@ -94,21 +99,6 @@ onMounted(loadAll)
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.06)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.06)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.08)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(e: Empleado) {
-  return AVATAR_PALETTE[(e.id ?? 0) % AVATAR_PALETTE.length]!
-}
-
-function initials(e: Empleado) {
-  return `${e.firstName[0] ?? ""}${e.lastName[0] ?? ""}`.toUpperCase()
-}
-
 function formatDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("es-AR", {
     day: "2-digit",
@@ -117,16 +107,6 @@ function formatDate(iso: string) {
   })
 }
 
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
-    : {
-        bg: "var(--color-surface-container-highest)",
-        dot: "var(--color-outline)",
-        text: "var(--color-on-surface-variant)",
-        label: "Inactivo",
-      }
-}
 
 function menuItems(e: Empleado): ContextMenuItem[] {
   return [
@@ -143,13 +123,6 @@ const cargoOptions = computed(() =>
 const cargoOptionsActivos = computed(() =>
   cargos.value.filter(c => c.activo).map(c => ({ value: c.id, label: c.nombre }))
 )
-
-function inputStyle(hasError: boolean) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
-}
 
 // ── Validación ──────────────────────────────────────────────────────────────────
 
@@ -175,6 +148,7 @@ const createForm = ref<CrearEmpleadoRequest>({
   cargoId: 0,
   fechaIngreso: new Date().toISOString().slice(0, 10),
   salarioBase: undefined,
+  sucursalId: undefined,
 })
 
 function validateCreate(): boolean {
@@ -214,6 +188,7 @@ function openCreateModal() {
     cargoId: 0,
     fechaIngreso: new Date().toISOString().slice(0, 10),
     salarioBase: undefined,
+    sucursalId: undefined,
   }
   createErrors.value = {}
   createError.value = ""
@@ -257,6 +232,7 @@ const editForm = ref<ActualizarEmpleadoRequest & { isActive?: boolean }>({
   fechaIngreso: "",
   fechaEgreso: undefined,
   salarioBase: undefined,
+  sucursalId: undefined,
 })
 
 function validateEdit(): boolean {
@@ -287,6 +263,7 @@ function openEditModal(emp: Empleado) {
     fechaIngreso: emp.fechaIngreso,
     fechaEgreso: emp.fechaEgreso ?? undefined,
     salarioBase: emp.salarioBase ?? undefined,
+    sucursalId: emp.sucursalId,
   }
   editErrors.value = {}
   editError.value = ""
@@ -307,6 +284,7 @@ async function submitEdit() {
       fechaIngreso: editForm.value.fechaIngreso,
       fechaEgreso: editForm.value.fechaEgreso || undefined,
       salarioBase: editForm.value.salarioBase || undefined,
+      sucursalId: editForm.value.sucursalId,
     })
     showEditModal.value = false
     await loadAll()
@@ -382,15 +360,15 @@ async function confirmDelete() {
           {{ loadError }}
         </div>
 
-        <div v-else class="rounded-2xl overflow-hidden"
+        <div v-else class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="filtered" :loading="isLoading" emptyText="No hay empleados para mostrar.">
 
             <template #empleado="{ item: e }">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  :style="`background-color: ${avatarStyle(e).bg}; color: ${avatarStyle(e).color};`">
-                  {{ initials(e) }}
+                  :style="`background-color: ${avatarStyle(e.id).bg}; color: ${avatarStyle(e.id).color};`">
+                  {{ initials(e.firstName, e.lastName) }}
                 </div>
                 <div>
                   <div class="font-bold text-sm" style="color: var(--color-on-surface)">
@@ -546,8 +524,16 @@ async function confirmDelete() {
 
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Salario Base (Gs.)</label>
-          <input v-model.number="createForm.salarioBase" type="number" step="1" min="0" placeholder="Opcional"
-            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
+          <MontoInput :model-value="createForm.salarioBase ?? null" @update:model-value="createForm.salarioBase = $event ?? undefined" placeholder="Opcional" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sucursal</label>
+          <select v-model="createForm.sucursalId"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)">
+            <option :value="undefined">— Sin asignar —</option>
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
         </div>
       </form>
       <template #footer>
@@ -606,8 +592,7 @@ async function confirmDelete() {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Salario Base (Gs.)</label>
-            <input v-model.number="editForm.salarioBase" type="number" step="1" min="0" placeholder="Opcional"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
+            <MontoInput :model-value="editForm.salarioBase ?? null" @update:model-value="editForm.salarioBase = $event ?? undefined" placeholder="Opcional" />
           </div>
         </div>
 
@@ -621,6 +606,15 @@ async function confirmDelete() {
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Fecha de Egreso</label>
             <DateInput :model-value="editForm.fechaEgreso ?? ''" @update:model-value="editForm.fechaEgreso = $event" />
           </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sucursal</label>
+          <select v-model="editForm.sucursalId"
+            class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)">
+            <option :value="undefined">— Sin asignar —</option>
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
         </div>
       </form>
       <template #footer>

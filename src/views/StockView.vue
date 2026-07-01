@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
+import { inputStyle } from "@/composables/useFieldStyles"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -289,8 +290,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Stock mínimo</label>
           <input v-model.number="nivelesForm.stockMinimo" type="number" min="0" step="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
           <p class="text-xs mt-1" style="color: var(--color-outline)">Alerta de bajo stock cuando el stock llegue a este valor.</p>
         </div>
         <div>
@@ -301,8 +302,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
             :value="nivelesForm.stockMaximo ?? ''"
             @input="nivelesForm.stockMaximo = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
             type="number" min="0" step="1" placeholder="Sin límite"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
           <p class="text-xs mt-1" style="color: var(--color-outline)">Alerta de sobre stock cuando el stock llegue a este valor.</p>
         </div>
       </div>

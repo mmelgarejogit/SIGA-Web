@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import DateInput from "@/components/DateInput.vue"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -7,6 +9,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import BaseTable from "@/components/BaseTable.vue"
 import {
   getRecepciones,
   type RecepcionListItem,
@@ -22,24 +25,27 @@ const currentPage = ref(1)
 const pageSize = 20
 const isLoading = ref(false)
 
+const columns = [
+  { key: "id", label: "# Rec." },
+  { key: "fecha", label: "Fecha" },
+  { key: "proveedor", label: "Proveedor" },
+  { key: "factura", label: "Factura" },
+  { key: "ocEstado", label: "OC / Estado" },
+  { key: "items", label: "Ítems" },
+  { key: "usuario", label: "Usuario" },
+  { key: "acciones", label: "" },
+]
+
 const filtroEstado = ref<string[]>([])
 const filtroProveedorId = ref<number | null>(null)
 const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
 
 const proveedores = ref<Proveedor[]>([])
-const inputDesde = ref<HTMLInputElement | null>(null)
-const inputHasta = ref<HTMLInputElement | null>(null)
 
 const proveedorOptions = computed(() =>
   proveedores.value.map(p => ({ value: p.id, label: p.nombre, code: p.ruc })),
 )
-
-function openPicker(input: HTMLInputElement | null) {
-  if (!input) return
-  if (typeof input.showPicker === "function") input.showPicker()
-  else input.focus()
-}
 
 const estadoOpciones = [
   { value: "Facturada",       label: "Facturada",       dot: "var(--color-tertiary)" },
@@ -170,7 +176,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
               :model-value="filtroEstado"
@@ -191,14 +197,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
             <div class="flex items-center gap-1.5">
               <!-- Desde -->
               <div class="flex items-center gap-1">
-                <div class="fc-date-wrap">
-                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaDesde }" @click="openPicker(inputDesde)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">calendar_today</span>
-                    <span>{{ filtroFechaDesde ? formatFilterDate(filtroFechaDesde) : 'Desde' }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputDesde" type="date" v-model="filtroFechaDesde" class="date-hidden" @change="applyFilters" />
-                </div>
+                <DateInput v-model="filtroFechaDesde" placeholder="Desde" @update:model-value="applyFilters" />
                 <button v-if="filtroFechaDesde" class="fc-date-clear" title="Limpiar" @click="filtroFechaDesde = ''; applyFilters()">×</button>
               </div>
 
@@ -206,14 +205,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
 
               <!-- Hasta -->
               <div class="flex items-center gap-1">
-                <div class="fc-date-wrap">
-                  <button type="button" class="fc-date-trigger" :class="{ active: filtroFechaHasta }" @click="openPicker(inputHasta)">
-                    <span class="material-symbols-outlined" style="font-size: 15px">event</span>
-                    <span>{{ filtroFechaHasta ? formatFilterDate(filtroFechaHasta) : 'Hasta' }}</span>
-                    <span class="material-symbols-outlined" style="font-size: 14px; opacity: 0.6">expand_more</span>
-                  </button>
-                  <input ref="inputHasta" type="date" v-model="filtroFechaHasta" class="date-hidden" @change="applyFilters" />
-                </div>
+                <DateInput v-model="filtroFechaHasta" placeholder="Hasta" @update:model-value="applyFilters" />
                 <button v-if="filtroFechaHasta" class="fc-date-clear" title="Limpiar" @click="filtroFechaHasta = ''; applyFilters()">×</button>
               </div>
             </div>
@@ -221,14 +213,8 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden mb-4"
-          style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
-
-          <div v-if="isLoading" class="p-12 flex justify-center">
-            <span class="material-symbols-outlined animate-spin" style="font-size: 32px; color: var(--color-primary)">progress_activity</span>
-          </div>
-
-          <div v-else-if="recepciones.length === 0" class="p-12 text-center">
+        <BaseTable :columns="columns" :items="recepciones" :loading="isLoading" @row-click="r => router.push(`/compras/recepciones/${r.id}`)">
+          <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style="background-color: var(--color-surface-container-low)">
               <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">inventory_2</span>
@@ -241,71 +227,44 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
                 ? 'No hay recepciones que coincidan con los filtros aplicados.'
                 : 'Las recepciones se registran cuando llega mercadería de una factura con OC.' }}
             </p>
-          </div>
-
-          <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
-            <thead style="background-color: var(--color-surface-container-low)">
-              <tr>
-                <th v-for="h in ['# Rec.','Fecha','Proveedor','Factura','OC / Estado','Ítems','Usuario','']"
-                  :key="h"
-                  class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest"
-                  style="color: var(--color-outline)">{{ h }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in recepciones" :key="r.id"
-                class="hover:bg-surface-container-low"
-                style="border-bottom: 1px solid var(--color-hairline-soft)">
-
-                <td class="px-6 py-4">
-                  <span class="font-bold text-sm" style="color: var(--color-primary)">#{{ r.id }}</span>
-                </td>
-
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface)">
-                  {{ formatDate(r.fechaRecepcion) }}
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ r.proveedorNombre }}</span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="font-mono text-xs font-semibold" style="color: var(--color-on-surface-variant)">
-                    {{ r.nroFactura ?? "—" }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono text-xs font-semibold" style="color: var(--color-primary)">
-                      OC #{{ r.pedidoProveedorId }}
-                    </span>
-                    <span class="px-2 py-0.5 rounded-full text-xs font-bold"
-                      :style="`background-color: ${estadoOCStyle(r.estadoOC).bg}; color: ${estadoOCStyle(r.estadoOC).text}`">
-                      {{ estadoOCLabel(r.estadoOC) }}
-                    </span>
-                  </div>
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="text-sm" style="color: var(--color-on-surface-variant)">
-                    {{ r.cantidadItems }} ítem{{ r.cantidadItems === 1 ? '' : 's' }} · {{ r.cantidadTotal }} und.
-                  </span>
-                </td>
-
-                <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">
-                  {{ r.usuarioNombre }}
-                </td>
-
-                <td class="px-6 py-4">
-                  <div class="flex justify-end">
-                    <RowContextMenu :items="rowMenuItems(r)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table></div>
-        </div>
+          </template>
+          <template #id="{ item: r }">
+            <span class="font-bold text-sm" style="color: var(--color-primary)">#{{ r.id }}</span>
+          </template>
+          <template #fecha="{ item: r }">
+            {{ formatDate(r.fechaRecepcion) }}
+          </template>
+          <template #proveedor="{ item: r }">
+            <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ r.proveedorNombre }}</span>
+          </template>
+          <template #factura="{ item: r }">
+            <span class="font-mono text-xs font-semibold" style="color: var(--color-on-surface-variant)">
+              {{ r.nroFactura ?? "—" }}
+            </span>
+          </template>
+          <template #ocEstado="{ item: r }">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-semibold" style="color: var(--color-primary)">
+                OC #{{ r.pedidoProveedorId }}
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-xs font-bold"
+                :style="`background-color: ${estadoOCStyle(r.estadoOC).bg}; color: ${estadoOCStyle(r.estadoOC).text}`">
+                {{ estadoOCLabel(r.estadoOC) }}
+              </span>
+            </div>
+          </template>
+          <template #items="{ item: r }">
+            {{ r.cantidadItems }} ítem{{ r.cantidadItems === 1 ? '' : 's' }} · {{ r.cantidadTotal }} und.
+          </template>
+          <template #usuario="{ item: r }">
+            {{ r.usuarioNombre }}
+          </template>
+          <template #acciones="{ item: r }">
+            <div class="flex justify-end" @click.stop>
+              <RowContextMenu :items="rowMenuItems(r)" />
+            </div>
+          </template>
+        </BaseTable>
 
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
           Mostrando {{ recepciones.length }} de {{ totalCount }} recepciones
@@ -356,7 +315,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
 .fc-date-trigger.active {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background: #EEF2FF;
+  background: var(--color-primary-fixed);
 }
 
 .date-hidden {

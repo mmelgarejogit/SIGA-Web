@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import DateInput from "@/components/DateInput.vue"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
   type Venta,
   getVentaById, emitirComprobante, emitirFactura,
@@ -29,7 +32,18 @@ type TipoDocumento = "ReciboSimple" | "FacturaTimbrada"
 const tipoDoc = ref<TipoDocumento>("ReciboSimple")
 
 const timbrados    = ref<Timbrado[]>([])
-const selectedTimbrado = ref<Timbrado | null>(null)
+const selectedTimbradoId = ref<number | null>(null)
+
+const timbradoOptions = computed(() =>
+  timbrados.value.map(t => ({
+    value: t.id,
+    label: `${t.establecimiento}-${t.puntoExpedicion} · Timbrado ${t.numeroTimbrado} · Próx: ${t.numeroCompletoPreview ?? ''}`,
+  }))
+)
+
+const selectedTimbrado = computed(() =>
+  timbrados.value.find(t => t.id === selectedTimbradoId.value) ?? null
+)
 
 const factForm = reactive({
   fechaEmision:  new Date().toISOString().slice(0, 10),
@@ -46,7 +60,7 @@ async function load() {
     venta.value = await getVentaById(Number(route.params.id))
     const activos = await getTimbradosActivos()
     timbrados.value = activos
-    if (activos.length > 0 && activos[0]) selectedTimbrado.value = activos[0]
+    if (activos.length > 0 && activos[0]) selectedTimbradoId.value = activos[0].id
   } catch {
     error.value = "No se pudo cargar la venta"
   } finally {
@@ -96,7 +110,7 @@ async function emitir() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <button class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
@@ -110,7 +124,7 @@ async function emitir() {
 
         <template v-else-if="venta">
           <div class="flex items-center gap-3 mb-8 flex-wrap">
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Emitir documento</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Emitir documento</h1>
             <span class="text-2xl font-mono font-bold" style="color: var(--color-primary)">{{ venta.numeroComprobante }}</span>
           </div>
 
@@ -146,7 +160,7 @@ async function emitir() {
                       class="flex items-center gap-3 px-4 py-3 text-left transition-all"
                       style="border-radius:12px"
                       :style="tipoDoc === 'ReciboSimple'
-                        ? 'border:1.5px solid var(--color-primary);background:#EFF6FF'
+                        ? 'border:1.5px solid var(--color-primary);background:var(--color-info-container)'
                         : 'border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low)'"
                       @click="tipoDoc = 'ReciboSimple'"
                     >
@@ -161,7 +175,7 @@ async function emitir() {
                       class="flex items-center gap-3 px-4 py-3 text-left transition-all"
                       style="border-radius:12px"
                       :style="tipoDoc === 'FacturaTimbrada'
-                        ? 'border:1.5px solid var(--color-primary);background:#EFF6FF'
+                        ? 'border:1.5px solid var(--color-primary);background:var(--color-info-container)'
                         : 'border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low)'"
                       @click="tipoDoc = 'FacturaTimbrada'"
                     >
@@ -186,39 +200,34 @@ async function emitir() {
                     <template v-else>
                       <div>
                         <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Timbrado *</label>
-                        <select v-model="selectedTimbrado" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none cursor-pointer"
-                          style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)">
-                          <option v-for="t in timbrados" :key="t.id" :value="t">
-                            {{ t.numeroTimbrado }} — {{ t.establecimiento }}-{{ t.puntoExpedicion }}
-                          </option>
-                        </select>
+                        <SearchableSelect v-model="selectedTimbradoId" :options="timbradoOptions" placeholder="Seleccioná un timbrado" />
                       </div>
                       <!-- Preview del próximo número -->
                       <div v-if="selectedTimbrado" class="rounded-xl px-4 py-3 text-sm font-mono font-semibold"
-                        style="background-color:#EFF6FF;color:var(--color-primary)">
+                        style="background-color:var(--color-info-container);color:var(--color-primary)">
                         Próximo: {{ selectedTimbrado.numeroCompletoPreview }}
                       </div>
                       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Establecimiento</label>
                           <input :value="selectedTimbrado?.establecimiento" type="text" disabled
-                            class="w-full px-4 py-3 rounded-xl text-sm outline-none cursor-not-allowed"
-                            style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-outline)" />
+                            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none cursor-not-allowed"
+                            :style="inputStyle()" />
                         </div>
                         <div>
                           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Punto Exped.</label>
                           <input :value="selectedTimbrado?.puntoExpedicion" type="text" disabled
-                            class="w-full px-4 py-3 rounded-xl text-sm outline-none cursor-not-allowed"
-                            style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-outline)" />
+                            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none cursor-not-allowed"
+                            :style="inputStyle()" />
                         </div>
                       </div>
                       <div>
                         <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Fecha de Emisión *</label>
-                        <input v-model="factForm.fechaEmision" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)" />
+                        <DateInput v-model="factForm.fechaEmision" />
                       </div>
                       <div>
                         <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observaciones</label>
-                        <textarea v-model="factForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+                        <textarea v-model="factForm.observaciones" rows="2" class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all" :style="inputStyle()"></textarea>
                       </div>
                     </template>
                   </div>

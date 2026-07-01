@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, statusStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -7,6 +8,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
@@ -42,6 +44,8 @@ const TIPO_OPTIONS = [
   { value: "Generico", label: "Genérico" },
   { value: "Armazon",  label: "Armazón" },
 ] as const
+
+const tipoSelectOptions = computed(() => TIPO_OPTIONS.map(o => ({ value: o.value, label: o.label })))
 
 const tipoLabel = (t: string) => TIPO_OPTIONS.find(o => o.value === t)?.label ?? t
 const tipoStyle = (t: string) =>
@@ -109,19 +113,6 @@ const columns = [
   { key: "estado",      label: "Estado" },
   { key: "acciones",    label: "", align: "right" as const },
 ]
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
-
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)" }
-    : { bg: "var(--color-surface-container-highest)", dot: "var(--color-outline)", text: "var(--color-on-surface-variant)" }
-}
 
 async function load() {
   isLoading.value = true
@@ -371,7 +362,7 @@ async function confirmActivate() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable :columns="columns" :items="categoriasPaginadas" :loading="isLoading"
             empty-text="No hay categorías registradas.">
 
@@ -494,10 +485,7 @@ async function confirmActivate() {
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo *</label>
-          <select v-model="createForm.tipo" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)">
-            <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-          </select>
+          <SearchableSelect v-model="createForm.tipo" :options="tipoSelectOptions" placeholder="Tipo de categoría" />
           <p class="text-xs" style="color: var(--color-outline)">El tipo Armazón habilita el producto en el flujo de venta a pedido.</p>
         </div>
         <div class="flex flex-col gap-1.5">
@@ -548,10 +536,7 @@ async function confirmActivate() {
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Tipo *</label>
-          <select v-model="editForm.tipo" class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-            :style="inputStyle(false)">
-            <option v-for="o in TIPO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
-          </select>
+          <SearchableSelect v-model="editForm.tipo" :options="tipoSelectOptions" placeholder="Tipo de categoría" />
           <p class="text-xs" style="color: var(--color-outline)">El tipo Armazón habilita el producto en el flujo de venta a pedido.</p>
         </div>
         <div class="flex flex-col gap-1.5">

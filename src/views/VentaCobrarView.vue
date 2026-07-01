@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import DateInput from "@/components/DateInput.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -29,10 +32,16 @@ const puedeCobrar = computed(() => venta.value?.estado === "ListaParaCobrar" && 
 
 // ── Formulario de cobro ──────────────────────────────────────────────────────
 const METODOS: MetodoPago[] = ["Efectivo", "Tarjeta", "Transferencia", "Cheque"]
+const metodoOptions = computed(() => METODOS.map(m => ({ value: m, label: m })))
 const lineas = ref<{ metodoPago: MetodoPago; monto: number }[]>([{ metodoPago: "Efectivo", monto: 0 }])
 const fecha  = ref(new Date().toISOString().slice(0, 10))
 const tipo   = ref<TipoCobro>("Cuota")
 const totalCobro = computed(() => lineas.value.reduce((s, l) => s + (l.monto || 0), 0))
+
+const TIPO_COBRO_OPTIONS = [
+  { value: "Seña", label: "Seña" },
+  { value: "Cuota", label: "Cuota" },
+]
 
 const isSaving = ref(false)
 const opError  = ref("")
@@ -103,7 +112,7 @@ function goEmitir() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <button class="flex items-center gap-1.5 mb-6 text-sm font-semibold transition-colors hover:opacity-70"
@@ -117,7 +126,7 @@ function goEmitir() {
 
         <template v-else-if="venta">
           <div class="flex items-center gap-3 mb-8 flex-wrap">
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Cobrar venta</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Cobrar venta</h1>
             <span class="text-2xl font-mono font-bold" style="color: var(--color-primary)">{{ venta.numeroComprobante }}</span>
           </div>
 
@@ -142,7 +151,7 @@ function goEmitir() {
                     <span class="material-symbols-outlined" style="font-size:24px;color:var(--color-on-warning-container)">point_of_sale</span>
                     <div>
                       <p class="font-bold text-sm" style="color:var(--color-on-warning-container)">No hay una caja abierta</p>
-                      <p class="text-xs mt-0.5" style="color:#B45309">Para registrar cobros en efectivo primero tenés que abrir la caja. Tarjeta, transferencia y cheque sí se pueden registrar.</p>
+                      <p class="text-xs mt-0.5" style="color:var(--color-on-warning-container)">Para registrar cobros en efectivo primero tenés que abrir la caja. Tarjeta, transferencia y cheque sí se pueden registrar.</p>
                     </div>
                   </div>
                   <BaseButton variant="primary" size="sm" @click="router.push('/ventas/cierre')">
@@ -157,24 +166,19 @@ function goEmitir() {
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Fecha</label>
-                      <input v-model="fecha" type="date" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      <DateInput v-model="fecha" />
                     </div>
                     <div v-if="!isContado">
                       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Tipo</label>
-                      <select v-model="tipo" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)">
-                        <option value="Seña">Seña</option>
-                        <option value="Cuota">Cuota</option>
-                      </select>
+                      <SearchableSelect v-model="tipo" :options="TIPO_COBRO_OPTIONS" placeholder="Tipo de cobro" />
                     </div>
                   </div>
 
                   <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Métodos de pago</label>
                   <div class="space-y-2">
                     <div v-for="(l, i) in lineas" :key="i" class="flex gap-3 items-center">
-                      <select v-model="l.metodoPago" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)">
-                        <option v-for="m in METODOS" :key="m" :value="m">{{ m }}</option>
-                      </select>
-                      <input v-model.number="l.monto" type="number" min="0" placeholder="Monto" class="flex-1 px-4 py-3 rounded-xl text-sm outline-none" style="border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-low); color: var(--color-on-surface)" />
+                      <SearchableSelect v-model="l.metodoPago" :options="metodoOptions" class="flex-1" />
+                      <MontoInput :model-value="l.monto ?? null" placeholder="Monto" class="flex-1" @update:model-value="l.monto = $event ?? 0" />
                       <button v-if="lineas.length > 1" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--color-error-container);color:var(--color-on-error-container)" @click="removeLinea(i)">
                         <span class="material-symbols-outlined" style="font-size:16px">close</span>
                       </button>
@@ -201,7 +205,7 @@ function goEmitir() {
                 </div>
 
                 <!-- Cobros registrados -->
-                <div v-if="venta.cobros.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+                <div v-if="venta.cobros.length" class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                   <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                     <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cobros registrados</h3>
                   </div>

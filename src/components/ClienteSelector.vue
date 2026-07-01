@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { initials, inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import ClienteQuickCreateModal from "@/components/ClienteQuickCreateModal.vue"
 import { type Cliente, getClientes } from "@/services/clienteService"
@@ -26,10 +27,6 @@ onMounted(async () => {
 function nombre(c: Cliente) {
   if (c.tipoFacturacion === "Juridica" && c.razonSocial) return c.razonSocial
   return `${c.firstName} ${c.lastName}`.trim()
-}
-
-function initials(c: Cliente) {
-  return `${c.firstName[0] ?? ""}${c.lastName[0] ?? ""}`.toUpperCase()
 }
 
 const filtered = computed(() => {
@@ -92,19 +89,19 @@ function onCreated(c: Cliente) {
     </div>
 
     <!-- Cliente seleccionado -->
-    <div v-if="modelValue" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: #EFF6FF; border: 1px solid #BFDBFE">
-      <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style="background: #DBEAFE; color: #1D4ED8">
-        {{ initials(modelValue) }}
+    <div v-if="modelValue" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: var(--color-info-container); border: 1px solid var(--color-info-container)">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style="background: var(--color-info-container); color: var(--color-on-info-container)">
+        {{ initials(modelValue.firstName, modelValue.lastName) }}
       </div>
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-sm truncate" style="color: #1D4ED8">{{ nombre(modelValue) }}</p>
-        <p class="text-xs" style="color: #3B82F6">
+        <p class="font-semibold text-sm truncate" style="color: var(--color-on-info-container)">{{ nombre(modelValue) }}</p>
+        <p class="text-xs" style="color: var(--color-info)">
           CI: {{ modelValue.ci }}
           <span v-if="modelValue.tipoFacturacion === 'Juridica'"> · Jurídica</span>
         </p>
       </div>
       <button type="button" @click="clear" class="p-1 rounded-full transition-colors hover:bg-blue-100" title="Cambiar cliente">
-        <span class="material-symbols-outlined" style="font-size: 18px; color: #3B82F6">close</span>
+        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-info)">close</span>
       </button>
     </div>
 
@@ -129,7 +126,7 @@ function onCreated(c: Cliente) {
         type="text"
         placeholder="Buscar por nombre, CI o razón social…"
         class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
-        style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+        :style="inputStyle()"
         @focus="showDrop = true"
         @blur="onBlur"
       />

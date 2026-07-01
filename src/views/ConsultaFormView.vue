@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -189,34 +190,9 @@ function onCancel() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(id: number) {
-  return (
-    AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
-  )
-}
-
-function initials(fn: string, ln: string) {
-  return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
-}
-
 const professionalOptions = computed(() =>
   professionals.value.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}` })),
 )
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 
 const recetaColumns = [
   { key: "eye", label: "" },

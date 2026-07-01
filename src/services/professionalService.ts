@@ -17,6 +17,8 @@ export interface Professional {
   email: string
   licenseNumber: string
   especialidades: Especialidad[]
+  sucursalId?: number
+  sucursalNombre?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -32,6 +34,7 @@ export interface CreateProfessionalRequest {
   password: string
   licenseNumber: string
   especialidadIds: number[]
+  sucursalId?: number
 }
 
 export interface UpdateProfessionalRequest {
@@ -40,6 +43,7 @@ export interface UpdateProfessionalRequest {
   phoneNumber?: string
   licenseNumber: string
   especialidadIds: number[]
+  sucursalId?: number
   isActive: boolean
 }
 

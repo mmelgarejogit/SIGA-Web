@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from "vue"
+import { inputStyle, statusStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
@@ -192,7 +194,7 @@ async function submitDelete() {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-4 mb-6 flex-wrap">
+        <div class="flex items-center gap-4 mb-8 flex-wrap">
           <FilterChips
             :model-value="tipoFilter"
             :options="tipoOptions"
@@ -222,9 +224,9 @@ async function submitDelete() {
           </template>
 
           <template #estado="{ item }">
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
-              :class="item.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'">
-              <span class="material-symbols-outlined" style="font-size: 13px">{{ item.isActive ? 'check_circle' : 'cancel' }}</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+              :style="`background-color: ${statusStyle(item.isActive).bg}; color: ${statusStyle(item.isActive).text};`">
+              <span class="w-1.5 h-1.5 rounded-full" :style="`background-color: ${statusStyle(item.isActive).dot};`"></span>
               {{ item.isActive ? 'Activo' : 'Inactivo' }}
             </span>
           </template>
@@ -251,18 +253,12 @@ async function submitDelete() {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre</label>
           <input v-model="createForm.nombre" type="text" placeholder="Ej. Compra a proveedor"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Aplica a</label>
-          <select v-model="createForm.tipo"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option value="Entrada">Entrada</option>
-            <option value="Salida">Salida</option>
-            <option value="Ambos">Ambos</option>
-          </select>
+          <SearchableSelect v-model="createForm.tipo" :options="tipoOptions" placeholder="Tipo" />
           <p class="text-xs mt-1" style="color: var(--color-outline)">Define en qué tipo de movimiento estará disponible este motivo.</p>
         </div>
       </div>
@@ -287,18 +283,12 @@ async function submitDelete() {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre</label>
           <input v-model="editForm.nombre" type="text"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle(false)" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Aplica a</label>
-          <select v-model="editForm.tipo"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)">
-            <option value="Entrada">Entrada</option>
-            <option value="Salida">Salida</option>
-            <option value="Ambos">Ambos</option>
-          </select>
+          <SearchableSelect v-model="editForm.tipo" :options="tipoOptions" placeholder="Tipo" />
         </div>
         <div class="flex items-center gap-3">
           <input id="editMotivoActive" v-model="editForm.isActive" type="checkbox" class="w-4 h-4 rounded" />
