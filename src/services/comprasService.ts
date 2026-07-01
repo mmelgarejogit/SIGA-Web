@@ -116,16 +116,6 @@ export interface RegistrarDevolucionRequest {
   motivo: string
 }
 
-export interface RegistrarFacturaRequest {
-  nroFactura: string
-  fechaEmision: string
-  fechaVencimiento?: string
-  condicionVenta: string
-  observaciones?: string
-  /** Si se omite, los ítems se copian automáticamente desde la OC con IVA 10% */
-  items?: FacturaItemLineaRequest[]
-}
-
 export interface ProveedorSimple {
   id: number
   nombre: string
@@ -177,7 +167,7 @@ export async function confirmarPedido(id: number): Promise<PedidoCompras> {
 
 export async function registrarFactura(
   id: number,
-  request: RegistrarFacturaRequest,
+  request: RegistrarFacturaPedidoRequest,
 ): Promise<PedidoCompras> {
   const { data } = await http.post<PedidoCompras>(`/api/compras/pedidos/${id}/factura`, request)
   return data
@@ -255,6 +245,7 @@ export interface RegistrarFacturaDirectaRequest {
   fechaEmision: string
   fechaVencimiento?: string
   condicionVenta: string
+  metodoPago?: string
   observaciones?: string
   items: FacturaItemLineaRequest[]
 }
@@ -263,10 +254,8 @@ export interface RegistrarFacturaPedidoRequest {
   nroFactura: string
   fechaEmision: string
   fechaVencimiento?: string
-  montoExento: number
-  montoGravado5: number
-  montoGravado10: number
   condicionVenta: string
+  metodoPago?: string
   observaciones?: string
   /** Si se omite, los ítems se copian automáticamente desde la OC con IVA 10% */
   items?: FacturaItemLineaRequest[]

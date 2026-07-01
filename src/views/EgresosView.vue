@@ -60,9 +60,10 @@ const estadoFiltros = ref<string[]>([])
 const soloVencidos = ref(false)
 
 const tipoOptions = [
-  { value: "Honorario", label: "Honorario" },
-  { value: "GastoGeneral", label: "Gasto General" },
-  { value: "FacturaCompra", label: "Factura (hist.)" },
+  { value: "Honorario",          label: "Honorario" },
+  { value: "GastoGeneral",       label: "Gasto General" },
+  { value: "FacturaCompra",      label: "Factura (compra)" },
+  { value: "FacturaLaboratorio", label: "Factura (lab.)" },
 ]
 
 const estadoOptions = [
@@ -124,27 +125,30 @@ function applyFilter() {
 
 function tipoLabel(tipo: string) {
   const map: Record<string, string> = {
-    FacturaCompra: "Factura",
-    Honorario: "Honorario",
-    GastoGeneral: "Gasto",
+    FacturaCompra:      "Factura compra",
+    Honorario:          "Honorario",
+    GastoGeneral:       "Gasto",
+    FacturaLaboratorio: "Factura lab.",
   }
   return map[tipo] ?? tipo
 }
 
 function tipoIcon(tipo: string) {
   const map: Record<string, string> = {
-    FacturaCompra: "receipt",
-    Honorario: "person_check",
-    GastoGeneral: "payments",
+    FacturaCompra:      "receipt",
+    Honorario:          "person_check",
+    GastoGeneral:       "payments",
+    FacturaLaboratorio: "science",
   }
   return map[tipo] ?? "attach_money"
 }
 
 function tipoColor(tipo: string): { bg: string; color: string } {
   const map: Record<string, { bg: string; color: string }> = {
-    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario: { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
-    GastoGeneral: { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    FacturaCompra:      { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario:          { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
+    GastoGeneral:       { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    FacturaLaboratorio: { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
   }
   return map[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
@@ -291,6 +295,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                 <p class="text-xs" style="color: var(--color-outline)">
                   <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
                   <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
+                  <span v-else-if="item.tipo === 'FacturaLaboratorio'">{{ item.proveedorNombre ?? '—' }} {{ item.nroFactura ? `· ${item.nroFactura}` : '' }}</span>
                   <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
                 </p>
               </div>
@@ -429,6 +434,17 @@ function menuItems(e: Egreso): ContextMenuItem[] {
             </div>
             <div v-if="detalleEgreso.nroFactura">
               <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura</p>
+              <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
+            </div>
+          </template>
+
+          <template v-if="detalleEgreso.tipo === 'FacturaLaboratorio'">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Laboratorio</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.proveedorNombre ?? '—' }}</p>
+            </div>
+            <div v-if="detalleEgreso.nroFactura">
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura lab.</p>
               <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
             </div>
           </template>

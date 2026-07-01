@@ -72,6 +72,7 @@ const form = reactive({
   fechaEmision: new Date().toISOString().slice(0, 10),
   fechaVencimiento: "",
   condicionVenta: "Contado",
+  metodoPago: "Efectivo",
   observaciones: "",
 })
 
@@ -110,6 +111,21 @@ const proveedorOptions = computed(() =>
 const productoOptions = computed(() =>
   productos.value.map(p => ({ value: p.id, label: p.nombre, code: p.sku ?? undefined })),
 )
+
+// Formato automático Paraguay: 001-001-0000001 (3-3-7 dígitos)
+function onNroFacturaInput(e: Event) {
+  const el     = e.target as HTMLInputElement
+  const cursor = el.selectionStart ?? el.value.length
+  const prev   = el.value
+  const digits  = prev.replace(/\D/g, '').slice(0, 13)
+  let formatted = digits
+  if (digits.length > 6) formatted = digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6)
+  else if (digits.length > 3) formatted = digits.slice(0, 3) + '-' + digits.slice(3)
+  form.nroFactura = formatted
+  const added = formatted.length - prev.length
+  const next  = Math.max(0, cursor + (added > 0 ? added : 0))
+  requestAnimationFrame(() => el.setSelectionRange(next, next))
+}
 
 function formatMonto(n: number) {
   return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", minimumFractionDigits: 0 }).format(n)
@@ -202,7 +218,12 @@ async function guardar() {
   if (form.condicionVenta === "Credito" && !form.fechaVencimiento) {
     saveError.value = "La fecha de vencimiento es obligatoria para crédito."; return
   }
+  if (form.condicionVenta === "Contado" && !form.metodoPago) {
+    saveError.value = "El método de pago es obligatorio para facturas al contado."; return
+  }
   if (montoTotal.value <= 0) { saveError.value = "El total de la factura debe ser mayor a cero. Agregá ítems."; return }
+
+  const metodoPago = form.condicionVenta === "Contado" ? form.metodoPago : undefined
 
   if (origen.value === "ConOC") {
     if (!form.pedidoId) { saveError.value = "Seleccioná una Orden de Compra."; return }
@@ -224,12 +245,13 @@ async function guardar() {
         fechaEmision: form.fechaEmision,
         fechaVencimiento: form.condicionVenta === "Credito" ? form.fechaVencimiento : undefined,
         condicionVenta: form.condicionVenta,
+        metodoPago,
         observaciones: form.observaciones || undefined,
         items,
       })
       router.push("/compras/facturas")
-    } catch (err: any) {
-      saveError.value = err.response?.data?.message ?? err.message ?? "Error al registrar la factura."
+    } catch (e) {
+      saveError.value = e instanceof Error ? e.message : "Error al registrar la factura."
     } finally {
       isSaving.value = false
     }
@@ -246,6 +268,7 @@ async function guardar() {
         fechaEmision: form.fechaEmision,
         fechaVencimiento: form.condicionVenta === "Credito" ? form.fechaVencimiento : undefined,
         condicionVenta: form.condicionVenta,
+        metodoPago,
         observaciones: form.observaciones || undefined,
         items: itemsValidos.map(i => ({
           productoId: i.productoId,
@@ -256,8 +279,8 @@ async function guardar() {
         })),
       })
       router.push("/compras/facturas")
-    } catch (err: any) {
-      saveError.value = err.response?.data?.message ?? err.message ?? "Error al registrar la factura."
+    } catch (e) {
+      saveError.value = e instanceof Error ? e.message : "Error al registrar la factura."
     } finally {
       isSaving.value = false
     }
@@ -275,6 +298,13 @@ const ocOptions = computed(() =>
 const condicionOptions = [
   { value: "Contado", label: "Contado" },
   { value: "Credito", label: "Crédito" },
+]
+
+const metodoPagoOptions = [
+  { value: "Efectivo",      label: "Efectivo" },
+  { value: "Tarjeta",       label: "Tarjeta" },
+  { value: "Transferencia", label: "Transferencia" },
+  { value: "Cheque",        label: "Cheque" },
 ]
 </script>
 
@@ -393,9 +423,9 @@ const condicionOptions = [
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Número de Factura *
                 </label>
-                <input v-model="form.nroFactura" type="text" placeholder="001-001-0000001" maxlength="15"
+                <input :value="form.nroFactura" @input="onNroFacturaInput" type="text" placeholder="001-001-0000001"
+                  inputmode="numeric" maxlength="15"
                   class="w-full px-4 h-12 text-sm font-mono outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
-                <p class="text-xs mt-1" style="color: var(--color-outline)">Formato: 001-001-0000001</p>
               </div>
             </div>
 
@@ -418,6 +448,20 @@ const condicionOptions = [
                   :options="condicionOptions"
                   :searchable="false"
                   @update:model-value="form.condicionVenta = $event as string"
+                />
+              </div>
+
+              <!-- Método de pago (solo Contado) -->
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
+                  Método de Pago <span v-if="form.condicionVenta === 'Contado'" style="color: var(--color-error)">*</span>
+                </label>
+                <SearchableSelect
+                  :model-value="form.metodoPago"
+                  :options="metodoPagoOptions"
+                  :searchable="false"
+                  :disabled="form.condicionVenta !== 'Contado'"
+                  @update:model-value="form.metodoPago = $event as string"
                 />
               </div>
 

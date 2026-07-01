@@ -220,8 +220,23 @@ function duracion(apertura: string, cierre?: string): string {
           <p v-else class="text-sm" style="color: var(--color-on-surface-variant)">Sesión aún abierta</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto inicial</p>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto de apertura</p>
           <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ fmt(detalle.montoInicial) }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto de cierre (contado)</p>
+          <template v-if="detalle.efectivoContado != null">
+            <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ fmt(detalle.efectivoContado) }}</p>
+            <p class="text-xs mt-0.5 font-medium"
+              :style="(detalle.diferencia ?? 0) === 0
+                ? 'color: var(--color-on-success-container)'
+                : (detalle.diferencia ?? 0) > 0
+                  ? 'color: var(--color-on-info-container)'
+                  : 'color: var(--color-on-error-container)'">
+              {{ (detalle.diferencia ?? 0) === 0 ? "Cuadrada" : (detalle.diferencia ?? 0) > 0 ? `Sobrante ${fmtSigned(detalle.diferencia ?? 0)}` : `Faltante ${fmtSigned(detalle.diferencia ?? 0)}` }}
+            </p>
+          </template>
+          <p v-else class="text-sm" style="color: var(--color-on-surface-variant)">Sin contar</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Duración</p>

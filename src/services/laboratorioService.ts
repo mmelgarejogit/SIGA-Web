@@ -3,6 +3,7 @@ import type {
   TrabajoPedidoListDto,
   GestionarTrabajoPedidoRequest,
   EmitirFacturaLaboratorioRequest,
+  RegistrarEnvioRequest,
 } from "@/services/ventasService"
 
 const { get, post, put } = useHttp()
@@ -18,8 +19,8 @@ export const getPedidos = (estado?: string) => {
 export const gestionarAprobacion = (id: number, data: GestionarTrabajoPedidoRequest) =>
   post<TrabajoPedidoListDto>(`/api/laboratorio/pedidos/${id}/gestionar`, data)
 
-export const registrarEnvio = (id: number) =>
-  put<TrabajoPedidoListDto>(`/api/laboratorio/pedidos/${id}/enviar`, {})
+export const registrarEnvio = (id: number, data: RegistrarEnvioRequest = {}) =>
+  put<TrabajoPedidoListDto>(`/api/laboratorio/pedidos/${id}/enviar`, data)
 
 export const registrarRecepcion = (id: number) =>
   put<TrabajoPedidoListDto>(`/api/laboratorio/pedidos/${id}/recibir`, {})

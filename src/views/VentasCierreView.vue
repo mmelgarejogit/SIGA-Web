@@ -137,8 +137,8 @@ const efectivoEsperado = computed(() =>
 const diferenciaPreview = computed(() => (efectivoContado.value ?? 0) - efectivoEsperado.value)
 
 function abrirCerrar() {
-  // Pre-cargamos el conteo con el efectivo esperado: si cuadra, el cajero solo confirma.
-  efectivoContado.value = efectivoEsperado.value
+  // Conteo a ciegas: el cajero cuenta y carga el efectivo sin ver el esperado.
+  efectivoContado.value = null
   observacion.value     = ""
   cerrarError.value     = ""
   cierreResult.value    = null
@@ -456,12 +456,11 @@ function confirmarCierreYSalir() {
       </div>
 
       <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
-          <span class="text-xs font-semibold" style="color: var(--color-outline)">Esperado: {{ fmt(efectivoEsperado) }}</span>
-        </div>
+        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
         <MontoInput :model-value="efectivoContado" @update:model-value="efectivoContado = $event" placeholder="0" />
-        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
+        <p v-if="efectivoContado !== null" class="text-xs mt-1 font-medium"
+          :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
+
           {{ diferenciaPreview === 0
               ? "✓ Coincide con lo esperado"
               : `Diferencia: ${diferenciaPreview > 0 ? "+" : "−"}${fmt(diferenciaPreview)}` }}

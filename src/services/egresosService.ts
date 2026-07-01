@@ -2,7 +2,7 @@ import { useHttp } from "@/composables/useHttp"
 
 const { get, post, put } = useHttp()
 
-export type TipoEgreso = "FacturaCompra" | "Honorario" | "GastoGeneral" | "Salario"
+export type TipoEgreso = "FacturaCompra" | "Honorario" | "GastoGeneral" | "Salario" | "FacturaLaboratorio"
 export type EstadoEgreso = "Borrador" | "Pendiente" | "Aprobado" | "Rechazado" | "Pagado" | "Anulado"
 export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Cheque"
 export type CondicionVenta = "Contado" | "Credito"
@@ -53,6 +53,9 @@ export interface Egreso {
   // Salario
   empleadoId?: number
   empleadoNombre?: string
+
+  // FacturaLaboratorio
+  facturaLaboratorioId?: number
 }
 
 export interface CategoriaGasto {
