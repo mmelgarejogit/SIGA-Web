@@ -10,6 +10,8 @@ import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
+import MontoInput from "@/components/MontoInput.vue"
+import { formatGs } from "@/utils/money"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Producto,
@@ -155,6 +157,7 @@ const isSaving = ref(false)
 const createError = ref("")
 const createForm = reactive({
   nombre: "", categoria: "", sku: "",
+  precioCosto: 0,
   marcaId: null as number | null, modeloId: null as number | null,
   color: "", talle: "", descripcion: "",
 })
@@ -169,10 +172,19 @@ const createModelosOpts = computed(() =>
     : []
 )
 
+// Precio de venta derivado del costo + margen de la categoría (read-only, informativo).
+const createMargen = computed(() =>
+  categoriasDisponibles.value.find(c => c.nombre === createForm.categoria)?.margen ?? 0
+)
+const createPrecioVenta = computed(() =>
+  Math.round(createForm.precioCosto * (1 + createMargen.value / 100))
+)
+
 function openCreate() {
   const primeraActiva = categoriasDisponibles.value.find((c) => c.isActive)?.nombre ?? ""
   Object.assign(createForm, {
     nombre: "", categoria: primeraActiva, sku: "",
+    precioCosto: 0,
     marcaId: null, modeloId: null, color: "", talle: "", descripcion: "",
   })
   createError.value = ""
@@ -186,7 +198,7 @@ async function submitCreate() {
     await createProducto({
       nombre: createForm.nombre, categoria: createForm.categoria,
       sku: createForm.sku?.trim() || undefined,
-      precioCosto: 0, precioVenta: 0, stockMinimo: 0,
+      precioCosto: createForm.precioCosto, precioVenta: 0, stockMinimo: 0,
       marcaId: createForm.marcaId,
       modeloId: createForm.modeloId,
       color: createForm.color?.trim() || undefined,
@@ -210,6 +222,7 @@ const isUpdating = ref(false)
 const editError = ref("")
 const editForm = reactive({
   nombre: "", categoria: "", sku: "", isActive: true,
+  precioCosto: 0,
   marcaId: null as number | null, modeloId: null as number | null,
   color: "", talle: "", descripcion: "",
 })
@@ -224,10 +237,18 @@ const editModelosOpts = computed(() =>
     : []
 )
 
+const editMargen = computed(() =>
+  categoriasDisponibles.value.find(c => c.nombre === editForm.categoria)?.margen ?? 0
+)
+const editPrecioVenta = computed(() =>
+  Math.round(editForm.precioCosto * (1 + editMargen.value / 100))
+)
+
 function openEdit(p: Producto) {
   selectedProducto.value = p
   Object.assign(editForm, {
     nombre: p.nombre, categoria: p.categoria, sku: p.sku ?? "", isActive: p.isActive,
+    precioCosto: p.precioCosto,
     marcaId: p.marcaId, modeloId: p.modeloId,
     color: p.color ?? "", talle: p.talle ?? "", descripcion: p.descripcion ?? "",
   })
@@ -246,7 +267,7 @@ async function submitEdit() {
     await updateProducto(p.id, {
       nombre: editForm.nombre, categoria: editForm.categoria,
       sku: editForm.sku?.trim() || undefined,
-      precioCosto: p.precioCosto, precioVenta: p.precioVenta,
+      precioCosto: editForm.precioCosto, precioVenta: 0,
       isActive: editForm.isActive,
       marcaId: editForm.marcaId,
       modeloId: editForm.modeloId,
@@ -750,6 +771,17 @@ function menuItems(p: Producto): ContextMenuItem[] {
             :style="inputStyle(false)" />
         </div>
 
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Precio de costo (Gs.)</label>
+          <MontoInput :model-value="createForm.precioCosto" @update:model-value="createForm.precioCosto = $event ?? 0" />
+          <p class="text-xs" style="color: var(--color-outline)">
+            Precio de venta (calculado):
+            <strong style="color: var(--color-primary)">{{ formatGs(createPrecioVenta) }}</strong>
+            <template v-if="createMargen > 0"> · margen {{ createMargen }}%</template>
+            <template v-else> · la categoría no tiene margen configurado</template>
+          </p>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Marca</label>
@@ -871,6 +903,17 @@ function menuItems(p: Producto): ContextMenuItem[] {
           <input v-model="editForm.sku" type="text" placeholder="Opcional"
             class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
             :style="inputStyle(false)" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Precio de costo (Gs.)</label>
+          <MontoInput :model-value="editForm.precioCosto" @update:model-value="editForm.precioCosto = $event ?? 0" />
+          <p class="text-xs" style="color: var(--color-outline)">
+            Precio de venta (calculado):
+            <strong style="color: var(--color-primary)">{{ formatGs(editPrecioVenta) }}</strong>
+            <template v-if="editMargen > 0"> · margen {{ editMargen }}%</template>
+            <template v-else> · la categoría no tiene margen configurado</template>
+          </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
