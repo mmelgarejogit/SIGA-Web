@@ -7,7 +7,7 @@ import PacientesView from "@/views/PacientesView.vue"
 import PacienteDetailView from "@/views/PacienteDetailView.vue"
 import UsuariosView from "@/views/UsuariosView.vue"
 import { useAuthStore } from "@/stores/auth"
-import { menuConfig } from "@/config/menuConfig"
+import { firstAccessibleRoute } from "@/config/menuConfig"
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -16,22 +16,6 @@ declare module "vue-router" {
     permission?: string
     label?: string
   }
-}
-
-function findFirstAccessibleRoute(permissions: string[]): string {
-  for (const item of menuConfig) {
-    if (item.route && (!item.permission || permissions.includes(item.permission))) {
-      return item.route
-    }
-    if (item.children) {
-      for (const child of item.children) {
-        if (!child.permission || permissions.includes(child.permission)) {
-          return child.route
-        }
-      }
-    }
-  }
-  return "/"
 }
 
 const router = createRouter({
@@ -468,6 +452,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reporte de Inventario" },
     },
     {
+      path: "/reportes/operativo/:tipo",
+      name: "reportes-operativo",
+      component: () => import("@/views/ReporteOperativoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_reportes", label: "Reporte operativo" },
+    },
+    {
       path: "/admin/config",
       name: "admin-config",
       component: () => import("@/views/ConfiguracionView.vue"),
@@ -596,12 +586,12 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: "login" }
 
   if (to.meta.requiresGuest && auth.isAuthenticated) {
-    const fallback = findFirstAccessibleRoute(auth.user?.permissions ?? [])
+    const fallback = firstAccessibleRoute(auth.user?.permissions ?? [])
     return fallback === "/" ? { name: "dashboard" } : fallback
   }
 
   if (to.meta.permission && !auth.hasPermission(to.meta.permission)) {
-    const fallback = findFirstAccessibleRoute(auth.user?.permissions ?? [])
+    const fallback = firstAccessibleRoute(auth.user?.permissions ?? [])
     // Si no hay ninguna ruta accesible o el fallback es la misma ruta que falló, dejamos pasar
     // para evitar el loop infinito. El contenido de la vista puede manejar el estado vacío.
     if (!fallback || fallback === to.path) return true

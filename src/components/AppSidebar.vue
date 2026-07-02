@@ -3,7 +3,7 @@ import { ref, computed, watch } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useSidebarStore } from "@/stores/sidebar"
-import { menuConfig, type MenuItem } from "@/config/menuConfig"
+import { menuConfig, type MenuItem, type MenuChild } from "@/config/menuConfig"
 import SidebarItem from "./SidebarItem.vue"
 
 const router = useRouter()
@@ -42,6 +42,30 @@ function onCollapsedGroupClick(id: string) {
 }
 
 // ── RBAC: filter visible items ───────────────────────────────
+// Filtra hijos por permiso, recursivo: descarta subgrupos que quedan vacíos.
+function filterChildren(children: MenuChild[]): MenuChild[] {
+  const out: MenuChild[] = []
+  for (const c of children) {
+    if (c.children) {
+      const sub = filterChildren(c.children)
+      if (sub.length) out.push({ ...c, children: sub })
+    } else if (!c.permission || auth.hasPermission(c.permission)) {
+      out.push(c)
+    }
+  }
+  return out
+}
+
+// Aplana un árbol de hijos a sus hojas (ítems con route).
+function leavesOf(children: MenuChild[]): MenuChild[] {
+  const out: MenuChild[] = []
+  for (const c of children) {
+    if (c.children) out.push(...leavesOf(c.children))
+    else out.push(c)
+  }
+  return out
+}
+
 const visibleItems = computed<MenuItem[]>(() => {
   return menuConfig
     .map((item) => {
@@ -49,9 +73,7 @@ const visibleItems = computed<MenuItem[]>(() => {
         if (item.permission && !auth.hasPermission(item.permission)) return null
         return item
       }
-      const filteredChildren = item.children.filter(
-        (child) => !child.permission || auth.hasPermission(child.permission),
-      )
+      const filteredChildren = filterChildren(item.children)
       if (filteredChildren.length === 0) return null
       return { ...item, children: filteredChildren }
     })
@@ -60,42 +82,28 @@ const visibleItems = computed<MenuItem[]>(() => {
 
 // ── Active group (contains active route) ───────────────────
 const activeGroupId = computed<string | null>(() => {
-  // First pass: exact child match wins over any prefix match
+  let best: { id: string; len: number } | null = null
   for (const item of visibleItems.value) {
-    if (item.route && route.path === item.route) return null
-    if (item.children) {
-      for (const child of item.children) {
-        if (route.path === child.route) return item.id
+    if (!item.children) continue
+    for (const leaf of leavesOf(item.children)) {
+      if (!leaf.route) continue
+      if (route.path === leaf.route || route.path.startsWith(leaf.route + "/")) {
+        if (!best || leaf.route.length > best.len) best = { id: item.id, len: leaf.route.length }
       }
     }
   }
-  // Second pass: prefix match (for nested sub-routes), pick longest
-  let best: { groupId: string; len: number } | null = null
-  for (const item of visibleItems.value) {
-    if (item.children) {
-      for (const child of item.children) {
-        if (route.path.startsWith(child.route + "/")) {
-          if (!best || child.route.length > best.len) {
-            best = { groupId: item.id, len: child.route.length }
-          }
-        }
-      }
-    }
-  }
-  return best?.groupId ?? null
+  return best?.id ?? null
 })
 
-// ── Active child route ─────────────────────────────────────
+// ── Active child route (recorre subgrupos hasta las hojas) ──
 const activeChildRoute = computed<string | null>(() => {
   let bestMatch: string | null = null
   for (const item of menuConfig) {
-    if (item.children) {
-      for (const child of item.children) {
-        if (route.path === child.route || route.path.startsWith(child.route + "/")) {
-          if (!bestMatch || child.route.length > bestMatch.length) {
-            bestMatch = child.route
-          }
-        }
+    if (!item.children) continue
+    for (const leaf of leavesOf(item.children)) {
+      if (!leaf.route) continue
+      if (route.path === leaf.route || route.path.startsWith(leaf.route + "/")) {
+        if (!bestMatch || leaf.route.length > bestMatch.length) bestMatch = leaf.route
       }
     }
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref, watch } from "vue"
 import type { MenuItem } from "@/config/menuConfig"
 
 const props = defineProps<{
@@ -50,6 +50,33 @@ function handleClick() {
 function handleChildClick(route: string) {
   emit("navigate", route)
 }
+
+// ── Sub-grupos anidados (un nivel) ──────────────────────────
+const openSub = ref<Set<string>>(new Set())
+function toggleSub(key: string) {
+  const s = new Set(openSub.value)
+  if (s.has(key)) s.delete(key)
+  else s.add(key)
+  openSub.value = s
+}
+function isSubOpen(key: string) {
+  return openSub.value.has(key)
+}
+// Abrir automáticamente el subgrupo que contiene la ruta activa
+watch(
+  () => props.activeChildRoute,
+  (r) => {
+    if (!r || !props.item.children) return
+    for (const c of props.item.children) {
+      if (c.children?.some((l) => l.route === r) && !openSub.value.has(c.label)) {
+        const s = new Set(openSub.value)
+        s.add(c.label)
+        openSub.value = s
+      }
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -78,21 +105,58 @@ function handleChildClick(route: string) {
     <!-- Sub-ítems (solo visible cuando expandido y no colapsado) -->
     <Transition name="sidebar-expand">
       <div v-if="expanded && !collapsed" class="ml-3 mt-1 mb-1 flex flex-col gap-0.5">
-        <button
-          v-for="child in item.children"
-          :key="child.route"
-          @click="handleChildClick(child.route)"
-          class="nav-child w-full flex items-center gap-3 py-2 px-4 rounded-lg text-left text-[13px]"
-          :class="activeChildRoute === child.route ? 'font-bold is-active' : 'font-medium'"
-        >
-          <span
-            class="material-symbols-outlined flex-shrink-0"
-            :style="childIconStyleFor(child.route)"
-            style="font-size: 16px"
-            >{{ child.icon }}</span
+        <template v-for="child in item.children" :key="child.label">
+          <!-- Sub-grupo anidado -->
+          <div v-if="child.children && child.children.length">
+            <button
+              @click="toggleSub(child.label)"
+              class="nav-child w-full flex items-center gap-3 py-2 px-4 rounded-lg text-left text-[13px] font-medium"
+            >
+              <span class="material-symbols-outlined flex-shrink-0" style="font-size: 16px">{{ child.icon }}</span>
+              <span class="flex-1 tracking-wide">{{ child.label }}</span>
+              <span
+                class="material-symbols-outlined sidebar-chevron"
+                :class="{ rotated: isSubOpen(child.label) }"
+                style="font-size: 16px"
+                >expand_more</span
+              >
+            </button>
+            <Transition name="sidebar-expand">
+              <div v-if="isSubOpen(child.label)" class="ml-4 mt-0.5 mb-0.5 flex flex-col gap-0.5">
+                <button
+                  v-for="leaf in child.children"
+                  :key="leaf.route"
+                  @click="handleChildClick(leaf.route!)"
+                  class="nav-child w-full flex items-center gap-3 py-2 px-4 rounded-lg text-left text-[13px]"
+                  :class="activeChildRoute === leaf.route ? 'font-bold is-active' : 'font-medium'"
+                >
+                  <span
+                    class="material-symbols-outlined flex-shrink-0"
+                    :style="childIconStyleFor(leaf.route!)"
+                    style="font-size: 16px"
+                    >{{ leaf.icon }}</span
+                  >
+                  <span class="tracking-wide">{{ leaf.label }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+          <!-- Hoja directa -->
+          <button
+            v-else
+            @click="handleChildClick(child.route!)"
+            class="nav-child w-full flex items-center gap-3 py-2 px-4 rounded-lg text-left text-[13px]"
+            :class="activeChildRoute === child.route ? 'font-bold is-active' : 'font-medium'"
           >
-          <span class="tracking-wide">{{ child.label }}</span>
-        </button>
+            <span
+              class="material-symbols-outlined flex-shrink-0"
+              :style="childIconStyleFor(child.route!)"
+              style="font-size: 16px"
+              >{{ child.icon }}</span
+            >
+            <span class="tracking-wide">{{ child.label }}</span>
+          </button>
+        </template>
       </div>
     </Transition>
   </div>

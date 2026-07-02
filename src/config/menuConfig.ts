@@ -1,8 +1,10 @@
 export interface MenuChild {
   label: string
   icon: string
-  route: string
+  route?: string
   permission?: string
+  /** Sub-grupo anidado (un nivel). Si está presente, este ítem agrupa hojas y no navega. */
+  children?: MenuChild[]
 }
 
 export interface MenuItem {
@@ -367,22 +369,58 @@ export const menuConfig: MenuItem[] = [
     permission: "ver_reportes",
     children: [
       {
-        label: "Reportes de Citas",
-        icon: "event_note",
-        route: "/reportes/citas",
-        permission: "ver_reportes",
+        label: "Reportes gerenciales",
+        icon: "insights",
+        children: [
+          {
+            label: "Reportes de Citas",
+            icon: "event_note",
+            route: "/reportes/citas",
+            permission: "ver_reportes",
+          },
+          {
+            label: "Reportes de Ventas",
+            icon: "trending_up",
+            route: "/reportes/ventas",
+            permission: "ver_reportes",
+          },
+          {
+            label: "Reporte de Inventario",
+            icon: "warehouse",
+            route: "/reportes/inventario",
+            permission: "ver_reportes",
+          },
+        ],
       },
       {
-        label: "Reportes de Ventas",
-        icon: "trending_up",
-        route: "/reportes/ventas",
-        permission: "ver_reportes",
-      },
-      {
-        label: "Reporte de Inventario",
-        icon: "warehouse",
-        route: "/reportes/inventario",
-        permission: "ver_reportes",
+        label: "Reportes operativos",
+        icon: "fact_check",
+        children: [
+          {
+            label: "Ventas",
+            icon: "receipt_long",
+            route: "/reportes/operativo/ventas",
+            permission: "ver_reportes",
+          },
+          {
+            label: "Compras",
+            icon: "shopping_cart",
+            route: "/reportes/operativo/compras",
+            permission: "ver_reportes",
+          },
+          {
+            label: "Mov. de inventario",
+            icon: "inventory",
+            route: "/reportes/operativo/inventario",
+            permission: "ver_reportes",
+          },
+          {
+            label: "Mov. de caja",
+            icon: "account_balance_wallet",
+            route: "/reportes/operativo/caja",
+            permission: "ver_reportes",
+          },
+        ],
       },
     ],
   },
@@ -463,3 +501,27 @@ export const menuConfig: MenuItem[] = [
     ],
   },
 ]
+
+/** Primera ruta (hoja) accesible según permisos, recorriendo subgrupos anidados. Fallback "/". */
+export function firstAccessibleRoute(permissions: string[]): string {
+  const allowed = (p?: string) => !p || permissions.includes(p)
+  const firstLeaf = (children: MenuChild[]): string | null => {
+    for (const c of children) {
+      if (c.children) {
+        const r = firstLeaf(c.children)
+        if (r) return r
+      } else if (c.route && allowed(c.permission)) {
+        return c.route
+      }
+    }
+    return null
+  }
+  for (const item of menuConfig) {
+    if (item.route && allowed(item.permission)) return item.route
+    if (item.children) {
+      const r = firstLeaf(item.children)
+      if (r) return r
+    }
+  }
+  return "/"
+}
