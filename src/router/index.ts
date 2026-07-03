@@ -34,6 +34,12 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: "/cambiar-contrasena",
+      name: "cambiar-contrasena",
+      component: () => import("@/views/CambiarContrasenaObligatoriaView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/verificar-email",
       name: "verificar-email",
       component: () => import("@/views/VerifyEmailView.vue"),
@@ -491,7 +497,7 @@ const router = createRouter({
       path: "/egresos/nuevo",
       name: "egresos-nuevo",
       component: () => import("@/views/NuevoEgresoView.vue"),
-      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nueva Solicitud" },
+      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nuevo Egreso" },
     },
     {
       path: "/egresos/aprobacion",
@@ -562,7 +568,7 @@ const router = createRouter({
     {
       path: "/notificaciones",
       name: "notificaciones",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/NotificacionesView.vue"),
       meta: { requiresAuth: true, permission: "ver_notificaciones", label: "Notificaciones" },
     },
     {
@@ -584,6 +590,10 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: "login" }
+
+  if (auth.isAuthenticated && auth.user?.mustChangePassword && to.path !== "/cambiar-contrasena") {
+    return "/cambiar-contrasena"
+  }
 
   if (to.meta.requiresGuest && auth.isAuthenticated) {
     const fallback = firstAccessibleRoute(auth.user?.permissions ?? [])

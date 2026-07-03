@@ -6,8 +6,9 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import PasswordInput from "@/components/PasswordInput.vue"
 import { useAuthStore } from "@/stores/auth"
-import { type AppUser, getAppUsers, deactivateUser } from "@/services/userService"
+import { type AppUser, getAppUsers, deactivateUser, resetPassword } from "@/services/userService"
 import {
   type Role,
   getRoles,
@@ -137,6 +138,46 @@ async function handleDeactivate() {
     deactivateError.value = err instanceof Error ? err.message : "Error al desactivar usuario."
   } finally {
     isDeactivating.value = false
+  }
+}
+
+// ── Modal: Restablecer contraseña ─────────────────────────────────────────────
+
+const showResetPasswordModal = ref(false)
+const resetPasswordValue     = ref("")
+const resetPasswordConfirm   = ref("")
+const resetPasswordError     = ref("")
+const isResettingPassword    = ref(false)
+
+function openResetPasswordModal() {
+  showRolesModal.value = false
+  resetPasswordValue.value   = ""
+  resetPasswordConfirm.value = ""
+  resetPasswordError.value   = ""
+  showResetPasswordModal.value = true
+}
+
+async function handleResetPassword() {
+  if (!managingUser.value) return
+
+  if (resetPasswordValue.value.length < 6) {
+    resetPasswordError.value = "La contraseña debe tener al menos 6 caracteres."
+    return
+  }
+  if (resetPasswordValue.value !== resetPasswordConfirm.value) {
+    resetPasswordError.value = "Las contraseñas no coinciden."
+    return
+  }
+
+  isResettingPassword.value = true
+  resetPasswordError.value = ""
+  try {
+    await resetPassword(managingUser.value.userId, resetPasswordValue.value)
+    showResetPasswordModal.value = false
+  } catch (err: unknown) {
+    resetPasswordError.value = err instanceof Error ? err.message : "Error al restablecer la contraseña."
+  } finally {
+    isResettingPassword.value = false
   }
 }
 
@@ -551,6 +592,14 @@ const userColumns = [
         <div class="w-full flex items-center justify-between gap-3">
           <div class="flex items-center gap-3">
             <BaseButton
+              v-if="auth.hasPermission('editar_usuario')"
+              variant="secondary"
+              size="sm"
+              @click="openResetPasswordModal">
+              <span class="material-symbols-outlined" style="font-size: 16px">password</span>
+              Restablecer contraseña
+            </BaseButton>
+            <BaseButton
               v-if="managingUser?.isActive && auth.hasPermission('editar_usuario')"
               variant="danger"
               size="sm"
@@ -567,6 +616,33 @@ const userColumns = [
           </div>
           <BaseButton variant="secondary" size="default" @click="showRolesModal = false">Cerrar</BaseButton>
         </div>
+      </template>
+    </BaseModal>
+
+    <!-- Modal: Restablecer contraseña -->
+    <BaseModal :show="showResetPasswordModal" title="Restablecer contraseña" size="sm" @close="showResetPasswordModal = false">
+      <template #body>
+        <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
+          Nueva contraseña para <strong>{{ managingUser?.firstName }} {{ managingUser?.lastName }}</strong>.
+          Va a tener que cambiarla en su próximo inicio de sesión.
+        </p>
+        <form class="space-y-4" @submit.prevent="handleResetPassword">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nueva contraseña</label>
+            <PasswordInput v-model="resetPasswordValue" placeholder="Mínimo 6 caracteres" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña</label>
+            <PasswordInput v-model="resetPasswordConfirm" placeholder="Repetí la contraseña" />
+          </div>
+          <p v-if="resetPasswordError" class="text-xs font-medium" style="color: var(--color-error)">{{ resetPasswordError }}</p>
+        </form>
+      </template>
+      <template #footer>
+        <BaseButton variant="secondary" size="sm" @click="showResetPasswordModal = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" size="sm" :disabled="isResettingPassword" @click="handleResetPassword">
+          {{ isResettingPassword ? "Guardando..." : "Restablecer" }}
+        </BaseButton>
       </template>
     </BaseModal>
   </div>

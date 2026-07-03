@@ -8,6 +8,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import PasswordInput from "@/components/PasswordInput.vue"
 import BirthDateInput from "@/components/BirthDateInput.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -774,12 +775,10 @@ async function submitHorario() {
               style="color: var(--color-outline)"
               >Contraseña *</label
             >
-            <input
+            <PasswordInput
               v-model="createForm.password"
-              type="password"
               placeholder="Mínimo 6 caracteres"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(!!createErrors.password)"
+              :error="!!createErrors.password"
             />
             <p
               v-if="createErrors.password"

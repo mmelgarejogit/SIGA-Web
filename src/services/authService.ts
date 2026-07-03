@@ -16,6 +16,7 @@ export interface LoginResponse {
   sucursalNombre?: string
   roleClaims: string[]
   permissions: string[]
+  mustChangePassword: boolean
 }
 
 export interface RegisterPatientRequest {
@@ -47,4 +48,8 @@ export async function registerPatient(data: RegisterPatientRequest): Promise<Reg
 
 export async function verifyEmail(token: string): Promise<void> {
   await http.get("/api/auth/verify-email", { params: { token } })
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await http.post("/api/auth/change-password", { currentPassword, newPassword })
 }

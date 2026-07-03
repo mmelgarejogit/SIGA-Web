@@ -65,6 +65,7 @@ async function handleSubmit() {
       sucursalNombre: response.sucursalNombre,
       roles: response.roleClaims,
       permissions: response.permissions ?? [],
+      mustChangePassword: response.mustChangePassword,
     })
 
     // Navegar al primer destino accesible (dashboard si tiene permiso, sino el primero disponible)

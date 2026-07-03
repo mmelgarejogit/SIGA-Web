@@ -4,6 +4,16 @@ import { useRouter } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useThemeStore } from "@/stores/theme"
 import { useSidebarStore } from "@/stores/sidebar"
+import {
+  type Notificacion,
+  getNotificaciones,
+  getContadorNoLeidas,
+  marcarLeida,
+} from "@/services/notificacionService"
+import { changePassword } from "@/services/authService"
+import BaseModal from "@/components/BaseModal.vue"
+import BaseButton from "@/components/BaseButton.vue"
+import PasswordInput from "@/components/PasswordInput.vue"
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -16,6 +26,48 @@ const showDropdown = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const showNotifications = ref(false)
 const notificationsRef = ref<HTMLElement | null>(null)
+
+const ultimasNotificaciones = ref<Notificacion[]>([])
+const contadorNoLeidas = ref(0)
+
+async function cargarContador() {
+  if (!authStore.hasPermission("ver_notificaciones")) return
+  try {
+    contadorNoLeidas.value = await getContadorNoLeidas()
+  } catch {
+    contadorNoLeidas.value = 0
+  }
+}
+
+async function cargarUltimasNotificaciones() {
+  try {
+    const result = await getNotificaciones({ pageSize: 5 })
+    ultimasNotificaciones.value = result.items
+  } catch {
+    ultimasNotificaciones.value = []
+  }
+}
+
+async function onClickNotificacion(n: Notificacion) {
+  if (n.leido) return
+  n.leido = true
+  contadorNoLeidas.value = Math.max(0, contadorNoLeidas.value - 1)
+  try {
+    await marcarLeida(n.id)
+  } catch {
+    n.leido = false
+    contadorNoLeidas.value++
+  }
+}
+
+function fechaRelativa(iso: string) {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (min < 1) return "recién"
+  if (min < 60) return `hace ${min} min`
+  const horas = Math.floor(min / 60)
+  if (horas < 24) return `hace ${horas} h`
+  return `hace ${Math.floor(horas / 24)} d`
+}
 
 const user = computed(() => authStore.user)
 
@@ -52,7 +104,10 @@ function toggleDropdown() {
 
 function toggleNotifications() {
   showNotifications.value = !showNotifications.value
-  if (showNotifications.value) showDropdown.value = false
+  if (showNotifications.value) {
+    showDropdown.value = false
+    cargarUltimasNotificaciones()
+  }
 }
 
 function handleClickOutside(e: MouseEvent) {
@@ -66,7 +121,50 @@ function logout() {
   router.push("/login")
 }
 
-onMounted(() => document.addEventListener("mousedown", handleClickOutside))
+// ── Cambiar mi contraseña ────────────────────────────────────────────────
+const showChangePasswordModal = ref(false)
+const currentPassword = ref("")
+const newPassword = ref("")
+const confirmPassword = ref("")
+const changePasswordError = ref("")
+const isChangingPassword = ref(false)
+
+function openChangePasswordModal() {
+  showDropdown.value = false
+  currentPassword.value = ""
+  newPassword.value = ""
+  confirmPassword.value = ""
+  changePasswordError.value = ""
+  showChangePasswordModal.value = true
+}
+
+async function submitChangePassword() {
+  changePasswordError.value = ""
+
+  if (newPassword.value.length < 6) {
+    changePasswordError.value = "La nueva contraseña debe tener al menos 6 caracteres."
+    return
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    changePasswordError.value = "Las contraseñas no coinciden."
+    return
+  }
+
+  isChangingPassword.value = true
+  try {
+    await changePassword(currentPassword.value, newPassword.value)
+    showChangePasswordModal.value = false
+  } catch (err: unknown) {
+    changePasswordError.value = err instanceof Error ? err.message : "No se pudo cambiar la contraseña."
+  } finally {
+    isChangingPassword.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("mousedown", handleClickOutside)
+  cargarContador()
+})
 onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 </script>
 
@@ -132,6 +230,11 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
           <span class="material-symbols-outlined" style="color: var(--color-on-surface-variant)"
             >notifications</span
           >
+          <span
+            v-if="contadorNoLeidas > 0"
+            class="absolute top-0.5 right-0.5 flex items-center justify-center rounded-full text-[10px] font-bold text-white"
+            style="min-width: 16px; height: 16px; padding: 0 3px; background-color: var(--color-error)"
+          >{{ contadorNoLeidas > 9 ? "9+" : contadorNoLeidas }}</span>
         </button>
 
         <Transition
@@ -144,7 +247,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         >
           <div
             v-if="showNotifications"
-            class="absolute right-0 mt-2 w-72 rounded-lg overflow-hidden"
+            class="absolute right-0 mt-2 w-80 rounded-lg overflow-hidden"
             style="
               top: 100%;
               background-color: var(--color-surface-container-lowest);
@@ -155,7 +258,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <div class="px-4 py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
               <p class="text-sm font-bold" style="color: var(--color-on-surface)">Notificaciones</p>
             </div>
-            <div class="flex flex-col items-center justify-center py-10 gap-2">
+            <div v-if="ultimasNotificaciones.length === 0" class="flex flex-col items-center justify-center py-10 gap-2">
               <span
                 class="material-symbols-outlined"
                 style="font-size: 36px; color: var(--color-outline-variant)"
@@ -165,6 +268,30 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
                 Sin notificaciones por ahora
               </p>
             </div>
+            <div v-else class="max-h-80 overflow-y-auto">
+              <button
+                v-for="n in ultimasNotificaciones"
+                :key="n.id"
+                @click="onClickNotificacion(n)"
+                class="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-container-low"
+                style="border-bottom: 1px solid var(--color-hairline-soft)"
+              >
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs" :class="n.leido ? 'font-medium' : 'font-bold'" style="color: var(--color-on-surface)">
+                    {{ n.mensaje }}
+                  </p>
+                  <p class="text-[11px] mt-0.5" style="color: var(--color-outline)">{{ fechaRelativa(n.fechaCreacion) }}</p>
+                </div>
+                <div v-if="!n.leido" class="w-2 h-2 rounded-full flex-shrink-0 mt-1" style="background-color: var(--color-primary)" />
+              </button>
+            </div>
+            <button
+              @click="router.push('/notificaciones'); showNotifications = false"
+              class="w-full px-4 py-2.5 text-center text-xs font-bold transition-colors hover:bg-surface-container-low"
+              style="color: var(--color-primary)"
+            >
+              Ver todas
+            </button>
           </div>
         </Transition>
       </div>
@@ -244,6 +371,14 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Acciones -->
             <div class="py-1.5">
               <button
+                @click="openChangePasswordModal"
+                class="account-action-btn w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
+                style="color: var(--color-on-surface-variant)"
+              >
+                <span class="material-symbols-outlined" style="font-size: 18px">password</span>
+                Cambiar contraseña
+              </button>
+              <button
                 @click="logout"
                 class="logout-btn w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
                 style="color: var(--color-error)"
@@ -257,13 +392,41 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
       </div>
     </div>
   </header>
+
+  <!-- Modal: cambiar mi contraseña -->
+  <BaseModal :show="showChangePasswordModal" title="Cambiar contraseña" size="sm" @close="showChangePasswordModal = false">
+    <template #body>
+      <form class="space-y-4" @submit.prevent="submitChangePassword">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña actual</label>
+          <PasswordInput v-model="currentPassword" placeholder="Tu contraseña actual" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña nueva</label>
+          <PasswordInput v-model="newPassword" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña nueva</label>
+          <PasswordInput v-model="confirmPassword" placeholder="Repetí la contraseña nueva" />
+        </div>
+        <p v-if="changePasswordError" class="text-xs font-medium" style="color: var(--color-error)">{{ changePasswordError }}</p>
+      </form>
+    </template>
+    <template #footer>
+      <BaseButton variant="secondary" size="sm" @click="showChangePasswordModal = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="isChangingPassword" @click="submitChangePassword">
+        {{ isChangingPassword ? "Guardando..." : "Guardar" }}
+      </BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
 .theme-toggle:hover,
 .icon-btn:hover,
 .user-btn:hover,
-.hamburger:hover {
+.hamburger:hover,
+.account-action-btn:hover {
   background-color: var(--color-surface-container-low);
 }
 .icon-btn.is-active,

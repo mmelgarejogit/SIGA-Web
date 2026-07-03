@@ -36,3 +36,7 @@ export async function deactivateUser(userId: number): Promise<void> {
   await http.delete(`/api/users/${userId}`)
   _cache = null
 }
+
+export async function resetPassword(userId: number, newPassword: string): Promise<void> {
+  await http.put(`/api/users/${userId}/reset-password`, { newPassword })
+}

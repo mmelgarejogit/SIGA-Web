@@ -39,6 +39,10 @@ function handleClick() {
   if (isGroup.value) {
     if (props.collapsed) {
       emit("collapsed-group-click")
+    } else if (props.item.route) {
+      // Grupo con ruta propia (p. ej. hub de Reportes): navega y asegura el submenú abierto.
+      emit("navigate", props.item.route)
+      if (!props.expanded) emit("toggle")
     } else {
       emit("toggle")
     }

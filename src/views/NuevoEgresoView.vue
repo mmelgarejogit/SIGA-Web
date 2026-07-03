@@ -210,7 +210,7 @@ const empleadoOptions = computed(() =>
             <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-on-surface-variant)">arrow_back</span>
           </button>
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nueva Solicitud</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nuevo Egreso</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">El egreso quedará pendiente de aprobación</p>
           </div>
         </div>

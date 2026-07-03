@@ -85,6 +85,10 @@ const activeGroupId = computed<string | null>(() => {
   let best: { id: string; len: number } | null = null
   for (const item of visibleItems.value) {
     if (!item.children) continue
+    // Un grupo con ruta propia (ej. hub /reportes) queda activo también por su ruta.
+    if (item.route && (route.path === item.route || route.path.startsWith(item.route + "/"))) {
+      if (!best || item.route.length > best.len) best = { id: item.id, len: item.route.length }
+    }
     for (const leaf of leavesOf(item.children)) {
       if (!leaf.route) continue
       if (route.path === leaf.route || route.path.startsWith(leaf.route + "/")) {

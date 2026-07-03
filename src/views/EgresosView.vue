@@ -245,7 +245,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/egresos/nuevo')">
             <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
-            Nueva Solicitud
+            Nuevo Egreso
           </BaseButton>
         </div>
 
