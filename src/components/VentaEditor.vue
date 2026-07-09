@@ -266,10 +266,13 @@ function buildPayload() {
 
 async function guardar() {
   if (!canSave.value) return
-  // Validaciones de venta a pedido (en presupuesto son opcionales)
-  if (!props.esPresupuesto && esPedido.value && !presupuestoCargado.value) {
-    if (!recetaId.value) { saveError.value = "La receta es obligatoria para una venta a pedido."; return }
-    if (!optica.laboratorio) { saveError.value = "Seleccioná el laboratorio para la venta a pedido."; return }
+  // Receta obligatoria para toda venta o presupuesto de tipo "a pedido".
+  if (esPedido.value && !presupuestoCargado.value && !recetaId.value) {
+    saveError.value = "La receta es obligatoria para una venta a pedido."; return
+  }
+  // Laboratorio solo se exige al confirmar una venta (en presupuesto se asigna después).
+  if (!props.esPresupuesto && esPedido.value && !presupuestoCargado.value && !optica.laboratorio) {
+    saveError.value = "Seleccioná el laboratorio para la venta a pedido."; return
   }
   // Presupuesto a pedido cargado: el laboratorio se asigna en su selector dedicado.
   if (!props.esPresupuesto && esPedido.value && presupuestoCargado.value && !labSeleccionadoId.value) {

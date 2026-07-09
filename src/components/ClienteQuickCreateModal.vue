@@ -193,10 +193,8 @@ function validate(): boolean {
     else if (hasEmail && !EMAIL_RE.test(form.personEmail.trim())) e.personEmail = "El formato del email no es válido."
   }
 
-  if (form.tipoFacturacion === "Juridica") {
-    if (!form.razonSocial.trim()) e.razonSocial = "La razón social es obligatoria para facturación jurídica."
-    if (!form.rucCiFiscal.trim()) e.rucCiFiscal = "El RUC es obligatorio para facturación jurídica."
-  }
+  if (!form.razonSocial.trim()) e.razonSocial = "La razón social es obligatoria."
+  if (!form.rucCiFiscal.trim()) e.rucCiFiscal = "El RUC es obligatorio."
   if (form.email.trim() && !EMAIL_RE.test(form.email.trim()))
     e.email = "El formato del email de facturación no es válido."
 
@@ -407,14 +405,14 @@ async function submit() {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-              Razón Social <span v-if="form.tipoFacturacion === 'Juridica'">*</span>
+              Razón Social <span>*</span>
             </label>
             <input v-model="form.razonSocial" type="text" placeholder="Empresa S.A." class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(!!errors.razonSocial)" />
             <p v-if="errors.razonSocial" class="text-xs font-medium" style="color: var(--color-error)">{{ errors.razonSocial }}</p>
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-              RUC / CI Fiscal <span v-if="form.tipoFacturacion === 'Juridica'">*</span>
+              RUC / CI Fiscal <span>*</span>
             </label>
             <input v-model="form.rucCiFiscal" type="text" placeholder="80012345-6" class="px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(!!errors.rucCiFiscal)" />
             <p v-if="errors.rucCiFiscal" class="text-xs font-medium" style="color: var(--color-error)">{{ errors.rucCiFiscal }}</p>

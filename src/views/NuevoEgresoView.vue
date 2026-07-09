@@ -218,14 +218,14 @@ const empleadoOptions = computed(() =>
         <!-- Selector de tipo -->
         <div class="mb-8">
           <p class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Tipo de egreso</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
             <button
               v-for="t in tiposNuevo" :key="t.key"
               @click="selectTipo(t.key)"
               class="flex items-center gap-4 px-5 py-4 rounded-2xl transition-all text-left"
               :style="selectedTipo === t.key
                 ? `background-color: ${tipoColor(t.key).bg}; border: 2px solid ${tipoColor(t.key).color}`
-                : 'background-color: var(--color-surface-container-lowest); border: 2px solid rgba(196,197,213,0.3)'"
+                : 'background-color: var(--color-surface-container-lowest); border: 2px solid var(--color-hairline-strong)'"
             >
               <span class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                 :style="`background-color: ${selectedTipo === t.key ? tipoColor(t.key).color : 'var(--color-surface-container-high)'}`">
@@ -256,22 +256,22 @@ const empleadoOptions = computed(() =>
             <!-- Toggle Profesional / Empleado (PagoPersonal) -->
             <div v-if="selectedTipo === 'PagoPersonal'">
               <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--color-outline)">Tipo de pago</label>
-              <div class="inline-flex rounded-xl overflow-hidden" style="border: 1px solid var(--color-outline-variant)">
+              <div class="inline-flex p-1 rounded-2xl" style="background-color: var(--color-surface-container-high)">
                 <button
                   type="button"
                   @click="selectSubTipo('Profesional')"
-                  class="px-5 h-10 text-sm font-semibold transition-colors"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
                   :style="subTipoPersonal === 'Profesional'
-                    ? 'background-color: #6D28D9; color: #fff;'
-                    : 'background-color: var(--color-surface); color: var(--color-on-surface-variant);'"
+                    ? 'background: var(--color-tertiary); color: var(--color-on-tertiary);'
+                    : 'color: var(--color-on-surface-variant);'"
                 >Profesional</button>
                 <button
                   type="button"
                   @click="selectSubTipo('Empleado')"
-                  class="px-5 h-10 text-sm font-semibold transition-colors"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
                   :style="subTipoPersonal === 'Empleado'
-                    ? 'background-color: #6D28D9; color: #fff;'
-                    : 'background-color: var(--color-surface); color: var(--color-on-surface-variant);'"
+                    ? 'background: var(--color-tertiary); color: var(--color-on-tertiary);'
+                    : 'color: var(--color-on-surface-variant);'"
                 >Empleado</button>
               </div>
             </div>
@@ -315,28 +315,40 @@ const empleadoOptions = computed(() =>
               <input v-model="form.concepto" type="text" class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none" :style="inputStyle(false)" />
             </div>
 
-            <!-- Monto y Fecha -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Monto (Gs.) *</label>
-                <MontoInput :model-value="form.monto ?? null" @update:model-value="form.monto = $event ?? 0" placeholder="0" />
+            <!-- Monto: la cifra que sale de la óptica, con el peso visual de un comprobante -->
+            <div class="monto-voucher rounded-2xl p-5"
+              :style="`background-color: color-mix(in srgb, ${tipoColor(selectedTipo).color} 7%, var(--color-surface-container-lowest)); border: 1px solid color-mix(in srgb, ${tipoColor(selectedTipo).color} 20%, transparent);`">
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Monto a pagar (Gs.) *</label>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full"
+                  :style="`background-color: ${tipoColor(selectedTipo).color}; color: var(--color-surface-container-lowest);`">
+                  {{ tiposNuevo.find(t => t.key === selectedTipo)?.label }}
+                </span>
               </div>
+              <MontoInput
+                class="monto-voucher-input"
+                :model-value="form.monto ?? null"
+                @update:model-value="form.monto = $event ?? 0"
+                placeholder="0"
+              />
+            </div>
+
+            <!-- Fecha y Vencimiento -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha *</label>
                 <DateInput v-model="form.fechaEmision" />
-              </div>
-            </div>
-
-            <!-- Método de pago y Vencimiento -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
-                <SearchableSelect v-model="form.metodoPago" :options="metodoPagoOptions" placeholder="Método de pago" />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
                 <DateInput v-model="form.fechaVencimiento" placeholder="Opcional" />
               </div>
+            </div>
+
+            <!-- Método de pago -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
+              <SearchableSelect v-model="form.metodoPago" :options="metodoPagoOptions" placeholder="Método de pago" />
             </div>
 
             <!-- Observaciones -->
@@ -391,4 +403,12 @@ const empleadoOptions = computed(() =>
 
 <style scoped>
 :deep(.ss-trigger) { height: 48px; border-radius: 12px; }
+
+.monto-voucher-input :deep(input) {
+  height: 3.75rem;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 </style>

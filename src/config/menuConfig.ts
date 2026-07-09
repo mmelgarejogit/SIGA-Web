@@ -14,6 +14,15 @@ export interface MenuItem {
   permission?: string
   children?: MenuChild[]
   route?: string
+  /** Zona del sidebar (agrupa varios MenuItem bajo un mismo título). Sin zona = se renderiza suelto. */
+  zone?: string
+}
+
+/** ¿Este nodo matchea el buscador rápido, por su propia etiqueta o por algún descendiente? */
+export function nodeMatchesQuery(node: { label: string; children?: MenuChild[] }, query: string): boolean {
+  if (node.label.toLowerCase().includes(query)) return true
+  if (node.children) return node.children.some((c) => nodeMatchesQuery(c, query))
+  return false
 }
 
 export const menuConfig: MenuItem[] = [
@@ -23,6 +32,7 @@ export const menuConfig: MenuItem[] = [
     icon: "dashboard",
     route: "/",
     permission: "ver_dashboard",
+    zone: "General",
   },
   {
     id: "notificaciones",
@@ -30,20 +40,7 @@ export const menuConfig: MenuItem[] = [
     icon: "notifications",
     route: "/notificaciones",
     permission: "ver_notificaciones",
-  },
-  {
-    id: "pacientes",
-    label: "Pacientes",
-    icon: "groups",
-    route: "/pacientes",
-    permission: "ver_pacientes",
-  },
-  {
-    id: "agenda",
-    label: "Agenda",
-    icon: "calendar_month",
-    route: "/agenda",
-    permission: "ver_agenda",
+    zone: "General",
   },
   {
     id: "mis-turnos",
@@ -51,6 +48,7 @@ export const menuConfig: MenuItem[] = [
     icon: "event_available",
     route: "/mis-turnos",
     permission: "ver_mis_turnos",
+    zone: "General",
   },
   {
     id: "mi-historial",
@@ -58,6 +56,7 @@ export const menuConfig: MenuItem[] = [
     icon: "clinical_notes",
     route: "/mi-historial",
     permission: "ver_mis_turnos",
+    zone: "General",
   },
   {
     id: "mis-recetas",
@@ -65,11 +64,29 @@ export const menuConfig: MenuItem[] = [
     icon: "prescriptions",
     route: "/mis-recetas",
     permission: "ver_mis_turnos",
+    zone: "General",
+  },
+  {
+    id: "pacientes",
+    label: "Pacientes",
+    icon: "groups",
+    route: "/pacientes",
+    permission: "ver_pacientes",
+    zone: "Atención",
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    icon: "calendar_month",
+    route: "/agenda",
+    permission: "ver_agenda",
+    zone: "Atención",
   },
   {
     id: "clinica",
     label: "Clínica",
     icon: "medical_services",
+    zone: "Atención",
     children: [
       {
         label: "Recepción",
@@ -96,6 +113,7 @@ export const menuConfig: MenuItem[] = [
     label: "Catálogo",
     icon: "inventory_2",
     permission: "ver_inventario",
+    zone: "Óptica",
     children: [
       {
         label: "Productos",
@@ -132,6 +150,7 @@ export const menuConfig: MenuItem[] = [
     label: "Inventario",
     icon: "warehouse",
     permission: "ver_inventario",
+    zone: "Óptica",
     children: [
       {
         label: "Configuración",
@@ -165,6 +184,7 @@ export const menuConfig: MenuItem[] = [
     label: "Compras",
     icon: "local_shipping",
     permission: "ver_inventario",
+    zone: "Comercial",
     children: [
       {
         label: "Configuración",
@@ -197,6 +217,7 @@ export const menuConfig: MenuItem[] = [
     label: "Egresos",
     icon: "account_balance_wallet",
     permission: "ver_egresos",
+    zone: "Comercial",
     children: [
       {
         label: "Configuración",
@@ -222,6 +243,7 @@ export const menuConfig: MenuItem[] = [
     label: "Ventas",
     icon: "point_of_sale",
     permission: "ver_ventas",
+    zone: "Comercial",
     children: [
       {
         label: "Configuración",
@@ -250,6 +272,7 @@ export const menuConfig: MenuItem[] = [
     label: "Laboratorio",
     icon: "biotech",
     permission: "ver_laboratorio",
+    zone: "Comercial",
     children: [
       { label: "Pedidos",      icon: "science",      route: "/laboratorio/pedidos",      permission: "ver_laboratorio" },
       { label: "Aprobaciones", icon: "task_alt",     route: "/laboratorio/aprobaciones", permission: "gestionar_laboratorio" },
@@ -262,6 +285,7 @@ export const menuConfig: MenuItem[] = [
     label: "Caja",
     icon: "payments",
     permission: "ver_ventas",
+    zone: "Comercial",
     children: [
       {
         label: "Caja",
@@ -289,6 +313,7 @@ export const menuConfig: MenuItem[] = [
     icon: "analytics",
     route: "/reportes",
     permission: "ver_reportes",
+    zone: "Gestión",
     children: [
       {
         label: "Reportes gerenciales",
@@ -351,6 +376,7 @@ export const menuConfig: MenuItem[] = [
     label: "Personal",
     icon: "people",
     permission: "ver_profesionales",
+    zone: "Gestión",
     children: [
       {
         label: "Profesionales",
@@ -383,6 +409,7 @@ export const menuConfig: MenuItem[] = [
     label: "Administración",
     icon: "manage_accounts",
     permission: "ver_usuarios",
+    zone: "Gestión",
     children: [
       {
         label: "Accesos",

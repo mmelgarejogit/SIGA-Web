@@ -313,9 +313,11 @@ function duracion(apertura: string, cierre?: string): string {
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-xs font-semibold truncate" style="color: var(--color-on-surface)">{{ m.concepto }}</p>
-              <div class="flex items-center gap-1.5 mt-0.5">
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span class="material-symbols-outlined" style="font-size:12px; color: var(--color-outline)">{{ metodoPagoIcon(m.metodoPago) }}</span>
-                <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }} · {{ fmtTime(m.createdAt) }}</span>
+                <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }}</span>
+                <span v-if="m.referencia" class="text-xs" style="color: var(--color-outline)">· {{ m.referencia }}</span>
+                <span class="text-xs" style="color: var(--color-outline)">· {{ fmtTime(m.createdAt) }}</span>
               </div>
             </div>
             <p class="text-sm font-bold flex-shrink-0"

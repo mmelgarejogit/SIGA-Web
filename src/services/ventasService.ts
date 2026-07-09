@@ -41,6 +41,7 @@ export interface CobroLinea {
   id: number
   metodoPago: MetodoPago
   monto: number
+  referencia?: string
 }
 
 export interface Cobro {
@@ -254,6 +255,7 @@ export interface ActualizarVentaRequest {
 export interface CobroLineaRequest {
   metodoPago: MetodoPago
   monto: number
+  referencia?: string
 }
 
 export interface RegistrarCobroRequest {

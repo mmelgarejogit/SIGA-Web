@@ -92,13 +92,13 @@ const inputStyle = "border-radius: 12px; border: 1px solid var(--color-outline-v
     <!-- Armazón -->
     <div>
       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Armazón</label>
-      <div v-if="state.armazon" class="flex items-center gap-3 px-4 py-3 rounded-xl" style="background: var(--color-info-container); border: 1px solid var(--color-info-container)">
+      <div v-if="state.armazon" class="flex items-center gap-3 px-4 py-3 rounded-xl flex-wrap" style="background: var(--color-info-container); border: 1px solid var(--color-info-container)">
         <span class="material-symbols-outlined" style="color:var(--color-on-info-container)">eyeglasses</span>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-[140px]">
           <p class="font-semibold text-sm truncate" style="color:var(--color-on-info-container)">{{ state.armazon.nombre }}</p>
           <p class="text-xs" style="color:var(--color-info)">Stock: {{ state.armazon.stockActual }}</p>
         </div>
-        <div class="flex items-center gap-1 text-xs" style="color:var(--color-info)">Gs.
+        <div class="flex items-center gap-1 text-xs ml-auto" style="color:var(--color-info)">Gs.
           <div class="w-28"><MontoInput compact align="right" :model-value="state.armazonPrecio ?? null" @update:model-value="state.armazonPrecio = $event ?? 0" /></div>
         </div>
         <button type="button" @click="clearArmazon" class="p-1 rounded-full hover:bg-blue-100"><span class="material-symbols-outlined" style="font-size:18px;color:var(--color-info)">close</span></button>
@@ -125,8 +125,8 @@ const inputStyle = "border-radius: 12px; border: 1px solid var(--color-outline-v
     <!-- Lente (diseño + precio) -->
     <div>
       <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Lente</label>
-      <div class="flex items-center gap-2">
-        <div class="relative flex-1">
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative flex-1 min-w-[160px]">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style="font-size:18px;color:var(--color-outline)">lens</span>
           <SearchableSelect
             :model-value="state.tipoLenteId"

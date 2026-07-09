@@ -179,10 +179,8 @@ function emptyForm(): ClienteForm {
 type FormErrors = Partial<Record<keyof ClienteForm | "contact", string>>
 
 function validateFacturacion(f: ClienteForm, e: FormErrors) {
-  if (f.tipoFacturacion === "Juridica") {
-    if (!f.razonSocial.trim()) e.razonSocial = "La razón social es obligatoria para facturación jurídica."
-    if (!f.rucCiFiscal.trim()) e.rucCiFiscal = "El RUC es obligatorio para facturación jurídica."
-  }
+  if (!f.razonSocial.trim()) e.razonSocial = "La razón social es obligatoria."
+  if (!f.rucCiFiscal.trim()) e.rucCiFiscal = "El RUC es obligatorio."
   if (f.email.trim() && !EMAIL_RE.test(f.email.trim()))
     e.email = "El formato del email de facturación no es válido."
 }
@@ -653,7 +651,7 @@ async function confirmEstado() {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-              Razón Social <span v-if="editForm.tipoFacturacion === 'Juridica'">*</span>
+              Razón Social <span>*</span>
             </label>
             <input
               v-model="editForm.razonSocial"
@@ -666,7 +664,7 @@ async function confirmEstado() {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">
-              RUC / CI Fiscal <span v-if="editForm.tipoFacturacion === 'Juridica'">*</span>
+              RUC / CI Fiscal <span>*</span>
             </label>
             <input
               v-model="editForm.rucCiFiscal"

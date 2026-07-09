@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
+import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useRouter, useRoute } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import { useSidebarStore } from "@/stores/sidebar"
-import { menuConfig, type MenuItem, type MenuChild } from "@/config/menuConfig"
+import { menuConfig, nodeMatchesQuery, type MenuItem, type MenuChild } from "@/config/menuConfig"
 import SidebarItem from "./SidebarItem.vue"
 
 const router = useRouter()
@@ -16,7 +16,7 @@ const effectiveCollapsed = computed(() => !sidebar.isMobile && sidebar.collapsed
 
 const navStyle = computed(() => {
   const base =
-    "background-color: #1e3a5f; min-width: 0; transition: transform 0.28s ease, width 0.25s ease;"
+    "background: linear-gradient(180deg, #1b3350 0%, #142943 100%); min-width: 0; transition: transform 0.28s ease, width 0.25s ease;"
   if (sidebar.isMobile) {
     return base + `width: 280px; transform: translateX(${sidebar.mobileOpen ? "0" : "-100%"});`
   }
@@ -80,6 +80,58 @@ const visibleItems = computed<MenuItem[]>(() => {
     .filter((item): item is MenuItem => item !== null)
 })
 
+// ── Buscador rápido ("/" enfoca, Escape limpia) ──────────────
+const searchQuery = ref("")
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const normalizedQuery = computed(() => searchQuery.value.trim().toLowerCase())
+
+// Solo los módulos (y subgrupos) que matchean, ya sea por su propia etiqueta
+// o porque algún descendiente matchea — mismo criterio en todos los niveles.
+const searchedItems = computed<MenuItem[]>(() => {
+  if (!normalizedQuery.value) return visibleItems.value
+  return visibleItems.value.filter((item) => nodeMatchesQuery(item, normalizedQuery.value))
+})
+
+function clearSearch() {
+  searchQuery.value = ""
+}
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === "/" && document.activeElement !== searchInputRef.value) {
+    e.preventDefault()
+    searchInputRef.value?.focus()
+  }
+  if (e.key === "Escape" && document.activeElement === searchInputRef.value) {
+    clearSearch()
+    searchInputRef.value?.blur()
+  }
+}
+
+// ── Agrupación por zona (General/Atención/Óptica/Comercial/Gestión) ─────────
+// Una zona solo aparece si tiene al menos un módulo visible para este usuario;
+// los módulos sin zona (ninguno hoy) se mostrarían sueltos, sin título.
+const ZONE_ORDER = ["General", "Atención", "Óptica", "Comercial", "Gestión"]
+
+const groupedItems = computed(() => {
+  const byZone = new Map<string, MenuItem[]>()
+  const unzoned: MenuItem[] = []
+  for (const item of searchedItems.value) {
+    if (item.zone) {
+      if (!byZone.has(item.zone)) byZone.set(item.zone, [])
+      byZone.get(item.zone)!.push(item)
+    } else {
+      unzoned.push(item)
+    }
+  }
+  const groups: { zone: string | null; items: MenuItem[] }[] = []
+  if (unzoned.length) groups.push({ zone: null, items: unzoned })
+  for (const z of ZONE_ORDER) {
+    const items = byZone.get(z)
+    if (items?.length) groups.push({ zone: z, items })
+  }
+  return groups
+})
+
 // ── Active group (contains active route) ───────────────────
 const activeGroupId = computed<string | null>(() => {
   let best: { id: string; len: number } | null = null
@@ -137,6 +189,9 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => document.addEventListener("keydown", handleGlobalKeydown))
+onUnmounted(() => document.removeEventListener("keydown", handleGlobalKeydown))
 </script>
 
 <template>
@@ -151,53 +206,83 @@ watch(
   </Transition>
 
   <nav
-    class="fixed left-0 top-0 bottom-0 z-[60] flex flex-col py-6 shadow-2xl overflow-hidden"
+    class="fixed left-0 top-0 bottom-0 z-[60] flex flex-col py-5 shadow-2xl overflow-hidden"
     :style="navStyle"
   >
-    <!-- Logo -->
+    <!-- Marca: anillos de refracción (eco del hero de login) + wordmark -->
     <div
-      class="mb-8 flex items-center gap-3 overflow-hidden flex-shrink-0"
-      :class="effectiveCollapsed ? 'justify-center px-0' : 'px-6'"
+      class="mb-4 flex items-center gap-3 overflow-hidden flex-shrink-0 cursor-pointer"
+      :class="effectiveCollapsed ? 'justify-center px-0' : 'px-5'"
       style="transition: padding 0.25s ease"
+      @click="sidebar.toggle"
+      title="Colapsar / expandir menú"
     >
-      <div
-        class="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md cursor-pointer"
-        @click="sidebar.toggle"
-        title="Colapsar / expandir menú"
-      >
-        <span
-          class="material-symbols-outlined"
-          style="
-            color: #1e3a5f;
-            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          "
-          >visibility</span
-        >
+      <div class="lens-mark flex-shrink-0">
+        <svg viewBox="0 0 40 40" width="36" height="36">
+          <defs>
+            <radialGradient id="sbLensGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#7fe0ff" stop-opacity="0.55" />
+              <stop offset="45%" stop-color="#00b6d9" stop-opacity="0.18" />
+              <stop offset="100%" stop-color="#00b6d9" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <circle fill="url(#sbLensGradient)" cx="20" cy="20" r="20" />
+          <circle class="lens-ring" cx="20" cy="20" r="18.5" />
+          <circle class="lens-ring" cx="20" cy="20" r="14" />
+          <circle class="lens-ring" cx="20" cy="20" r="9.5" />
+          <circle class="lens-ring lens-ring-focal" cx="20" cy="20" r="5.5" />
+        </svg>
       </div>
       <div class="overflow-hidden" style="transition: opacity 0.2s ease, width 0.25s ease" :style="effectiveCollapsed ? 'opacity: 0; width: 0;' : 'opacity: 1; width: auto;'">
-        <h1 class="text-xl font-black text-white uppercase tracking-widest leading-none whitespace-nowrap">
-          SIGA-Óptica
+        <h1 class="text-[17px] font-extrabold text-white leading-tight whitespace-nowrap" style="font-family: var(--font-headline); letter-spacing: -0.01em">
+          SIGA<span style="color: #7fe0ff">·</span>ÓPTICA
         </h1>
-        <p class="text-blue-100/50 text-[10px] uppercase tracking-widest mt-0.5 font-semibold whitespace-nowrap">
-          Optical Precision
+        <p class="text-[9.5px] uppercase whitespace-nowrap mt-0.5 font-medium" style="font-family: var(--font-mono); letter-spacing: 0.22em; color: rgba(230, 236, 246, 0.38)">
+          Precisión clínica
         </p>
       </div>
     </div>
 
+    <!-- Buscador rápido -->
+    <div v-if="!effectiveCollapsed" class="quickjump px-4 mb-3 flex-shrink-0 relative">
+      <span class="material-symbols-outlined qj-icon" style="font-size: 15px">search</span>
+      <input
+        ref="searchInputRef"
+        v-model="searchQuery"
+        type="text"
+        placeholder="Saltar a un módulo…"
+        autocomplete="off"
+        class="qj-input"
+      />
+      <button v-if="searchQuery" class="qj-clear" title="Limpiar búsqueda" @click="clearSearch">
+        <span class="material-symbols-outlined" style="font-size: 14px">close</span>
+      </button>
+      <span v-else class="qj-kbd">/</span>
+    </div>
+
     <!-- Nav Items -->
     <div class="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden px-2 flex flex-col gap-0.5">
-      <div v-for="item in visibleItems" :key="item.id" class="flex-shrink-0">
-        <SidebarItem
-          :item="item"
-          :expanded="expandedGroupId === item.id"
-          :active="item.id === activeItemId || item.id === activeGroupId"
-          :active-child-route="item.id === activeGroupId ? activeChildRoute : null"
-          :collapsed="effectiveCollapsed"
-          @navigate="navigate"
-          @toggle="toggleGroup(item.id)"
-          @collapsed-group-click="onCollapsedGroupClick(item.id)"
-        />
-      </div>
+      <template v-if="groupedItems.length">
+        <div v-for="group in groupedItems" :key="group.zone ?? '_'" class="flex-shrink-0">
+          <div v-if="group.zone && !effectiveCollapsed" class="zone-label">{{ group.zone }}</div>
+          <div v-for="item in group.items" :key="item.id" class="flex-shrink-0">
+            <SidebarItem
+              :item="item"
+              :expanded="expandedGroupId === item.id || !!normalizedQuery"
+              :active="item.id === activeItemId || item.id === activeGroupId"
+              :active-child-route="item.id === activeGroupId ? activeChildRoute : null"
+              :collapsed="effectiveCollapsed"
+              :search-query="normalizedQuery"
+              @navigate="navigate"
+              @toggle="toggleGroup(item.id)"
+              @collapsed-group-click="onCollapsedGroupClick(item.id)"
+            />
+          </div>
+        </div>
+      </template>
+      <p v-else-if="!effectiveCollapsed" class="px-3 py-6 text-center text-xs" style="color: rgba(230, 236, 246, 0.4)">
+        Sin resultados para "{{ searchQuery }}"
+      </p>
     </div>
 
     <!-- Toggle button (colapsar — solo desktop) -->
@@ -230,6 +315,100 @@ watch(
 </template>
 
 <style scoped>
+/* ── Marca: anillos de refracción ─────────────────────────────────────────── */
+.lens-ring {
+  fill: none;
+  stroke: rgba(127, 224, 255, 0.32);
+  stroke-width: 1;
+}
+.lens-ring-focal {
+  stroke: #7fe0ff;
+  stroke-width: 1.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lens-mark {
+    animation: sb-breathe 5.5s cubic-bezier(0.2, 0, 0, 1) infinite;
+  }
+}
+@keyframes sb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* ── Buscador rápido ───────────────────────────────────────────────────────── */
+.qj-icon {
+  position: absolute;
+  left: 27px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(230, 236, 246, 0.4);
+  pointer-events: none;
+}
+.qj-input {
+  width: 100%;
+  height: 36px;
+  background: #142943;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #f3f6fc;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 32px;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.qj-input::placeholder {
+  color: rgba(230, 236, 246, 0.34);
+}
+.qj-input:focus {
+  border-color: #00b6d9;
+  box-shadow: 0 0 0 3px rgba(127, 224, 255, 0.16);
+}
+.qj-kbd {
+  position: absolute;
+  right: 23px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(230, 236, 246, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 1px 5px;
+  pointer-events: none;
+}
+.qj-clear {
+  position: absolute;
+  right: 23px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(230, 236, 246, 0.5);
+  transition: color 0.15s ease;
+}
+.qj-clear:hover {
+  color: #f3f6fc;
+}
+
+/* ── Título de zona ────────────────────────────────────────────────────────── */
+.zone-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: rgba(127, 224, 255, 0.5);
+  padding: 14px 12px 6px;
+}
+
 /* ── Scrollbar fino acorde al sidebar oscuro (reemplaza el nativo) ───────────── */
 .sidebar-scroll {
   scrollbar-width: thin;

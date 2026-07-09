@@ -45,6 +45,17 @@ const router = createRouter({
       component: () => import("@/views/VerifyEmailView.vue"),
     },
     {
+      path: "/olvide-contrasena",
+      name: "olvide-contrasena",
+      component: () => import("@/views/OlvideContrasenaView.vue"),
+      meta: { requiresGuest: true },
+    },
+    {
+      path: "/restablecer-contrasena",
+      name: "restablecer-contrasena",
+      component: () => import("@/views/RestablecerContrasenaView.vue"),
+    },
+    {
       path: "/confirmar-turno",
       name: "confirmar-turno",
       component: () => import("@/views/ConfirmarTurnoView.vue"),

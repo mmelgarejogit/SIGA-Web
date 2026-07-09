@@ -266,13 +266,13 @@ async function handleSubmit() {
             </div>
 
             <div class="flex justify-end pt-1">
-              <button
-                type="button"
+              <RouterLink
+                to="/olvide-contrasena"
                 class="text-sm font-bold transition-colors"
                 style="color: var(--color-primary)"
               >
                 ¿Olvidó su contraseña?
-              </button>
+              </RouterLink>
             </div>
           </div>
 

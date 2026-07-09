@@ -92,14 +92,14 @@ function formatDate(iso: string) {
         </div>
         <div v-else class="flex gap-6">
           <div>
-            <p class="text-3xl font-black" style="color: white">{{ todayTurnosCount }}</p>
+            <p class="text-3xl font-bold" style="color: white; font-family: var(--font-mono); font-variant-numeric: tabular-nums">{{ todayTurnosCount }}</p>
             <p class="text-xs font-semibold mt-0.5" style="color: rgba(184, 196, 255, 0.7)">
               Turnos pendientes
             </p>
           </div>
           <div class="w-px" style="background-color: rgba(255, 255, 255, 0.15)"></div>
           <div>
-            <p class="text-3xl font-black" style="color: white">{{ recentPatients.length }}</p>
+            <p class="text-3xl font-bold" style="color: white; font-family: var(--font-mono); font-variant-numeric: tabular-nums">{{ recentPatients.length }}</p>
             <p class="text-xs font-semibold mt-0.5" style="color: rgba(184, 196, 255, 0.7)">
               Pacientes nuevos
             </p>

@@ -53,3 +53,11 @@ export async function verifyEmail(token: string): Promise<void> {
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await http.post("/api/auth/change-password", { currentPassword, newPassword })
 }
+
+export async function requestPasswordReset(email: string, hCaptchaToken: string): Promise<void> {
+  await http.post("/api/auth/forgot-password", { email, hCaptchaToken })
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await http.post("/api/auth/reset-password", { token, newPassword })
+}

@@ -2,6 +2,7 @@
 import DateInput from "@/components/DateInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import MontoInput from "@/components/MontoInput.vue"
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -33,7 +34,7 @@ const puedeCobrar = computed(() => venta.value?.estado === "ListaParaCobrar" && 
 // ── Formulario de cobro ──────────────────────────────────────────────────────
 const METODOS: MetodoPago[] = ["Efectivo", "Tarjeta", "Transferencia", "Cheque"]
 const metodoOptions = computed(() => METODOS.map(m => ({ value: m, label: m })))
-const lineas = ref<{ metodoPago: MetodoPago; monto: number }[]>([{ metodoPago: "Efectivo", monto: 0 }])
+const lineas = ref<{ metodoPago: MetodoPago; monto: number; referencia: string }[]>([{ metodoPago: "Efectivo", monto: 0, referencia: "" }])
 const fecha  = ref(new Date().toISOString().slice(0, 10))
 const tipo   = ref<TipoCobro>("Cuota")
 const totalCobro = computed(() => lineas.value.reduce((s, l) => s + (l.monto || 0), 0))
@@ -46,11 +47,11 @@ const TIPO_COBRO_OPTIONS = [
 const isSaving = ref(false)
 const opError  = ref("")
 
-function addLinea()           { lineas.value.push({ metodoPago: "Efectivo", monto: 0 }) }
+function addLinea()           { lineas.value.push({ metodoPago: "Efectivo", monto: 0, referencia: "" }) }
 function removeLinea(i: number) { lineas.value.splice(i, 1) }
 
 function resetFormToSaldo() {
-  lineas.value = [{ metodoPago: "Efectivo", monto: saldo.value }]
+  lineas.value = [{ metodoPago: "Efectivo", monto: saldo.value, referencia: "" }]
 }
 
 async function load() {
@@ -83,7 +84,9 @@ async function doRegistrarCobro(): Promise<boolean> {
     ventaId: venta.value.id,
     tipo:    tipo.value,
     fecha:   fecha.value,
-    lineas:  lineas.value.filter(l => l.monto > 0),
+    lineas:  lineas.value
+      .filter(l => l.monto > 0)
+      .map(l => ({ metodoPago: l.metodoPago, monto: l.monto, referencia: l.referencia.trim() || undefined })),
   })
   resetFormToSaldo()
   return true
@@ -179,6 +182,14 @@ function goEmitir() {
                     <div v-for="(l, i) in lineas" :key="i" class="flex gap-3 items-center">
                       <SearchableSelect v-model="l.metodoPago" :options="metodoOptions" class="flex-1" />
                       <MontoInput :model-value="l.monto ?? null" placeholder="Monto" class="flex-1" @update:model-value="l.monto = $event ?? 0" />
+                      <input
+                        v-if="l.metodoPago !== 'Efectivo'"
+                        v-model="l.referencia"
+                        type="text"
+                        placeholder="Referencia (opcional)"
+                        class="flex-1 px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                        :style="inputStyle()"
+                      />
                       <button v-if="lineas.length > 1" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:var(--color-error-container);color:var(--color-on-error-container)" @click="removeLinea(i)">
                         <span class="material-symbols-outlined" style="font-size:16px">close</span>
                       </button>

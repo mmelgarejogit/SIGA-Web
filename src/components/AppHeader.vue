@@ -305,7 +305,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
           class="user-btn flex items-center gap-3 px-2 py-1.5 rounded-md transition-all"
           :class="{ 'is-active': showDropdown }"
         >
-          <div class="text-right">
+          <div class="text-right hidden sm:block">
             <p class="text-sm font-bold leading-none" style="color: var(--color-on-surface)">
               {{ displayName }}
             </p>

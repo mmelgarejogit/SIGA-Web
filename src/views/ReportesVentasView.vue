@@ -362,11 +362,12 @@ function exportCsv() {
                   <p class="text-xs font-semibold mb-2" style="color: var(--color-outline)">
                     Máx: {{ fmt(serieMax) }}
                   </p>
-                  <div class="flex items-end gap-1" style="height: 200px">
+                  <div class="overflow-x-auto">
+                  <div class="flex items-end gap-1" :style="{ height: '200px', minWidth: `max(100%, ${reporte.serieTemporal.length * 36}px)` }">
                     <div
                       v-for="(p, i) in reporte.serieTemporal"
                       :key="i"
-                      class="flex-1 flex flex-col items-center justify-end gap-1 h-full"
+                      class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1 h-full"
                       :title="`${p.periodo} · Facturado ${fmt(p.facturado)} · Cobrado ${fmt(p.cobrado)}`"
                     >
                       <div class="w-full flex items-end justify-center gap-0.5 h-full">
@@ -389,6 +390,7 @@ function exportCsv() {
                       >
                       <span v-else class="text-[9px]">&nbsp;</span>
                     </div>
+                  </div>
                   </div>
                 </div>
                 <div v-else class="flex items-center justify-center" style="height: 200px">
