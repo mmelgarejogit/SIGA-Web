@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
@@ -21,6 +23,12 @@ const canEdit = auth.hasPermission("gestionar_especialidades")
 const especialidades = ref<Especialidad[]>([])
 const isLoading = ref(false)
 const searchQuery = ref("")
+
+const columns = [
+  { key: "nombre", label: "Nombre" },
+  { key: "descripcion", label: "Descripción" },
+  { key: "acciones", label: "" },
+]
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -48,13 +56,6 @@ async function load() {
 }
 
 onMounted(load)
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
 
 // ── Crear ─────────────────────────────────────────────────────────────────────
 
@@ -188,46 +189,29 @@ async function confirmDelete() {
 
         <!-- Tabla -->
         <template v-else>
-          <div class="rounded-2xl overflow-hidden"
+          <div class="rounded-lg overflow-hidden"
             style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
-            <div v-if="filtered.length === 0" class="py-16 text-center">
+            <BaseTable :columns="columns" :items="filtered" :loading="false">
+            <template #empty>
               <span class="material-symbols-outlined" style="font-size: 40px; color: var(--color-outline-variant)">medical_services</span>
               <p class="mt-3 text-sm font-medium" style="color: var(--color-outline)">No hay especialidades registradas.</p>
-            </div>
-
-            <div v-else class="overflow-x-auto"><table class="w-full min-w-[640px]">
-              <thead>
-                <tr style="background-color: var(--color-surface-container-low)">
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Nombre</th>
-                  <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Descripción</th>
-                  <th class="px-6 py-5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="esp in filtered" :key="esp.id"
-                  class="hover:bg-surface-container-low transition-colors"
-                  style="border-top: 1px solid var(--color-hairline-soft)">
-                  <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
-                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">medical_services</span>
-                      </div>
-                      <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ esp.nombre }}</span>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ esp.descripcion || "—" }}</span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="flex justify-end">
-                      <RowContextMenu :items="menuItems(esp)" />
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table></div>
+            </template>
+            <template #nombre="{ item: esp }">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style="background-color: color-mix(in srgb, var(--color-primary) 10%, transparent)">
+                  <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-primary)">medical_services</span>
+                </div>
+                <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ esp.nombre }}</span>
+              </div>
+            </template>
+            <template #acciones="{ item: esp }">
+              <div class="flex justify-end">
+                <RowContextMenu :items="menuItems(esp)" />
+              </div>
+            </template>
+          </BaseTable>
 
             <!-- Footer conteo -->
             <div v-if="filtered.length > 0" class="px-6 py-4"

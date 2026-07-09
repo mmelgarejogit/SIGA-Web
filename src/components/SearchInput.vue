@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+
 const props = defineProps<{
   modelValue: string
   placeholder?: string
@@ -29,12 +31,8 @@ function clear() {
       @blur="emit('blur', $event)"
       type="text"
       :placeholder="props.placeholder ?? 'Buscar...'"
-      class="w-full pl-10 pr-10 py-2.5 rounded-md text-sm outline-none transition-all"
-      :style="
-        props.error
-          ? 'background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface)); border: 1.5px solid var(--color-error); color: var(--color-on-surface);'
-          : 'background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
-      "
+      class="w-full pl-10 pr-10 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+      :style="inputStyle(props.error)"
     />
     <button
       v-if="props.modelValue"

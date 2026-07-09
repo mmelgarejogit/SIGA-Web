@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import KpiCard from "@/components/KpiCard.vue"
@@ -72,7 +74,7 @@ function metodoPagoIcon(m: string) {
 // ── Modal abrir ───────────────────────────────────────────────────────────────
 
 const showAbrir       = ref(false)
-const montoInput      = ref("0")
+const montoInput      = ref<number | null>(0)
 const isAbrir         = ref(false)
 const abrirError      = ref("")
 const aperturaSugerida = ref(0)
@@ -90,7 +92,7 @@ async function openAbrir() {
   } catch {
     aperturaSugerida.value = 0
   } finally {
-    montoInput.value = String(aperturaSugerida.value)
+    montoInput.value = aperturaSugerida.value
     loadingSugerido.value = false
   }
 }
@@ -98,7 +100,7 @@ async function openAbrir() {
 async function submitAbrir() {
   let monto: number | undefined
   if (ajusteManual.value) {
-    monto = Number(montoInput.value)
+    monto = montoInput.value ?? 0
     if (isNaN(monto) || monto < 0) { abrirError.value = "Ingresá un monto válido"; return }
   }
   isAbrir.value    = true
@@ -117,7 +119,7 @@ async function submitAbrir() {
 // ── Modal cerrar ──────────────────────────────────────────────────────────────
 
 const showCerrar      = ref(false)
-const efectivoContado = ref("0")
+const efectivoContado = ref<number | null>(0)
 const observacion     = ref("")
 const isCerrar        = ref(false)
 const cerrarError     = ref("")
@@ -132,11 +134,11 @@ const egresosEfectivo = computed(() =>
 const efectivoEsperado = computed(() =>
   Math.max(0, (sesion.value?.montoInicial ?? 0) + (sesion.value?.efectivoIngresos ?? 0) - egresosEfectivo.value),
 )
-const diferenciaPreview = computed(() => Number(efectivoContado.value || 0) - efectivoEsperado.value)
+const diferenciaPreview = computed(() => (efectivoContado.value ?? 0) - efectivoEsperado.value)
 
 function abrirCerrar() {
-  // Pre-cargamos el conteo con el efectivo esperado: si cuadra, el cajero solo confirma.
-  efectivoContado.value = String(efectivoEsperado.value)
+  // Conteo a ciegas: el cajero cuenta y carga el efectivo sin ver el esperado.
+  efectivoContado.value = null
   observacion.value     = ""
   cerrarError.value     = ""
   cierreResult.value    = null
@@ -145,7 +147,7 @@ function abrirCerrar() {
 
 async function submitCerrar() {
   if (!sesion.value) return
-  const contado = Number(efectivoContado.value)
+  const contado = efectivoContado.value ?? 0
   if (isNaN(contado) || contado < 0) { cerrarError.value = "Ingresá un monto válido"; return }
   isCerrar.value    = true
   cerrarError.value = ""
@@ -178,14 +180,14 @@ function confirmarCierreYSalir() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Caja</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Caja</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               <template v-if="sesion">
                 Sesión abierta el {{ fmtDt(sesion.fechaApertura) }} por {{ sesion.abiertaPorNombre }}
               </template>
@@ -254,11 +256,11 @@ function confirmarCierreYSalir() {
           <!-- Banner pendiente de aprobación -->
           <div v-if="sesion.estado === 'PendienteAprobacion'"
                class="rounded-2xl p-5 mb-6 flex items-start gap-4"
-               style="background-color: #FFFBEB; border: 1px solid var(--color-warning-container)">
+               style="background-color: var(--color-warning-container); border: 1px solid var(--color-warning-container)">
             <span class="material-symbols-outlined text-3xl flex-shrink-0" style="color: var(--color-warning)">schedule</span>
             <div>
               <p class="font-extrabold mb-1" style="color: var(--color-on-warning-container)">Cierre pendiente de aprobación</p>
-              <p class="text-sm" style="color: #B45309">
+              <p class="text-sm" style="color: var(--color-on-warning-container)">
                 El arqueo registró una diferencia superior a la tolerancia permitida. Un supervisor debe aprobar o rechazar el cierre.
                 Si es rechazado, podrás hacer un nuevo conteo.
               </p>
@@ -269,18 +271,18 @@ function confirmarCierreYSalir() {
           <h3 class="text-base font-extrabold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Posición de efectivo</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <KpiCard title="Efectivo inicial" :value="fmt(sesion.montoInicial)" icon="account_balance_wallet" iconBg="color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))" iconColor="var(--color-tertiary)" />
-            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="var(--color-success-container)" iconColor="var(--color-on-success-container)" />
+            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="var(--color-success-container)" iconColor="var(--color-success)" />
             <KpiCard
               title="Egresos efectivo"
               :value="fmt(sesion.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0))"
-              icon="trending_down" iconBg="var(--color-error-container)" iconColor="var(--color-on-error-container)"
+              icon="trending_down" iconBg="var(--color-error-container)" iconColor="var(--color-error)"
             />
-            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="var(--color-info-container)" iconColor="var(--color-on-info-container)" />
+            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="var(--color-info-container)" iconColor="var(--color-info)" />
           </div>
 
 
           <!-- Movimientos -->
-          <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+          <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
             <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid var(--color-hairline)">
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Movimientos de la sesión</h3>
               <div class="flex gap-2">
@@ -383,15 +385,9 @@ function confirmarCierreYSalir() {
       <!-- Ajuste manual (excepción) -->
       <div v-else class="space-y-1">
         <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Monto inicial (Gs.)</label>
-        <input
-          v-model="montoInput"
-          type="number"
-          min="0"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
-        />
+        <MontoInput :model-value="montoInput" @update:model-value="montoInput = $event" placeholder="0" />
         <button class="text-xs font-semibold flex items-center gap-1 mt-1.5" style="color: var(--color-outline)"
-          @click="ajusteManual = false; montoInput = String(aperturaSugerida)">
+          @click="ajusteManual = false; montoInput = aperturaSugerida">
           <span class="material-symbols-outlined" style="font-size:14px">undo</span>
           Usar monto automático
         </button>
@@ -415,7 +411,7 @@ function confirmarCierreYSalir() {
       <div class="rounded-2xl p-6 text-center" style="background-color: var(--color-success-container)">
         <span class="material-symbols-outlined text-5xl block mb-3" style="color: var(--color-on-success-container)">check_circle</span>
         <p class="text-lg font-extrabold mb-1" style="color: var(--color-on-success-container)">Caja cerrada correctamente</p>
-        <p class="text-sm" style="color: #047857">La sesión fue cerrada y registrada en el historial.</p>
+        <p class="text-sm" style="color: var(--color-on-success-container)">La sesión fue cerrada y registrada en el historial.</p>
       </div>
       <div class="rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
            style="background-color: var(--color-surface-container-low)">
@@ -460,18 +456,11 @@ function confirmarCierreYSalir() {
       </div>
 
       <div class="space-y-1">
-        <div class="flex items-center justify-between">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
-          <span class="text-xs font-semibold" style="color: var(--color-outline)">Esperado: {{ fmt(efectivoEsperado) }}</span>
-        </div>
-        <input
-          v-model="efectivoContado"
-          type="number"
-          min="0"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
-        />
-        <p class="text-xs mt-1 font-medium" :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
+        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Efectivo contado (Gs.)</label>
+        <MontoInput :model-value="efectivoContado" @update:model-value="efectivoContado = $event" placeholder="0" />
+        <p v-if="efectivoContado !== null" class="text-xs mt-1 font-medium"
+          :style="diferenciaPreview === 0 ? 'color:var(--color-on-success-container)' : 'color:var(--color-on-warning-container)'">
+
           {{ diferenciaPreview === 0
               ? "✓ Coincide con lo esperado"
               : `Diferencia: ${diferenciaPreview > 0 ? "+" : "−"}${fmt(diferenciaPreview)}` }}
@@ -486,8 +475,8 @@ function confirmarCierreYSalir() {
           v-model="observacion"
           rows="2"
           placeholder="Justificación de diferencia, novedades, etc."
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+          class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none transition-all resize-none"
+          :style="inputStyle()"
         />
       </div>
 

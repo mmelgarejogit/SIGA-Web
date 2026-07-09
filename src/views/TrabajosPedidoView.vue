@@ -11,6 +11,7 @@ import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { type TrabajoPedidoListDto } from "@/services/ventasService"
 import { getPedidos } from "@/services/laboratorioService"
+import { imprimirOrdenTrabajo } from "@/utils/ordenTrabajoPrint"
 
 const router = useRouter()
 
@@ -92,8 +93,9 @@ const tieneReceta = computed(() => {
 
 function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   return [
-    { type: "item", label: "Ver pedido",  icon: "description", action: () => verReferencia(item) },
-    { type: "item", label: "Ver venta",   icon: "open_in_new", action: () => router.push(`/ventas/${item.ventaId}`) },
+    { type: "item", label: "Ver pedido",     icon: "description", action: () => verReferencia(item) },
+    { type: "item", label: "Imprimir orden", icon: "print",       action: () => imprimirOrdenTrabajo(item) },
+    { type: "item", label: "Ver venta",      icon: "open_in_new", action: () => router.push(`/ventas/${item.ventaId}`) },
   ]
 }
 </script>
@@ -102,7 +104,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
@@ -114,12 +116,12 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <FilterChips v-model="estadoFiltro" :options="estadoOptions" placeholder="Estado" @update:model-value="load" />
           <SearchInput v-model="search" placeholder="Buscar por cliente, comprobante o laboratorio…" class="w-full sm:w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos que mostrar">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -262,6 +264,10 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
       </template>
       <template #footer>
         <BaseButton variant="secondary" class="flex-1" @click="showRef = false">Cerrar</BaseButton>
+        <BaseButton variant="secondary" class="flex-1" @click="selected && imprimirOrdenTrabajo(selected)">
+          <span class="material-symbols-outlined align-middle" style="font-size:18px">print</span>
+          Imprimir orden
+        </BaseButton>
         <BaseButton variant="primary" class="flex-1" @click="selected && router.push(`/ventas/${selected.ventaId}`)">Ver venta completa</BaseButton>
       </template>
     </BaseModal>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, reactive } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -230,13 +231,6 @@ function openCreateProveedor() {
   showProveedorModal.value = true
 }
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
-
 async function submitProveedor() {
   provError.value = ""
   if (!provForm.nombre?.trim()) { provError.value = "El nombre es obligatorio."; return }
@@ -290,7 +284,7 @@ async function submitProveedor() {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <FilterChips
             :model-value="estadoFilter"
             :options="estadoOptions"
@@ -307,7 +301,7 @@ async function submitProveedor() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
           <BaseTable :columns="pedidoColumns" :items="pedidos" :loading="isLoading"
             empty-text="No hay órdenes de compra registradas." @row-click="openDetail">
 

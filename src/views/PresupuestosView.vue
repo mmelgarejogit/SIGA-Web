@@ -122,7 +122,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
@@ -145,7 +145,7 @@ function menuItems(v: Venta): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay presupuestos pendientes">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">N° Presupuesto</th>

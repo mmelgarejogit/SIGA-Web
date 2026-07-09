@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { inputStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
   type Venta, type TipoDevolucion,
@@ -163,6 +165,17 @@ const devTipo         = ref<TipoDevolucion>("Devolucion")
 const devMotivo       = ref("")
 const devLineas       = ref([{ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined as number | undefined, cantidadNueva: undefined as number | undefined }])
 
+const DEV_TIPO_OPTIONS = [
+  { value: "Devolucion", label: "Devolución (reembolso)" },
+  { value: "Cambio", label: "Cambio (otro producto)" },
+]
+
+const devLineaOptions = computed(() =>
+  (venta.value?.lineas ?? [])
+    .filter(ln => ln.productoId)
+    .map(ln => ({ value: ln.productoId!, label: ln.descripcion }))
+)
+
 function addDevLinea() { devLineas.value.push({ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined, cantidadNueva: undefined }) }
 function removeDevLinea(i: number) { devLineas.value.splice(i, 1) }
 
@@ -225,7 +238,7 @@ async function submitGestionDev() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Volver -->
@@ -248,7 +261,7 @@ async function submitGestionDev() {
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8 flex-wrap gap-4">
             <div>
               <div class="flex items-center gap-3 mb-2 flex-wrap">
-                <h1 class="text-4xl font-extrabold tracking-tight font-mono" style="color: var(--color-primary)">
+                <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-primary)">
                   {{ venta.numeroComprobante }}
                 </h1>
                 <span
@@ -257,7 +270,7 @@ async function submitGestionDev() {
                 >{{ estadoBadge(venta.estado).label }}</span>
                 <span
                   class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                  :style="venta.tipo === 'TrabajoAPedido' ? 'background:#F0FDF4;color:var(--color-on-success-container)' : 'background:#EFF6FF;color:var(--color-on-info-container)'"
+                  :style="venta.tipo === 'TrabajoAPedido' ? 'background:var(--color-success-container);color:var(--color-on-success-container)' : 'background:var(--color-info-container);color:var(--color-on-info-container)'"
                 >{{ venta.tipo === "TrabajoAPedido" ? "Trabajo a pedido" : "Directa" }}</span>
               </div>
               <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -300,7 +313,7 @@ async function submitGestionDev() {
             <div class="lg:col-span-2 space-y-6">
 
               <!-- Líneas -->
-              <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+              <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Líneas de venta</h3>
                 </div>
@@ -328,7 +341,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Cobros -->
-              <div v-if="venta.cobros.length || venta.condicionVenta === 'Credito'" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+              <div v-if="venta.cobros.length || venta.condicionVenta === 'Credito'" class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Cobros</h3>
                 </div>
@@ -337,7 +350,7 @@ async function submitGestionDev() {
                   <div
                     v-for="c in venta.cobros" :key="c.id"
                     class="rounded-xl p-4"
-                    :style="`background-color: ${c.anulado ? 'var(--color-surface-container-low)' : '#F0FDF4'}; opacity: ${c.anulado ? 0.5 : 1}`"
+                    :style="`background-color: ${c.anulado ? 'var(--color-surface-container-low)' : 'var(--color-success-container)'}; opacity: ${c.anulado ? 0.5 : 1}`"
                   >
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center gap-2">
@@ -357,7 +370,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Trabajo a pedido -->
-              <div v-if="venta.trabajoPedido" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+              <div v-if="venta.trabajoPedido" class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <div class="px-6 py-4 flex items-center justify-between" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Pedido al laboratorio</h3>
                   <span
@@ -405,7 +418,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Devoluciones -->
-              <div v-if="venta.devoluciones.length" class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+              <div v-if="venta.devoluciones.length" class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
                 <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <h3 class="text-sm font-bold uppercase tracking-wider" style="color: var(--color-outline)">Devoluciones</h3>
                 </div>
@@ -483,7 +496,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Comprobante emitido -->
-              <div v-if="venta.comprobante" class="rounded-2xl p-6" style="background:#F0FDF4; border: 1px solid #BBF7D0">
+              <div v-if="venta.comprobante" class="rounded-2xl p-6" style="background:var(--color-success-container); border: 1px solid var(--color-success-container)">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:var(--color-on-success-container)">Comprobante</h3>
                 <p class="text-sm font-semibold mb-1" style="color:var(--color-on-success-container)">{{ venta.comprobante.tipo }}</p>
                 <p class="text-xs" style="color:var(--color-on-surface-variant)">Emitido: {{ new Date(venta.comprobante.fechaEmision).toLocaleDateString("es-PY") }}</p>
@@ -493,7 +506,7 @@ async function submitGestionDev() {
               </div>
 
               <!-- Factura emitida -->
-              <div v-if="venta.factura" class="rounded-2xl p-6" style="background:#EFF6FF; border: 1px solid #BFDBFE">
+              <div v-if="venta.factura" class="rounded-2xl p-6" style="background:var(--color-info-container); border: 1px solid var(--color-info-container)">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-3" style="color:var(--color-on-info-container)">Factura</h3>
                 <p class="text-sm font-semibold" style="color:var(--color-on-info-container)">N° {{ venta.factura.numeroFactura }}</p>
                 <p class="text-xs mt-1" style="color:var(--color-on-surface-variant)">Timbrado {{ venta.factura.timbrado }} · Est. {{ venta.factura.establecimiento }}</p>
@@ -546,7 +559,7 @@ async function submitGestionDev() {
         <p class="text-sm" style="color:var(--color-on-surface-variant)">Esta acción no se puede deshacer. La venta pasará a estado <strong>Cancelada</strong>.</p>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Motivo (opcional)</label>
-          <textarea v-model="motivoCancel" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+          <textarea v-model="motivoCancel" rows="3" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
         </div>
         <p v-if="cancelError" class="text-xs font-medium" style="color:var(--color-error)">{{ cancelError }}</p>
       </div>
@@ -566,7 +579,7 @@ async function submitGestionDev() {
         <p class="text-sm" style="color:var(--color-on-surface-variant)">Se registrará el envío del pedido al laboratorio <strong>{{ venta?.trabajoPedido?.laboratorioNombre }}</strong>.</p>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observación (opcional)</label>
-          <textarea v-model="labObservacion" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+          <textarea v-model="labObservacion" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
         </div>
       </div>
     </template>
@@ -587,7 +600,7 @@ async function submitGestionDev() {
         </p>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observación (opcional)</label>
-          <textarea v-model="labObservacion" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+          <textarea v-model="labObservacion" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
         </div>
       </div>
     </template>
@@ -606,15 +619,12 @@ async function submitGestionDev() {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Tipo *</label>
-            <select v-model="devTipo" class="w-full px-4 py-3 rounded-xl text-sm outline-none appearance-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)">
-              <option value="Devolucion">Devolución (reembolso)</option>
-              <option value="Cambio">Cambio (otro producto)</option>
-            </select>
+            <SearchableSelect v-model="devTipo" :options="DEV_TIPO_OPTIONS" placeholder="Tipo de devolución" />
           </div>
         </div>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Motivo *</label>
-          <textarea v-model="devMotivo" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+          <textarea v-model="devMotivo" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
         </div>
 
         <!-- Líneas -->
@@ -628,18 +638,7 @@ async function submitGestionDev() {
           <div class="space-y-3">
             <div v-for="(l, i) in devLineas" :key="i" class="rounded-xl p-3 space-y-2" style="background:var(--color-surface-container-low)">
               <div class="flex gap-3 items-center">
-                <select
-                  v-model.number="l.productoDevueltoId"
-                  class="flex-1 px-3 py-2 rounded-lg text-sm outline-none appearance-none"
-                  style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-lowest);color:var(--color-on-surface)"
-                >
-                  <option :value="0" disabled>Producto a devolver…</option>
-                  <option
-                    v-for="linea in venta?.lineas.filter(ln => ln.productoId)"
-                    :key="linea.productoId!"
-                    :value="linea.productoId"
-                  >{{ linea.descripcion }}</option>
-                </select>
+                <SearchableSelect v-model="l.productoDevueltoId" :options="devLineaOptions" placeholder="Producto a devolver…" class="flex-1" />
                 <input
                   v-model.number="l.cantidadDevuelta"
                   type="number" min="1" placeholder="Cant."
@@ -651,18 +650,7 @@ async function submitGestionDev() {
                 </button>
               </div>
               <div v-if="devTipo === 'Cambio'" class="flex gap-3 items-center">
-                <select
-                  v-model.number="l.productoNuevoId"
-                  class="flex-1 px-3 py-2 rounded-lg text-sm outline-none appearance-none"
-                  style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-lowest);color:var(--color-on-surface)"
-                >
-                  <option :value="undefined" disabled>Producto de reemplazo…</option>
-                  <option
-                    v-for="linea in venta?.lineas.filter(ln => ln.productoId)"
-                    :key="linea.productoId!"
-                    :value="linea.productoId"
-                  >{{ linea.descripcion }}</option>
-                </select>
+                <SearchableSelect v-model="l.productoNuevoId" :options="devLineaOptions" placeholder="Producto de reemplazo…" class="flex-1" />
                 <input
                   v-model.number="l.cantidadNueva"
                   type="number" min="1" placeholder="Cant."
@@ -696,7 +684,7 @@ async function submitGestionDev() {
         </p>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observaciones</label>
-          <textarea v-model="gestionDevObs" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+          <textarea v-model="gestionDevObs" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
         </div>
         <p v-if="gestionDevError" class="text-xs font-medium" style="color:var(--color-error)">{{ gestionDevError }}</p>
       </div>

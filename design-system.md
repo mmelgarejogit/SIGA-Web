@@ -229,6 +229,23 @@ import { inputStyle, readonlyFieldStyle, statusStyle, avatarStyle, initials } fr
 - Alto fijo `h-12` (48px) en todos los campos; `appearance-none shadow-none` quita el estilo nativo.
 - Nunca `<input type="date">` → usar `DateInput`; fechas de nacimiento → `BirthDateInput`.
 - Selects de búsqueda → `SearchableSelect`; multi-selección → `MultiSelect`. Nunca `<select>` nativo.
+- **Montos en Guaraníes → `MontoInput`** (nunca `<input type="number">` para dinero). Ver abajo.
+
+### Montos — `MontoInput`
+Input estándar para importes en Gs. Solo dígitos, con máscara de miles en vivo (`1.500.000`) y sin
+símbolo de moneda (la `₲`/`Gs.` va como label/prefijo aparte si hace falta). Emite un **número entero**
+(o `null` si está vacío); no maneja decimales. Internamente usa `inputStyle()` + `data-field`, así que
+hereda foco, error y dark mode como cualquier campo.
+
+```vue
+<MontoInput :model-value="form.monto ?? null"
+            @update:model-value="form.monto = $event ?? 0"
+            :has-error="!!errors.monto" placeholder="0" />
+```
+- Props: `modelValue: number | null` · `hasError?` · `placeholder?` (default `"0"`) · `disabled?` · `id?`
+  · `align?: "left" | "right"` (derecha para celdas de tabla) · `compact?` (densa: `px-2 py-1 text-xs`
+  sin alto fijo, para editores en línea — envolver en un `<div class="w-24">` para fijar el ancho).
+- Helpers de formato/parseo centralizados en `@/utils/money` (`formatMiles`, `formatGs`, `parseMonto`).
 
 ---
 
@@ -287,6 +304,7 @@ Usar `statusStyle(isActive)` del composable. Dos variantes:
 | `RowContextMenu` | Acciones de fila (⋮). Permisos por ítem con `hidden: !auth.hasPermission(...)`. |
 | `ToggleSwitch` | Toggle con confirmación inline. |
 | `DateInput` / `BirthDateInput` | Fecha dd/mm/aaaa / fecha de nacimiento (3 campos). |
+| `MontoInput` | Monto en Gs. con máscara de miles. `align="right"` en celdas, `compact` en editores en línea. |
 | `SearchableSelect` / `MultiSelect` | Selects con búsqueda / multi-selección. |
 | `DateRangeBar` | Navegación de fechas (día/semana/mes) + mini calendario. |
 
@@ -358,7 +376,7 @@ Footer **dentro** del wrapper de la tabla. `PAGE_SIZE = 10`. Máx 7 botones con 
 - [ ] Tabla con `BaseTable` (`rounded-lg` + `--shadow-sm`) + footer de paginación
 - [ ] Modales: crear/editar `lg`, confirmar `sm`
 - [ ] Inputs `h-12 appearance-none shadow-none` con `inputStyle()` de `useFieldStyles`
-- [ ] `DateInput`/`BirthDateInput`/`SearchableSelect`/`MultiSelect` (nunca nativos)
+- [ ] `DateInput`/`BirthDateInput`/`SearchableSelect`/`MultiSelect`/`MontoInput` (nunca nativos; `MontoInput` para todo importe en Gs.)
 - [ ] Acciones de fila con `RowContextMenu`; permisos por ítem con `hidden`
 - [ ] Estados loading/vacío/error; try/catch en servicios
 - [ ] Verificar en **claro y oscuro** (todo debe salir de tokens → flipea solo)

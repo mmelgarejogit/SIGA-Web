@@ -9,8 +9,10 @@ import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
-import { type TrabajoPedidoListDto } from "@/services/ventasService"
+import { type TrabajoPedidoListDto, type MedioEnvioLaboratorio } from "@/services/ventasService"
 import { getPedidos, registrarEnvio, registrarRecepcion } from "@/services/laboratorioService"
+import { imprimirOrdenTrabajo } from "@/utils/ordenTrabajoPrint"
+import { inputStyle } from "@/composables/useFieldStyles"
 
 const router = useRouter()
 
@@ -19,6 +21,21 @@ const formatDate = (s?: string) =>
 
 const diasDesde = (s: string) =>
   Math.floor((Date.now() - new Date(s + "T00:00:00").getTime()) / 86_400_000)
+
+// Días faltantes (negativo = atrasado) hasta una fecha estimada.
+const diasHasta = (s: string) =>
+  Math.ceil((new Date(s + "T00:00:00").getTime() - Date.now()) / 86_400_000)
+
+const hoyISO = new Date().toISOString().slice(0, 10)
+
+const medioOptions: { value: MedioEnvioLaboratorio; label: string }[] = [
+  { value: "WhatsApp",  label: "WhatsApp" },
+  { value: "Email",     label: "Email" },
+  { value: "Portal",    label: "Portal del laboratorio" },
+  { value: "Telefono",  label: "Teléfono" },
+  { value: "EnPersona", label: "En persona" },
+  { value: "Otro",      label: "Otro" },
+]
 
 // ── Datos ──────────────────────────────────────────────────────────────────────
 
@@ -70,11 +87,17 @@ const actionError   = ref("")
 const selectedItem  = ref<TrabajoPedidoListDto | null>(null)
 const actionType    = ref<"enviar" | "recibir">("enviar")
 
+// Datos del envío (solo para actionType === "enviar")
+const fechaEstimada = ref("")
+const medioEnvio    = ref<MedioEnvioLaboratorio | "">("")
+
 function openAction(item: TrabajoPedidoListDto, type: "enviar" | "recibir") {
-  selectedItem.value = item
-  actionType.value   = type
-  actionError.value  = ""
-  showConfirm.value  = true
+  selectedItem.value  = item
+  actionType.value    = type
+  actionError.value   = ""
+  fechaEstimada.value = ""
+  medioEnvio.value    = ""
+  showConfirm.value   = true
 }
 
 async function submitAction() {
@@ -83,16 +106,44 @@ async function submitAction() {
   actionError.value  = ""
   try {
     if (actionType.value === "enviar")
-      await registrarEnvio(selectedItem.value.id)
+      await registrarEnvio(selectedItem.value.id, {
+        fechaEstimadaEntrega: fechaEstimada.value || undefined,
+        medioEnvio:           medioEnvio.value || undefined,
+      })
     else
       await registrarRecepcion(selectedItem.value.id)
     showConfirm.value = false
     await load()
-  } catch (e: any) {
-    actionError.value = e?.response?.data?.message ?? "Error al procesar"
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : "Error al procesar"
   } finally {
     isProcessing.value = false
   }
+}
+
+// Semáforo de entrega: contra la fecha estimada si existe; si no, días en tránsito.
+function entregaBadge(item: TrabajoPedidoListDto): { label: string; style: string; title: string } | null {
+  if (item.estado !== "Enviado") return null
+  const verde  = "background:var(--color-success-container);color:var(--color-on-success-container)"
+  const ambar  = "background:var(--color-warning-container);color:var(--color-on-warning-container)"
+  const rojo   = "background:var(--color-error-container);color:var(--color-on-error-container)"
+  if (item.fechaEstimadaEntrega) {
+    const d = diasHasta(item.fechaEstimadaEntrega)
+    const title = `Entrega estimada: ${formatDate(item.fechaEstimadaEntrega)}`
+    if (d < 0)  return { label: `${-d}d atraso`, style: rojo,  title }
+    if (d <= 2) return { label: `faltan ${d}d`,  style: ambar, title }
+    return { label: `faltan ${d}d`, style: verde, title }
+  }
+  if (item.fechaEnvio) {
+    const d = diasDesde(item.fechaEnvio)
+    const style = d > 10 ? rojo : d > 5 ? ambar : verde
+    return { label: `${d}d en tránsito`, style, title: "Sin fecha estimada de entrega" }
+  }
+  return null
+}
+
+function imprimir(item: TrabajoPedidoListDto) {
+  imprimirOrdenTrabajo(item)
 }
 
 // ── Badges ─────────────────────────────────────────────────────────────────────
@@ -105,6 +156,7 @@ function estadoBadge(estado: string) {
 
 function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   return [
+    { type: "item", label: "Imprimir orden de trabajo", icon: "print", action: () => imprimir(item) },
     { type: "item", label: "Ver venta", icon: "open_in_new", action: () => router.push(`/ventas/${item.ventaId}`) },
     { type: "separator" },
     ...(item.estado === "PendienteEnvio"
@@ -121,7 +173,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
@@ -133,12 +185,12 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
         </div>
 
-        <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <FilterChips v-model="estadoFiltro" :options="estadoOptions" placeholder="Estado" @update:model-value="load" />
           <SearchInput v-model="search" placeholder="Buscar por cliente o laboratorio…" class="w-full sm:w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos en tránsito">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -146,7 +198,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Tipo de lente</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Laboratorio</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Enviado</th>
-              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Días</th>
+              <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Entrega</th>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Estado</th>
               <th class="px-6 py-5"></th>
             </template>
@@ -162,13 +214,8 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.laboratorioNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.fechaEnvio) }}</td>
                 <td class="px-6 py-4">
-                  <span v-if="item.fechaEnvio" class="text-xs font-bold px-2 py-1 rounded-full"
-                    :style="diasDesde(item.fechaEnvio) > 10
-                      ? 'background:var(--color-error-container);color:var(--color-on-error-container)'
-                      : diasDesde(item.fechaEnvio) > 5
-                        ? 'background:var(--color-warning-container);color:var(--color-on-warning-container)'
-                        : 'background:var(--color-success-container);color:var(--color-on-success-container)'"
-                  >{{ diasDesde(item.fechaEnvio) }}d</span>
+                  <span v-if="entregaBadge(item)" class="text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap"
+                    :style="entregaBadge(item)!.style" :title="entregaBadge(item)!.title">{{ entregaBadge(item)!.label }}</span>
                   <span v-else class="text-xs" style="color:var(--color-outline)">—</span>
                 </td>
                 <td class="px-6 py-4">
@@ -193,15 +240,50 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
       :title="actionType === 'enviar' ? 'Registrar Envío al Laboratorio' : 'Registrar Recepción'"
       @close="showConfirm = false">
       <template #body>
-        <div class="space-y-3">
+        <div class="space-y-4">
           <div class="p-3 rounded-xl text-sm" style="background:var(--color-surface-container-low)">
             <p class="font-semibold" style="color:var(--color-on-surface)">{{ selectedItem?.clienteNombre }}</p>
             <p style="color:var(--color-on-surface-variant)">{{ selectedItem?.tipoLenteNombre }} · {{ selectedItem?.laboratorioNombre }}</p>
           </div>
-          <p class="text-sm" style="color:var(--color-on-surface-variant)">
-            <span v-if="actionType === 'enviar'">Se registrará el envío de los lentes al laboratorio.</span>
-            <span v-else>Se registrará la recepción de los lentes terminados. El cobro de la venta es independiente y no se ve afectado.</span>
+
+          <!-- Envío: orden de trabajo + compromiso de entrega + medio -->
+          <template v-if="actionType === 'enviar'">
+            <button
+              type="button"
+              class="w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold transition-all hover:scale-[1.01] active:scale-95"
+              style="background:var(--color-surface-container-high);color:var(--color-on-surface-variant)"
+              @click="selectedItem && imprimir(selectedItem)"
+            >
+              <span class="material-symbols-outlined" style="font-size:18px">print</span>
+              Imprimir orden de trabajo
+            </button>
+
+            <div>
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Entrega estimada</label>
+              <input type="date" v-model="fechaEstimada" :min="hoyISO"
+                class="mt-1 w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                :style="inputStyle(false)" />
+            </div>
+
+            <div>
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Medio de envío</label>
+              <select v-model="medioEnvio"
+                class="mt-1 w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+                :style="inputStyle(false)">
+                <option value="">Sin especificar</option>
+                <option v-for="m in medioOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+              </select>
+            </div>
+
+            <p class="text-xs" style="color:var(--color-on-surface-variant)">
+              Se registrará el envío de los lentes al laboratorio. La fecha estimada alimenta el semáforo de atrasos.
+            </p>
+          </template>
+
+          <p v-else class="text-sm" style="color:var(--color-on-surface-variant)">
+            Se registrará la recepción de los lentes terminados. El cobro de la venta es independiente y no se ve afectado.
           </p>
+
           <p v-if="actionError" class="text-xs font-medium" style="color:var(--color-error)">{{ actionError }}</p>
         </div>
       </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials, statusStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -7,6 +8,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import PasswordInput from "@/components/PasswordInput.vue"
 import BirthDateInput from "@/components/BirthDateInput.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -26,8 +28,10 @@ import {
   getHorarios,
   setHorarios,
 } from "@/services/professionalService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
 
 const auth = useAuthStore()
+const sucursales = ref<Sucursal[]>([])
 
 // ── Estado principal ──────────────────────────────────────────────────────────
 
@@ -86,9 +90,10 @@ async function loadAll() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const [profs, specs] = await Promise.all([getProfessionals(), getEspecialidades()])
+    const [profs, specs, sucs] = await Promise.all([getProfessionals(), getEspecialidades(), getSucursales(true)])
     professionals.value = profs
     especialidades.value = specs
+    sucursales.value = sucs
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar profesionales."
   } finally {
@@ -100,38 +105,12 @@ onMounted(loadAll)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "rgba(0,40,142,0.06)", color: "var(--color-primary)" },
-  { bg: "rgba(0,103,128,0.06)", color: "var(--color-secondary)" },
-  { bg: "rgba(32,0,177,0.06)", color: "var(--color-tertiary)" },
-  { bg: "rgba(117,118,132,0.08)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(p: Professional) {
-  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]!
-}
-
-function initials(p: Professional) {
-  return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase()
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   })
-}
-
-function statusStyle(isActive: boolean) {
-  return isActive
-    ? { bg: "var(--color-success-container)", dot: "var(--color-success)", text: "var(--color-on-success-container)", label: "Activo" }
-    : {
-        bg: "var(--color-surface-container-highest)",
-        dot: "var(--color-outline)",
-        text: "var(--color-on-surface-variant)",
-        label: "Inactivo",
-      }
 }
 
 function menuItems(p: Professional): ContextMenuItem[] {
@@ -141,13 +120,6 @@ function menuItems(p: Professional): ContextMenuItem[] {
     { type: "separator" },
     { type: "item", label: "Desactivar", icon: "person_off", action: () => openDeleteModal(p), danger: true, hidden: !auth.hasPermission("editar_profesional") || !p.isActive },
   ]
-}
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 // ── Validación compartida ─────────────────────────────────────────────────────
@@ -180,6 +152,7 @@ const createForm = ref<CreateProfessionalRequest>({
   password: "",
   licenseNumber: "",
   especialidadIds: [],
+  sucursalId: undefined,
 })
 
 function validateCreate(): boolean {
@@ -220,6 +193,7 @@ function openCreateModal() {
     password: "",
     licenseNumber: "",
     especialidadIds: [],
+    sucursalId: undefined,
   }
   createEspecialidadIds.value = []
   createErrors.value = {}
@@ -270,6 +244,7 @@ const editForm = ref<UpdateProfessionalRequest>({
   phoneNumber: "",
   licenseNumber: "",
   especialidadIds: [],
+  sucursalId: undefined,
   isActive: true,
 })
 
@@ -298,6 +273,7 @@ function openEditModal(p: Professional) {
     phoneNumber: p.phoneNumber ?? "",
     licenseNumber: p.licenseNumber,
     especialidadIds: p.especialidades.map((e) => e.id),
+    sucursalId: p.sucursalId,
     isActive: p.isActive,
   }
   editEspecialidadIds.value = p.especialidades.map((e) => e.id)
@@ -509,7 +485,7 @@ async function submitHorario() {
 
         <div
           v-else
-          class="rounded-2xl overflow-hidden"
+          class="rounded-lg overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
             box-shadow: var(--shadow-sm);
@@ -526,9 +502,9 @@ async function submitHorario() {
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  :style="`background-color: ${avatarStyle(p).bg}; color: ${avatarStyle(p).color};`"
+                  :style="`background-color: ${avatarStyle(p.id).bg}; color: ${avatarStyle(p.id).color};`"
                 >
-                  {{ initials(p) }}
+                  {{ initials(p.firstName, p.lastName) }}
                 </div>
                 <div>
                   <div class="font-bold text-sm" style="color: var(--color-on-surface)">
@@ -799,12 +775,10 @@ async function submitHorario() {
               style="color: var(--color-outline)"
               >Contraseña *</label
             >
-            <input
+            <PasswordInput
               v-model="createForm.password"
-              type="password"
               placeholder="Mínimo 6 caracteres"
-              class="px-4 h-12 text-sm outline-none appearance-none shadow-none transition-all"
-              :style="inputStyle(!!createErrors.password)"
+              :error="!!createErrors.password"
             />
             <p
               v-if="createErrors.password"
@@ -846,6 +820,17 @@ async function submitHorario() {
             placeholder="Seleccioná especialidades"
             @update:model-value="createEspecialidadIds = $event as number[]"
           />
+        </div>
+
+        <!-- Sucursal -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sucursal</label>
+          <select v-model="createForm.sucursalId"
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle()">
+            <option :value="undefined">— Sin asignar —</option>
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
         </div>
       </form>
       <template #footer>
@@ -967,6 +952,17 @@ async function submitHorario() {
             placeholder="Seleccioná especialidades"
             @update:model-value="editEspecialidadIds = $event as number[]"
           />
+        </div>
+
+        <!-- Sucursal -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sucursal</label>
+          <select v-model="editForm.sucursalId"
+            class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
+            :style="inputStyle()">
+            <option :value="undefined">— Sin asignar —</option>
+            <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          </select>
         </div>
 
         <!-- Cuenta activa -->
@@ -1147,16 +1143,8 @@ async function submitHorario() {
               <button
                 type="button"
                 @click="removePausa(dia, idx)"
-                class="p-1.5 rounded-full flex-shrink-0 transition-all"
+                class="p-1.5 rounded-full flex-shrink-0 transition-all hover:bg-error-container hover:text-error"
                 style="color: var(--color-outline)"
-                onmouseover="
-                  this.style.backgroundColor = 'var(--color-error-container)'
-                  this.style.color = 'var(--color-error)'
-                "
-                onmouseout="
-                  this.style.backgroundColor = ''
-                  this.style.color = 'var(--color-outline)'
-                "
               >
                 <span
                   class="material-symbols-outlined"

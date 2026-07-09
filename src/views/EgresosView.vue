@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -59,9 +60,10 @@ const estadoFiltros = ref<string[]>([])
 const soloVencidos = ref(false)
 
 const tipoOptions = [
-  { value: "Honorario", label: "Honorario" },
-  { value: "GastoGeneral", label: "Gasto General" },
-  { value: "FacturaCompra", label: "Factura (hist.)" },
+  { value: "Honorario",          label: "Honorario" },
+  { value: "GastoGeneral",       label: "Gasto General" },
+  { value: "FacturaCompra",      label: "Factura (compra)" },
+  { value: "FacturaLaboratorio", label: "Factura (lab.)" },
 ]
 
 const estadoOptions = [
@@ -123,27 +125,30 @@ function applyFilter() {
 
 function tipoLabel(tipo: string) {
   const map: Record<string, string> = {
-    FacturaCompra: "Factura",
-    Honorario: "Honorario",
-    GastoGeneral: "Gasto",
+    FacturaCompra:      "Factura compra",
+    Honorario:          "Honorario",
+    GastoGeneral:       "Gasto",
+    FacturaLaboratorio: "Factura lab.",
   }
   return map[tipo] ?? tipo
 }
 
 function tipoIcon(tipo: string) {
   const map: Record<string, string> = {
-    FacturaCompra: "receipt",
-    Honorario: "person_check",
-    GastoGeneral: "payments",
+    FacturaCompra:      "receipt",
+    Honorario:          "person_check",
+    GastoGeneral:       "payments",
+    FacturaLaboratorio: "science",
   }
   return map[tipo] ?? "attach_money"
 }
 
 function tipoColor(tipo: string): { bg: string; color: string } {
   const map: Record<string, { bg: string; color: string }> = {
-    FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario: { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
-    GastoGeneral: { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    FacturaCompra:      { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
+    Honorario:          { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
+    GastoGeneral:       { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
+    FacturaLaboratorio: { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
   }
   return map[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
@@ -207,13 +212,6 @@ async function submitAnular() {
   }
 }
 
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
-}
-
 // ── Menú contextual ───────────────────────────────────────────────────────────
 
 function menuItems(e: Egreso): ContextMenuItem[] {
@@ -247,19 +245,19 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           </div>
           <BaseButton v-if="canManage" variant="primary" size="lg" @click="router.push('/egresos/nuevo')">
             <span class="material-symbols-outlined" style="width:20px;height:20px;font-size:20px">add</span>
-            Nueva Solicitud
+            Nuevo Egreso
           </BaseButton>
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <FilterChips :options="tipoOptions" :modelValue="tipoFiltros" placeholder="Tipo" @update:modelValue="setTipoFiltro" />
           <FilterChips :options="estadoOptions" :modelValue="estadoFiltros" placeholder="Estado" @update:modelValue="setEstadoFiltro" />
           <button
             @click="soloVencidos = !soloVencidos; applyFilter()"
             class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-colors"
             :style="soloVencidos
-              ? 'background-color: var(--color-error-container); color: var(--color-on-error-container); border: 1px solid #FCA5A5'
+              ? 'background-color: var(--color-error-container); color: var(--color-on-error-container); border: 1px solid var(--color-error-container)'
               : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface)'"
           >
             <span class="material-symbols-outlined" style="font-size: 16px">schedule</span>
@@ -275,7 +273,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest);
                  box-shadow: var(--shadow-sm);
                  outline: 1px solid var(--color-hairline)">
@@ -297,6 +295,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                 <p class="text-xs" style="color: var(--color-outline)">
                   <span v-if="item.tipo === 'FacturaCompra'">{{ item.proveedorNombre ?? '—' }}</span>
                   <span v-else-if="item.tipo === 'Honorario'">{{ item.professionalNombre ?? '—' }} {{ item.periodo ? `· ${item.periodo}` : '' }}</span>
+                  <span v-else-if="item.tipo === 'FacturaLaboratorio'">{{ item.proveedorNombre ?? '—' }} {{ item.nroFactura ? `· ${item.nroFactura}` : '' }}</span>
                   <span v-else>{{ item.categoriaGastoNombre ?? '—' }}</span>
                 </p>
               </div>
@@ -438,10 +437,21 @@ function menuItems(e: Egreso): ContextMenuItem[] {
               <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
             </div>
           </template>
+
+          <template v-if="detalleEgreso.tipo === 'FacturaLaboratorio'">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">Laboratorio</p>
+              <p style="color: var(--color-on-surface)">{{ detalleEgreso.proveedorNombre ?? '—' }}</p>
+            </div>
+            <div v-if="detalleEgreso.nroFactura">
+              <p class="text-xs font-bold uppercase tracking-wider mb-0.5" style="color: var(--color-outline)">N° Factura lab.</p>
+              <p class="font-mono" style="color: var(--color-on-surface)">{{ detalleEgreso.nroFactura }}</p>
+            </div>
+          </template>
         </div>
 
         <!-- Motivo de rechazo -->
-        <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: #FEF2F2">
+        <div v-if="detalleEgreso.motivoRechazo" class="rounded-2xl p-3" style="background-color: var(--color-error-container)">
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-on-error-container)">Motivo de rechazo</p>
           <p class="text-sm" style="color: var(--color-on-error-container)">{{ detalleEgreso.motivoRechazo }}</p>
         </div>

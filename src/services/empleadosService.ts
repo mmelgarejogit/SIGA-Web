@@ -22,6 +22,8 @@ export interface Empleado {
   fechaIngreso: string
   fechaEgreso?: string
   salarioBase?: number
+  sucursalId?: number
+  sucursalNombre?: string
   isActive: boolean
   createdAt: string
 }
@@ -36,6 +38,7 @@ export interface CrearEmpleadoRequest {
   cargoId: number
   fechaIngreso: string
   salarioBase?: number
+  sucursalId?: number
 }
 
 export interface ActualizarEmpleadoRequest {
@@ -46,6 +49,7 @@ export interface ActualizarEmpleadoRequest {
   fechaIngreso: string
   fechaEgreso?: string
   salarioBase?: number
+  sucursalId?: number
 }
 
 export const getEmpleados = (soloActivos?: boolean) => {

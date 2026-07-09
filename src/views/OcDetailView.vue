@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -129,13 +130,6 @@ const devolucionItemOptions = computed(() =>
   })),
 )
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
-
 async function submitDevolucion() {
   if (!pedido.value || !devolucionForm.itemId) { devolucionError.value = "Seleccioná un ítem."; return }
   if (devolucionForm.cantidad <= 0) { devolucionError.value = "La cantidad debe ser mayor a cero."; return }
@@ -250,7 +244,7 @@ async function submitDevolucion() {
               {{ tab.label }}
               <span v-if="tab.badge" class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-bold"
                 :style="activeTab === tab.key
-                  ? 'background-color: var(--color-primary); color: #fff'
+                  ? 'background-color: var(--color-primary); color: var(--color-on-primary)'
                   : 'background-color: var(--color-outline-variant); color: var(--color-on-surface-variant)'"
               >{{ tab.badge }}</span>
             </button>
@@ -258,7 +252,7 @@ async function submitDevolucion() {
 
           <!-- ─── TAB: DETALLE ──────────────────────────────────────────────── -->
           <div v-show="activeTab === 'detalle'">
-            <div class="rounded-2xl overflow-hidden"
+            <div class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline);">
               <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>
@@ -316,7 +310,7 @@ async function submitDevolucion() {
             </div>
 
             <!-- Con factura -->
-            <div v-else class="rounded-2xl overflow-hidden"
+            <div v-else class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
               <!-- Header factura -->
@@ -414,14 +408,14 @@ async function submitDevolucion() {
 
             <div v-else class="space-y-4">
               <div v-for="rec in pedido.recepciones" :key="rec.id"
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
                 <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
                   style="border-bottom: 1px solid var(--color-hairline-soft)">
                   <div class="flex items-center gap-3">
                     <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style="background-color: var(--color-primary); color: #fff">
+                      style="background-color: var(--color-primary); color: var(--color-on-primary)">
                       #{{ rec.id }}
                     </span>
                     <span class="text-sm font-semibold" style="color: var(--color-on-surface)">
@@ -475,7 +469,7 @@ async function submitDevolucion() {
               </div>
             </div>
 
-            <div v-else class="rounded-2xl overflow-hidden"
+            <div v-else class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
               <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
                 <thead>

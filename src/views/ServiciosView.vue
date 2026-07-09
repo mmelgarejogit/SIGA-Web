@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -310,13 +312,13 @@ async function quitarTarifa(t: ServicioTarifa) {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Servicios</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Servicios</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ items.filter(i => i.isActive).length }} servicio{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }} activo{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }}
             </p>
@@ -340,7 +342,7 @@ async function quitarTarifa(t: ServicioTarifa) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="itemsPaginados" :loading="isLoading" empty-text="No hay servicios registrados.">
             <template #nombre="{ item }">
               <div class="flex items-center gap-3">
@@ -415,20 +417,16 @@ async function quitarTarifa(t: ServicioTarifa) {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="createForm.nombre" type="text" placeholder="Ej: Consulta oftalmológica, Ajuste de armazón…"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
           <input v-model="createForm.descripcion" type="text" placeholder="Opcional"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio</label>
-          <input v-model.number="createForm.precio" type="number" min="0" placeholder="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <MontoInput :model-value="createForm.precio ?? null" @update:model-value="createForm.precio = $event ?? 0" placeholder="0" />
           <p class="text-xs mt-1" style="color: var(--color-outline)">Se agrega como línea al cobrar el servicio en una venta directa.</p>
         </div>
       </div>
@@ -450,19 +448,17 @@ async function quitarTarifa(t: ServicioTarifa) {
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="editForm.nombre" type="text" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Descripción</label>
-          <input v-model="editForm.descripcion" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="editForm.descripcion" type="text" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio</label>
-          <input v-model.number="editForm.precio" type="number" min="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <MontoInput :model-value="editForm.precio ?? null" @update:model-value="editForm.precio = $event ?? 0" placeholder="0" />
         </div>
         <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
           <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />
@@ -562,9 +558,7 @@ async function quitarTarifa(t: ServicioTarifa) {
             </div>
             <div>
               <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio</label>
-              <input v-model.number="tarifaPrecio" type="number" min="0" placeholder="0"
-                class="w-full px-4 py-2.5 rounded-xl text-sm outline-none"
-                style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest)" />
+              <MontoInput :model-value="tarifaPrecio" @update:model-value="tarifaPrecio = $event ?? 0" />
             </div>
           </div>
           <div class="mt-3 flex justify-end">

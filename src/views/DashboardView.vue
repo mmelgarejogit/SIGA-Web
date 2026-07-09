@@ -3,7 +3,8 @@ import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
-import KpiCard from "@/components/KpiCard.vue"
+import DashboardGreeting from "@/components/DashboardGreeting.vue"
+import InstrumentStrip from "@/components/InstrumentStrip.vue"
 import TodayAppointments from "@/components/TodayAppointments.vue"
 import InsightsPanel from "@/components/InsightsPanel.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -92,49 +93,29 @@ async function loadProfessionalData() {
 
 const profKpis = computed(() => [
   {
-    title:     "Consultas hoy",
-    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasHoy ?? 0),
-    icon:      "today",
-    badge:     "Hoy",
-    badgeType: "neutral" as const,
-    iconBg:    "var(--color-primary-fixed)",
-    iconColor: "var(--color-primary)",
+    label: "Consultas hoy",
+    value: isProfLoading.value ? "—" : String(profStats.value?.consultasHoy ?? 0),
+    hint:  "Hoy",
   },
   {
-    title:     "Esta semana",
-    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasEstaSemana ?? 0),
-    icon:      "date_range",
-    badge:     "Semana",
-    badgeType: "neutral" as const,
-    iconBg:    "var(--color-secondary-fixed)",
-    iconColor: "var(--color-secondary)",
+    label: "Esta semana",
+    value: isProfLoading.value ? "—" : String(profStats.value?.consultasEstaSemana ?? 0),
+    hint:  "Semana",
   },
   {
-    title:     "Este mes",
-    value:     isProfLoading.value ? "—" : String(profStats.value?.consultasEsteMes ?? 0),
-    icon:      "calendar_month",
-    badge:     "Mes",
-    badgeType: "neutral" as const,
-    iconBg:    "#E2DFFF",
-    iconColor: "var(--color-tertiary)",
+    label: "Este mes",
+    value: isProfLoading.value ? "—" : String(profStats.value?.consultasEsteMes ?? 0),
+    hint:  "Mes",
   },
   {
-    title:     "Pacientes atendidos",
-    value:     isProfLoading.value ? "—" : String(profStats.value?.pacientesUnicosEsteMes ?? 0),
-    icon:      "group",
-    badge:     "Mes",
-    badgeType: "neutral" as const,
-    iconBg:    "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-    iconColor: "var(--color-primary)",
+    label: "Pacientes atendidos",
+    value: isProfLoading.value ? "—" : String(profStats.value?.pacientesUnicosEsteMes ?? 0),
+    hint:  "Mes",
   },
   {
-    title:     "Recetas emitidas",
-    value:     isProfLoading.value ? "—" : String(profStats.value?.recetasEmitidasEsteMes ?? 0),
-    icon:      "medical_services",
-    badge:     "Mes",
-    badgeType: "neutral" as const,
-    iconBg:    "color-mix(in srgb, var(--color-secondary) 10%, transparent)",
-    iconColor: "var(--color-secondary)",
+    label: "Recetas emitidas",
+    value: isProfLoading.value ? "—" : String(profStats.value?.recetasEmitidasEsteMes ?? 0),
+    hint:  "Mes",
   },
 ])
 
@@ -214,40 +195,25 @@ const stockBadge = computed<{ text: string; type: "positive" | "neutral" | "crit
 
 const kpis = computed(() => [
   {
-    title:    "Pacientes Activos",
-    value:    activePatients.value,
-    icon:     "group",
-    badge:    isLoadingPatients.value ? "Cargando..." : "Total",
-    badgeType: "neutral" as const,
-    iconBg:   "var(--color-primary-fixed)",
-    iconColor: "var(--color-primary)",
+    label: "Pacientes activos",
+    value: activePatients.value,
+    hint:  isLoadingPatients.value ? "Cargando…" : "Total",
   },
   {
-    title:    "Citas Hoy",
-    value:    todayAppointments.value,
-    icon:     "calendar_today",
-    badge:    isLoadingAppts.value ? "Cargando..." : "Pendientes",
-    badgeType: "neutral" as const,
-    iconBg:   "var(--color-secondary-fixed)",
-    iconColor: "var(--color-secondary)",
+    label: "Citas hoy",
+    value: todayAppointments.value,
+    hint:  isLoadingAppts.value ? "Cargando…" : "Pendientes",
   },
   {
-    title:    "Ingresos Semanales",
-    value:    ingresosSemana.value,
-    icon:     "sell",
-    badge:    "Esta semana",
-    badgeType: "neutral" as const,
-    iconBg:   "#E2DFFF",
-    iconColor: "var(--color-tertiary)",
+    label: "Ingresos semanales",
+    value: ingresosSemana.value,
+    hint:  "Esta semana",
   },
   {
-    title:    "Stock Crítico",
-    value:    stockCritico.value,
-    icon:     "warning",
-    badge:    stockBadge.value.text,
-    badgeType: stockBadge.value.type,
-    iconBg:   "var(--color-error-container)",
-    iconColor: "var(--color-error)",
+    label: "Stock crítico",
+    value: stockCritico.value,
+    hint:  stockBadge.value.text,
+    tone:  stockBadge.value.type,
   },
 ])
 
@@ -329,23 +295,10 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         <!-- ══════════════════════════════════════════════════════ -->
         <template v-if="isPatient">
 
-          <!-- Saludo -->
-          <div class="mb-8 flex items-end justify-between" style="padding-right: 4rem">
-            <div>
-              <p class="dash-eyebrow">
-                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
-              </p>
-              <h1 class="text-4xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
-                Tu salud visual,<br />
-                <span style="color: var(--color-primary)">en un vistazo.</span>
-              </h1>
-            </div>
-            <p class="text-sm font-medium capitalize hidden lg:block pb-2"
-               style="color: var(--color-outline)">
-              {{ todayLabel }}
-            </p>
-          </div>
+          <DashboardGreeting :greeting="greeting" :name="firstName" :today-label="todayLabel">
+            Tu salud visual,<br />
+            <span style="color: var(--color-primary)">en un vistazo.</span>
+          </DashboardGreeting>
 
           <!-- Grid principal -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -353,7 +306,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Próximo turno (2/3 ancho) -->
             <div class="lg:col-span-2 rounded-3xl p-7"
                  style="background-color: var(--color-surface-container-lowest);
-                        box-shadow: 0 2px 16px rgba(0,40,142,0.07);">
+                        box-shadow: var(--shadow-sm);">
               <h2 class="text-xs font-bold uppercase tracking-widest mb-5"
                   style="color: var(--color-outline)">
                 Próximo turno
@@ -427,7 +380,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Acciones rápidas (1/3 ancho) -->
             <div class="flex flex-col gap-4">
               <div class="rounded-3xl p-7"
-                   style="background-color: #00288e;
+                   style="background-color: var(--color-primary);
                           box-shadow: var(--shadow-lg);">
                 <span class="material-symbols-outlined mb-4 block"
                       style="color: rgba(255,255,255,0.7); font-size: 28px;
@@ -449,7 +402,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
 
               <div class="rounded-3xl p-6"
                    style="background-color: var(--color-surface-container-lowest);
-                          box-shadow: 0 2px 16px rgba(0,40,142,0.07);">
+                          box-shadow: var(--shadow-sm);">
                 <span class="material-symbols-outlined mb-3 block"
                       style="color: var(--color-secondary); font-size: 24px;
                              font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;">
@@ -477,7 +430,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
           <div v-if="!isLoadingMios && turnosRecientes.length > 0"
                class="mt-6 rounded-3xl overflow-hidden"
                style="background-color: var(--color-surface-container-lowest);
-                      box-shadow: 0 2px 16px rgba(0,40,142,0.07);">
+                      box-shadow: var(--shadow-sm);">
             <div class="px-7 py-5" style="border-bottom: 1px solid var(--color-hairline)">
               <h2 class="text-xs font-bold uppercase tracking-widest"
                   style="color: var(--color-outline)">
@@ -519,39 +472,21 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         <!-- ══════════════════════════════════════════════════════ -->
         <template v-else-if="isProfessional">
 
-          <div class="mb-10 flex items-end justify-between" style="padding-right: 8rem">
-            <div>
-              <p class="dash-eyebrow">
-                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
-              </p>
-              <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
-                Tu actividad,<br />
-                <span style="color: var(--color-primary)">de un vistazo.</span>
-              </h1>
-              <p v-if="specialty" class="mt-3 text-sm font-semibold"
-                 style="color: var(--color-outline)">
-                {{ specialty }}
-              </p>
-            </div>
-            <div class="text-right pb-2 hidden lg:block">
-              <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
-                {{ todayLabel }}
-              </p>
-            </div>
-          </div>
+          <DashboardGreeting :greeting="greeting" :name="firstName" :today-label="todayLabel">
+            Tu actividad,<br />
+            <span style="color: var(--color-primary)">de un vistazo.</span>
+            <template v-if="specialty" #sub>{{ specialty }}</template>
+          </DashboardGreeting>
 
-          <!-- KPIs -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-8">
-            <KpiCard v-for="kpi in profKpis" :key="kpi.title" v-bind="kpi" />
-          </div>
+          <!-- Instrumental de consultas -->
+          <InstrumentStrip :stats="profKpis" class="mb-8" />
 
           <!-- Últimas consultas -->
           <div
             class="rounded-3xl overflow-hidden"
             style="
               background-color: var(--color-surface-container-lowest);
-              box-shadow: 0 2px 16px rgba(0,40,142,0.07);
+              box-shadow: var(--shadow-sm);
             "
           >
             <div
@@ -638,27 +573,12 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         <!-- ══════════════════════════════════════════════════════ -->
         <template v-else>
 
-          <div class="mb-10 flex items-end justify-between" style="padding-right: 8rem">
-            <div>
-              <p class="dash-eyebrow">
-                <span class="dash-tick" aria-hidden="true"></span>{{ greeting }}, {{ firstName }}
-              </p>
-              <h1 class="text-5xl font-extrabold tracking-tight leading-tight"
-                  style="color: var(--color-on-surface)">
-                Su óptica en<br />
-                <span style="color: var(--color-primary)">foco absoluto.</span>
-              </h1>
-            </div>
-            <div class="text-right pb-2 hidden lg:block">
-              <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
-                {{ todayLabel }}
-              </p>
-            </div>
-          </div>
+          <DashboardGreeting :greeting="greeting" :name="firstName" :today-label="todayLabel">
+            Su óptica en<br />
+            <span style="color: var(--color-primary)">foco absoluto.</span>
+          </DashboardGreeting>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-            <KpiCard v-for="kpi in kpis" :key="kpi.title" v-bind="kpi" />
-          </div>
+          <InstrumentStrip :stats="kpis" class="mb-8" />
 
           <div class="flex gap-6">
             <div class="flex-1 min-w-0">
@@ -724,7 +644,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
               @click="toggleFabMenu"
               class="w-14 h-14 shadow-2xl hover:scale-105 z-50"
               :style="showFabMenu
-                ? 'background-color: #1E3A5F; box-shadow: 0 8px 32px rgba(0,40,142,0.35);'
+                ? 'background-color: color-mix(in srgb, var(--color-primary) 80%, black); box-shadow: 0 8px 32px rgba(0,40,142,0.35);'
                 : 'background-color: var(--color-primary); box-shadow: 0 8px 32px rgba(0,40,142,0.35);'"
             >
               <span class="material-symbols-outlined" :style="fabIconStyle">add</span>
@@ -737,25 +657,3 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
     </main>
   </div>
 </template>
-
-<style scoped>
-/* Eco del hero de auth: etiqueta de instrumento (mono) + tick focal cian. */
-.dash-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: var(--color-primary);
-  margin-bottom: 0.65rem;
-}
-.dash-tick {
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1px;
-  background: var(--color-secondary);
-}
-</style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -184,8 +185,8 @@ async function downloadPdf(m: MovimientoStock) {
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Aprobaciones</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Aprobaciones</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               <span v-if="totalCount > 0">
                 {{ totalCount }} movimiento{{ totalCount !== 1 ? "s" : "" }} pendiente{{ totalCount !== 1 ? "s" : "" }} de aprobación
               </span>
@@ -202,7 +203,7 @@ async function downloadPdf(m: MovimientoStock) {
         </div>
 
         <!-- Filtros -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <FilterChips :model-value="tipoFilter" :options="tipoOptions" placeholder="Tipo" @update:model-value="onTipoChange" />
         </div>
 
@@ -214,7 +215,7 @@ async function downloadPdf(m: MovimientoStock) {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
           style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="movimientos" :loading="isLoading" empty-text="No hay movimientos pendientes de aprobación." @row-click="openDetail">
 
@@ -303,7 +304,7 @@ async function downloadPdf(m: MovimientoStock) {
           </span>
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="border: 1px solid var(--color-surface-variant)">
+        <div class="rounded-lg overflow-hidden" style="border: 1px solid var(--color-surface-variant)">
           <div class="grid grid-cols-2">
             <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--color-surface-variant); border-right: 1px solid var(--color-surface-variant)">
               <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Producto</p>
@@ -378,8 +379,8 @@ async function downloadPdf(m: MovimientoStock) {
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
             {{ gestionAccion === 'Rechazado' ? 'Motivo del rechazo' : 'Observaciones (opcional)' }}
           </label>
-          <textarea v-model="gestionObs" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+          <textarea v-model="gestionObs" rows="3" class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all"
+            :style="inputStyle()"
             :placeholder="gestionAccion === 'Rechazado' ? 'Indicá el motivo del rechazo…' : 'Opcional…'" />
         </div>
 

@@ -12,8 +12,11 @@ export interface LoginResponse {
   lastName: string
   specialty?: string
   professionalId?: number
+  sucursalId?: number
+  sucursalNombre?: string
   roleClaims: string[]
   permissions: string[]
+  mustChangePassword: boolean
 }
 
 export interface RegisterPatientRequest {
@@ -45,4 +48,16 @@ export async function registerPatient(data: RegisterPatientRequest): Promise<Reg
 
 export async function verifyEmail(token: string): Promise<void> {
   await http.get("/api/auth/verify-email", { params: { token } })
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await http.post("/api/auth/change-password", { currentPassword, newPassword })
+}
+
+export async function requestPasswordReset(email: string, hCaptchaToken: string): Promise<void> {
+  await http.post("/api/auth/forgot-password", { email, hCaptchaToken })
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await http.post("/api/auth/reset-password", { token, newPassword })
 }

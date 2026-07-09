@@ -11,6 +11,9 @@ export interface Turno {
   solicitudCancelacion: boolean
   motivo?: string
   notas?: string
+  estadoCustomId?: number
+  estadoCustomNombre?: string
+  estadoCustomColor?: string
   createdAt: string
   updatedAt: string
 }
@@ -35,6 +38,7 @@ export interface CreateTurnoRequest {
 }
 
 export interface SelfBookTurnoRequest {
+  sucursalId: number
   professionalId: number
   fechaHora: string
   motivo?: string
@@ -45,12 +49,14 @@ export async function getTurnos(
     fecha?: string
     professionalId?: number
     estado?: string
+    patientId?: number
   } = {},
 ): Promise<Turno[]> {
   const q = new URLSearchParams()
   if (params.fecha) q.set("fecha", params.fecha)
   if (params.professionalId) q.set("professionalId", String(params.professionalId))
   if (params.estado) q.set("estado", params.estado)
+  if (params.patientId) q.set("patientId", String(params.patientId))
   const { data } = await http.get<Turno[]>(`/api/turnos?${q}`)
   return data
 }
@@ -58,16 +64,22 @@ export async function getTurnos(
 export async function getSlotsDisponibles(
   professionalId: number,
   fecha: string,
+  sucursalId?: number,
 ): Promise<SlotDisponible[]> {
+  const suc = sucursalId ? `&sucursalId=${sucursalId}` : ""
   const { data } = await http.get<SlotDisponible[]>(
-    `/api/turnos/disponibles?professionalId=${professionalId}&fecha=${fecha}`,
+    `/api/turnos/disponibles?professionalId=${professionalId}&fecha=${fecha}${suc}`,
   )
   return data
 }
 
-export async function getProfesionalesDisponibles(fecha: string): Promise<ProfesionalDisponible[]> {
+export async function getProfesionalesDisponibles(
+  fecha: string,
+  sucursalId?: number,
+): Promise<ProfesionalDisponible[]> {
+  const suc = sucursalId ? `&sucursalId=${sucursalId}` : ""
   const { data } = await http.get<ProfesionalDisponible[]>(
-    `/api/turnos/profesionales-disponibles?fecha=${fecha}`,
+    `/api/turnos/profesionales-disponibles?fecha=${fecha}${suc}`,
   )
   return data
 }

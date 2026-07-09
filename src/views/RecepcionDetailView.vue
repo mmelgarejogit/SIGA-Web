@@ -145,7 +145,7 @@ function estadoOCLabel(estado: EstadoPedido) {
           </div>
 
           <!-- Ítems recepcionados -->
-          <div class="rounded-2xl overflow-hidden"
+          <div class="rounded-lg overflow-hidden"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <div class="px-6 py-4 flex items-center justify-between"
               style="border-bottom: 1px solid var(--color-hairline-soft)">

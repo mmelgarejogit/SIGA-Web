@@ -187,7 +187,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
 .ss-code {
   font-size: 11px;
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-mono);
   color: var(--color-outline);
   background: var(--color-surface-container-high);
   padding: 1px 6px;
@@ -280,7 +280,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
 .ss-option-code {
   font-size: 11px;
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-mono);
   color: var(--color-outline);
   background: var(--color-surface-container-high);
   padding: 1px 6px;

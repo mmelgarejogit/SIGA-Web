@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, reactive, computed, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -356,37 +357,12 @@ async function confirmDelete() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(id: number) {
-  return (
-    AVATAR_PALETTE[id % AVATAR_PALETTE.length] ??
-    AVATAR_PALETTE[0] ?? { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }
-  )
-}
-
-function initials(fn: string, ln: string) {
-  return `${fn[0] ?? ""}${ln[0] ?? ""}`.toUpperCase()
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   })
-}
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 const columns = [
@@ -508,7 +484,7 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
 
         <!-- Table -->
         <div
-          class="rounded-2xl overflow-hidden"
+          class="rounded-lg overflow-hidden"
           style="
             background-color: var(--color-surface-container-lowest);
             box-shadow: var(--shadow-sm);
@@ -797,319 +773,264 @@ function rowMenuItems(c: ConsultaClinica): ContextMenuItem[] {
     <!-- ══════════════════════════════════════════════════
          MODAL: RECETA
     ══════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
+    <BaseModal :show="showRecetaModal" title="Receta Óptica" size="lg" @close="showRecetaModal = false">
+      <form @submit.prevent="submitReceta" class="space-y-5">
         <div
-          v-if="showRecetaModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style="background-color: rgba(24, 28, 32, 0.5)"
-          @click.self="showRecetaModal = false"
+          v-if="recetaError"
+          class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+          style="
+            background-color: var(--color-error-container);
+            color: var(--color-on-error-container);
+          "
         >
-          <div
-            class="w-full max-w-2xl rounded-3xl overflow-hidden"
-            style="
-              background-color: var(--color-surface-container-lowest);
-              box-shadow: var(--shadow-xl);
-            "
+          <span class="material-symbols-outlined" style="font-size: 18px">error</span
+          >{{ recetaError }}
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label
+            class="text-xs font-bold uppercase tracking-wider"
+            style="color: var(--color-outline)"
+            >Fecha de Emisión</label
           >
-            <div
-              class="flex items-center justify-between px-8 pt-8 pb-6"
-              style="border-bottom: 1px solid var(--color-hairline)"
-            >
-              <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">
-                Receta Óptica
-              </h3>
-              <button @click="showRecetaModal = false" style="color: var(--color-outline)">
-                <span class="material-symbols-outlined" style="font-size: 22px">close</span>
-              </button>
-            </div>
+          <DateInput v-model="recetaEditForm.fechaEmision" />
+        </div>
 
-            <form
-              @submit.prevent="submitReceta"
-              class="px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto"
-            >
-              <div
-                v-if="recetaError"
-                class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
-                style="
-                  background-color: var(--color-error-container);
-                  color: var(--color-on-error-container);
-                "
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px">error</span
-                >{{ recetaError }}
-              </div>
-
-              <div class="flex flex-col gap-1.5">
-                <label
-                  class="text-xs font-bold uppercase tracking-wider"
+        <div class="overflow-x-auto">
+          <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr>
+                <th
+                  class="text-left py-2 text-xs font-bold uppercase tracking-wider"
                   style="color: var(--color-outline)"
-                  >Fecha de Emisión</label
-                >
-                <DateInput v-model="recetaEditForm.fechaEmision" />
-              </div>
-
-              <div class="overflow-x-auto">
-                <div class="overflow-x-auto"><table class="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr>
-                      <th
-                        class="text-left py-2 text-xs font-bold uppercase tracking-wider"
-                        style="color: var(--color-outline)"
-                      ></th>
-                      <th
-                        class="text-left py-2 text-xs font-bold uppercase tracking-wider"
-                        style="color: var(--color-outline)"
-                      >
-                        Esfera
-                      </th>
-                      <th
-                        class="text-left py-2 text-xs font-bold uppercase tracking-wider"
-                        style="color: var(--color-outline)"
-                      >
-                        Cilindro
-                      </th>
-                      <th
-                        class="text-left py-2 text-xs font-bold uppercase tracking-wider"
-                        style="color: var(--color-outline)"
-                      >
-                        Eje
-                      </th>
-                      <th
-                        class="text-left py-2 text-xs font-bold uppercase tracking-wider"
-                        style="color: var(--color-outline)"
-                      >
-                        Adición
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="py-2 font-bold" style="color: var(--color-on-surface)">OD</td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.odEsferico"
-                          type="text"
-                          placeholder="+0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.odCilindro"
-                          type="text"
-                          placeholder="-0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.odEje"
-                          type="text"
-                          placeholder="0"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.odAdicion"
-                          type="text"
-                          placeholder="+0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td class="py-2 font-bold" style="color: var(--color-on-surface)">OI</td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.oiEsferico"
-                          type="text"
-                          placeholder="+0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.oiCilindro"
-                          type="text"
-                          placeholder="-0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.oiEje"
-                          type="text"
-                          placeholder="0"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                      <td class="py-2 pr-2">
-                        <input
-                          v-model="recetaEditForm.oiAdicion"
-                          type="text"
-                          placeholder="+0.00"
-                          class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
-                          :style="inputStyle(false)"
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table></div>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1.5">
-                  <label
-                    class="text-xs font-bold uppercase tracking-wider"
-                    style="color: var(--color-outline)"
-                    >Distancia Interpupilar</label
-                  >
-                  <input
-                    v-model="recetaEditForm.distanciaInterpupilar"
-                    type="text"
-                    placeholder="mm"
-                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                    :style="inputStyle(false)"
-                  />
-                </div>
-                <div class="flex flex-col gap-1.5">
-                  <label
-                    class="text-xs font-bold uppercase tracking-wider"
-                    style="color: var(--color-outline)"
-                    >AV sin corrección</label
-                  >
-                  <input
-                    v-model="recetaEditForm.avSinCorreccion"
-                    type="text"
-                    placeholder="20/20"
-                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                    :style="inputStyle(false)"
-                  />
-                </div>
-                <div class="flex flex-col gap-1.5">
-                  <label
-                    class="text-xs font-bold uppercase tracking-wider"
-                    style="color: var(--color-outline)"
-                    >AV con corrección</label
-                  >
-                  <input
-                    v-model="recetaEditForm.avConCorreccion"
-                    type="text"
-                    placeholder="20/20"
-                    class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
-                    :style="inputStyle(false)"
-                  />
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-1.5">
-                <label
-                  class="text-xs font-bold uppercase tracking-wider"
+                ></th>
+                <th
+                  class="text-left py-2 text-xs font-bold uppercase tracking-wider"
                   style="color: var(--color-outline)"
-                  >Observaciones</label
                 >
-                <textarea
-                  v-model="recetaEditForm.observaciones"
-                  rows="2"
-                  class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
-                  :style="inputStyle(false)"
-                ></textarea>
-              </div>
-            </form>
+                  Esfera
+                </th>
+                <th
+                  class="text-left py-2 text-xs font-bold uppercase tracking-wider"
+                  style="color: var(--color-outline)"
+                >
+                  Cilindro
+                </th>
+                <th
+                  class="text-left py-2 text-xs font-bold uppercase tracking-wider"
+                  style="color: var(--color-outline)"
+                >
+                  Eje
+                </th>
+                <th
+                  class="text-left py-2 text-xs font-bold uppercase tracking-wider"
+                  style="color: var(--color-outline)"
+                >
+                  Adición
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="py-2 font-bold" style="color: var(--color-on-surface)">OD</td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.odEsferico"
+                    type="text"
+                    placeholder="+0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.odCilindro"
+                    type="text"
+                    placeholder="-0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.odEje"
+                    type="text"
+                    placeholder="0"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.odAdicion"
+                    type="text"
+                    placeholder="+0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td class="py-2 font-bold" style="color: var(--color-on-surface)">OI</td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.oiEsferico"
+                    type="text"
+                    placeholder="+0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.oiCilindro"
+                    type="text"
+                    placeholder="-0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.oiEje"
+                    type="text"
+                    placeholder="0"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+                <td class="py-2 pr-2">
+                  <input
+                    v-model="recetaEditForm.oiAdicion"
+                    type="text"
+                    placeholder="+0.00"
+                    class="w-20 px-2 py-2 text-sm outline-none appearance-none shadow-none"
+                    :style="inputStyle(false)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table></div>
+        </div>
 
-            <div
-              class="px-8 py-6 flex items-center justify-between gap-3"
-              style="border-top: 1px solid var(--color-hairline)"
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="text-xs font-bold uppercase tracking-wider"
+              style="color: var(--color-outline)"
+              >Distancia Interpupilar</label
             >
-              <button
-                v-if="recetaConsulta?.receta"
-                type="button"
-                @click="downloadPdf"
-                :disabled="isDownloadingPdf"
-                class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-                style="
-                  background-color: rgba(0, 40, 142, 0.07);
-                  color: var(--color-primary);
-                "
-              >
-                <svg
-                  v-if="isDownloadingPdf"
-                  class="animate-spin w-4 h-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span v-else class="material-symbols-outlined" style="font-size: 18px">download</span>
-                {{ isDownloadingPdf ? "Generando..." : "Descargar PDF" }}
-              </button>
-              <div v-else />
-
-              <div class="flex gap-3">
-                <button
-                  type="button"
-                  @click="showRecetaModal = false"
-                  class="px-6 py-3 rounded-full text-sm font-bold transition-all"
-                  style="
-                    background-color: var(--color-surface-container-high);
-                    color: var(--color-on-surface-variant);
-                  "
-                >
-                  Cancelar
-                </button>
-                <button
-                  @click="submitReceta"
-                  :disabled="isSavingReceta"
-                  class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all disabled:opacity-60"
-                  style="background-color: var(--color-primary); color: var(--color-on-primary)"
-                >
-                  <svg
-                    v-if="isSavingReceta"
-                    class="animate-spin w-4 h-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      class="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="4"
-                    />
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  {{ isSavingReceta ? "Guardando..." : "Guardar Receta" }}
-                </button>
-              </div>
-            </div>
+            <input
+              v-model="recetaEditForm.distanciaInterpupilar"
+              type="text"
+              placeholder="mm"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="text-xs font-bold uppercase tracking-wider"
+              style="color: var(--color-outline)"
+              >AV sin corrección</label
+            >
+            <input
+              v-model="recetaEditForm.avSinCorreccion"
+              type="text"
+              placeholder="20/20"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
+              :style="inputStyle(false)"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="text-xs font-bold uppercase tracking-wider"
+              style="color: var(--color-outline)"
+              >AV con corrección</label
+            >
+            <input
+              v-model="recetaEditForm.avConCorreccion"
+              type="text"
+              placeholder="20/20"
+              class="px-4 h-12 text-sm outline-none appearance-none shadow-none"
+              :style="inputStyle(false)"
+            />
           </div>
         </div>
-      </Transition>
-    </Teleport>
+
+        <div class="flex flex-col gap-1.5">
+          <label
+            class="text-xs font-bold uppercase tracking-wider"
+            style="color: var(--color-outline)"
+            >Observaciones</label
+          >
+          <textarea
+            v-model="recetaEditForm.observaciones"
+            rows="2"
+            class="px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
+            :style="inputStyle(false)"
+          ></textarea>
+        </div>
+      </form>
+
+      <template #footer>
+        <div class="w-full flex items-center justify-between">
+          <button
+            v-if="recetaConsulta?.receta"
+            type="button"
+            @click="downloadPdf"
+            :disabled="isDownloadingPdf"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all disabled:opacity-60"
+            style="
+              background-color: rgba(0, 40, 142, 0.07);
+              color: var(--color-primary);
+            "
+          >
+            <svg
+              v-if="isDownloadingPdf"
+              class="animate-spin w-4 h-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span v-else class="material-symbols-outlined" style="font-size: 18px">download</span>
+            {{ isDownloadingPdf ? "Generando..." : "Descargar PDF" }}
+          </button>
+          <div v-else />
+
+          <div class="flex gap-3">
+            <BaseButton variant="secondary" @click="showRecetaModal = false">Cancelar</BaseButton>
+            <BaseButton variant="primary" :disabled="isSavingReceta" @click="submitReceta">
+              <svg
+                v-if="isSavingReceta"
+                class="animate-spin w-4 h-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              {{ isSavingReceta ? "Guardando..." : "Guardar Receta" }}
+            </BaseButton>
+          </div>
+        </div>
+      </template>
+    </BaseModal>
 
     <!-- ══════════════════════════════════════════════════
          MODAL: CONFIRMAR ELIMINACIÓN

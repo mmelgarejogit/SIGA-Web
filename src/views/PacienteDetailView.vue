@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, watch, defineComponent, h, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -109,7 +110,7 @@ type TabId = "info" | "citas" | "clinico" | "ventas"
 
 const ALL_TABS: { id: TabId; label: string; icon: string; available: boolean; permission: string | null }[] = [
   { id: "info",    label: "Información",     icon: "badge",               available: true,  permission: null },
-  { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_calendario" },
+  { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_agenda" },
   { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true, permission: "ver_historia_clinica" },
   { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: false, permission: "ver_ventas" },
 ]
@@ -140,27 +141,7 @@ async function loadPatient() {
 
 onMounted(loadPatient)
 
-watch(activeTab, (tab) => {
-  if (tab === "clinico" && !consultas.value.length) loadConsultas()
-  if (tab === "citas" && !citas.value.length) loadCitas()
-})
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 10%, transparent)", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 10%, transparent)", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, transparent)", color: "var(--color-outline)" },
-]
-
-function avatarStyle(p: Patient) {
-  return AVATAR_PALETTE[(p.id ?? 0) % AVATAR_PALETTE.length]!
-}
-
-function initials(p: Patient) {
-  return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase()
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
@@ -239,8 +220,7 @@ async function loadCitas() {
   if (!patientId.value) return
   isLoadingCitas.value = true
   try {
-    const all = await getTurnos()
-    citas.value = all.filter((t) => t.patientId === patientId.value)
+    citas.value = await getTurnos({ patientId: patientId.value })
   } catch {
     citas.value = []
   } finally {
@@ -259,13 +239,6 @@ const showEditModal = ref(false)
 
 function openEditModal() {
   showEditModal.value = true
-}
-
-function inputStyle(hasError: boolean) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
 }
 
 // ── Modal Desactivar ──────────────────────────────────────────────────────────
@@ -296,7 +269,7 @@ async function confirmDelete() {
     <AppHeader />
 
     <main style="margin-left: var(--sidebar-width); transition: margin-left 0.25s ease; padding-top: 64px">
-      <div class="px-8 pt-10 pb-16 max-w-7xl mx-auto">
+      <div class="p-4 sm:p-6 lg:p-8">
         <!-- Breadcrumb / Back -->
         <BaseButton variant="ghost" size="sm" class="mb-8" @click="router.push('/pacientes')">
           <span class="material-symbols-outlined" style="font-size: 18px">arrow_back</span>
@@ -354,14 +327,14 @@ async function confirmDelete() {
             <div class="flex items-center gap-6">
               <div
                 class="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-black flex-shrink-0"
-                :style="`background-color: ${avatarStyle(patient).bg}; color: ${avatarStyle(patient).color};`"
+                :style="`background-color: ${avatarStyle(patient.id).bg}; color: ${avatarStyle(patient.id).color};`"
               >
-                {{ initials(patient) }}
+                {{ initials(patient.firstName, patient.lastName) }}
               </div>
 
               <div>
                 <div class="flex items-center gap-3 flex-wrap mb-1">
-                  <h1 class="text-3xl font-extrabold" style="color: var(--color-on-surface)">
+                  <h1 class="text-4xl font-extrabold tracking-tight mb-2">
                     {{ patient.firstName }} {{ patient.lastName }}
                   </h1>
                   <span
@@ -670,7 +643,7 @@ async function confirmDelete() {
           <!-- ── Tab: Citas y Turnos ─────────────────────────────────────────── -->
           <div v-else-if="activeTab === 'citas'">
             <div
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="
                 background-color: var(--color-surface-container-lowest);
                 box-shadow: var(--shadow-sm);
@@ -742,9 +715,7 @@ async function confirmDelete() {
                 <div
                   v-for="cita in citas"
                   :key="cita.id"
-                  class="flex items-center justify-between px-6 py-4 transition-colors"
-                  onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-                  onmouseout="this.style.backgroundColor = 'transparent'"
+                  class="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface"
                 >
                   <div class="flex items-center gap-4 flex-1 min-w-0">
                     <div
@@ -798,7 +769,7 @@ async function confirmDelete() {
           <!-- ── Tab: Historial Clínico ─────────────────────────────────────── -->
           <div v-else-if="activeTab === 'clinico'">
             <div
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="
                 background-color: var(--color-surface-container-lowest);
                 box-shadow: var(--shadow-sm);
@@ -882,9 +853,7 @@ async function confirmDelete() {
                 <div
                   v-for="c in consultas"
                   :key="c.id"
-                  class="px-6 py-4 flex items-start justify-between gap-4"
-                  onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-                  onmouseout="this.style.backgroundColor = 'transparent'"
+                  class="px-6 py-4 flex items-start justify-between gap-4 hover:bg-surface"
                 >
                   <div class="flex items-start gap-4 flex-1 min-w-0">
                     <div

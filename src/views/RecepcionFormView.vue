@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -211,13 +212,6 @@ async function submit() {
 function cancel() {
   router.push("/compras/recepciones")
 }
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
 </script>
 
 <template>
@@ -270,7 +264,7 @@ function inputStyle(hasError = false) {
                   <button type="button" @click="openFacturaModal"
                     class="flex-1 flex items-center gap-3 px-4 h-12 text-sm text-left transition-all appearance-none shadow-none"
                     :style="selectedFactura
-                      ? 'border-radius: 12px; border: 1.5px solid var(--color-primary); background-color: #EEF2FF; color: var(--color-primary);'
+                      ? 'border-radius: 12px; border: 1.5px solid var(--color-primary); background-color: var(--color-primary-fixed); color: var(--color-primary);'
                       : inputStyle(false)">
                     <span class="material-symbols-outlined flex-shrink-0" style="font-size: 18px">receipt_long</span>
                     <span class="flex-1 truncate">
@@ -342,7 +336,7 @@ function inputStyle(hasError = false) {
               <div v-if="lineas.length > 0" class="flex items-center gap-2">
                 <button @click="fillAll"
                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-                  style="background-color: #EEF2FF; color: var(--color-primary)">
+                  style="background-color: var(--color-primary-fixed); color: var(--color-primary)">
                   <span class="material-symbols-outlined" style="font-size: 14px">done_all</span>
                   Recibir todo
                 </button>
@@ -395,8 +389,7 @@ function inputStyle(hasError = false) {
                       class="w-full px-2 py-2 appearance-none shadow-none text-sm outline-none" :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
-                    <input v-model="l.fechaVencimiento" type="date"
-                      class="w-full px-2 py-2 appearance-none shadow-none text-sm outline-none" :style="inputStyle(false)" />
+                    <DateInput v-model="l.fechaVencimiento" />
                   </td>
                   <td class="px-6 py-3">
                     <input v-model="l.observaciones" type="text" placeholder="—" maxlength="500"
@@ -433,7 +426,7 @@ function inputStyle(hasError = false) {
                 <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                   <div class="flex items-center gap-3">
                     <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                      style="background-color: var(--color-primary); color: #fff">#{{ rec.id }}</span>
+                      style="background-color: var(--color-primary); color: var(--color-on-primary)">#{{ rec.id }}</span>
                     <span class="text-sm font-semibold" style="color: var(--color-on-surface)">
                       {{ formatDate(rec.fechaRecepcion) }}
                     </span>
@@ -520,7 +513,7 @@ function inputStyle(hasError = false) {
           <tr v-for="f in facturasFiltradas" :key="f.id"
             class="cursor-pointer transition-colors hover:bg-surface-container-low"
             :style="f.id === selectedFacturaId
-              ? 'background-color: #EEF2FF;'
+              ? 'background-color: var(--color-primary-fixed);'
               : 'border-top: 1px solid var(--color-hairline-soft)'"
             @click="selectFactura(f)">
             <td class="px-4 py-3">

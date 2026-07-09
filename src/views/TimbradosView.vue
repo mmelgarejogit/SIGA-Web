@@ -6,8 +6,10 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
+import DateInput from "@/components/DateInput.vue"
 import {
   type Timbrado,
   type CreateTimbradoRequest,
@@ -17,9 +19,14 @@ import {
   updateTimbrado,
   deactivateTimbrado,
 } from "@/services/timbradoService"
+import { type Sucursal, getSucursales } from "@/services/sucursalService"
+import { inputStyle } from "@/composables/useFieldStyles"
 
 const auth = useAuthStore()
 const canManage = auth.hasPermission("gestionar_ventas")
+const sucursales = ref<Sucursal[]>([])
+
+const sucursalSelectOptions = computed(() => sucursales.value.map(s => ({ value: s.id, label: s.nombre })))
 
 const items = ref<Timbrado[]>([])
 const isLoading = ref(false)
@@ -67,6 +74,7 @@ const visiblePages = computed(() => {
 
 const columns = [
   { key: "numeroTimbrado",      label: "Timbrado" },
+  { key: "sucursal",            label: "Sucursal" },
   { key: "serie",                label: "Serie" },
   { key: "proximoNumeroPreview", label: "Próximo N°" },
   { key: "vigencia",            label: "Vigencia" },
@@ -86,7 +94,10 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  try { sucursales.value = await getSucursales(true) } catch { /* silencioso */ }
+})
 
 function menuItems(item: Timbrado): ContextMenuItem[] {
   return [
@@ -113,6 +124,7 @@ const showCreate  = ref(false)
 const isSaving    = ref(false)
 const createError = ref("")
 const createForm  = reactive<CreateTimbradoRequest>({
+  sucursalId: undefined,
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -126,6 +138,7 @@ function openCreate() {
   const today = new Date()
   const finVigencia = new Date(today)
   finVigencia.setFullYear(finVigencia.getFullYear() + 1)
+  createForm.sucursalId = auth.user?.sucursalId ?? sucursales.value[0]?.id
   createForm.numeroTimbrado = ""
   createForm.establecimiento = ""
   createForm.puntoExpedicion = ""
@@ -152,6 +165,7 @@ async function submitCreate() {
   isSaving.value = true
   try {
     await createTimbrado({
+      sucursalId: createForm.sucursalId,
       numeroTimbrado: createForm.numeroTimbrado.trim(),
       establecimiento: createForm.establecimiento.trim(),
       puntoExpedicion: createForm.puntoExpedicion.trim(),
@@ -176,6 +190,7 @@ const isEditSaving = ref(false)
 const editError    = ref("")
 const editingItem  = ref<Timbrado | null>(null)
 const editForm     = reactive<UpdateTimbradoRequest>({
+  sucursalId: undefined,
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -188,6 +203,7 @@ const editForm     = reactive<UpdateTimbradoRequest>({
 
 function openEdit(item: Timbrado) {
   editingItem.value = item
+  editForm.sucursalId = item.sucursalId
   editForm.numeroTimbrado = item.numeroTimbrado
   editForm.establecimiento = item.establecimiento
   editForm.puntoExpedicion = item.puntoExpedicion
@@ -209,6 +225,7 @@ async function submitEdit() {
   isEditSaving.value = true
   try {
     await updateTimbrado(editingItem.value.id, {
+      sucursalId: editForm.sucursalId,
       numeroTimbrado: editForm.numeroTimbrado.trim(),
       establecimiento: editForm.establecimiento.trim(),
       puntoExpedicion: editForm.puntoExpedicion.trim(),
@@ -260,12 +277,12 @@ async function confirmDeactivate() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Timbrados</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Timbrados</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ items.filter(i => i.isActive).length }} timbrado{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }} activo{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }}
             </p>
@@ -286,7 +303,7 @@ async function confirmDeactivate() {
           {{ loadError }}
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="itemsPaginados" :loading="isLoading" empty-text="No hay timbrados registrados.">
             <template #numeroTimbrado="{ item }">
               <div class="flex items-center gap-3">
@@ -295,6 +312,9 @@ async function confirmDeactivate() {
                 </div>
                 <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.numeroTimbrado }}</span>
               </div>
+            </template>
+            <template #sucursal="{ item }">
+              <span class="text-sm" style="color: var(--color-on-surface-variant)">{{ item.sucursalNombre ?? "—" }}</span>
             </template>
             <template #serie="{ item }">
               <span class="text-sm font-mono font-semibold" style="color: var(--color-on-surface-variant)">
@@ -363,46 +383,46 @@ async function confirmDeactivate() {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
+          <SearchableSelect v-model="createForm.sucursalId" :options="sucursalSelectOptions" placeholder="Sucursal" />
+        </div>
+        <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="createForm.numeroTimbrado" type="text" placeholder="Ej: 12345678"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Establecimiento *</label>
           <input v-model="createForm.establecimiento" type="text" placeholder="001" maxlength="3"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Punto de Expedición *</label>
           <input v-model="createForm.puntoExpedicion" type="text" placeholder="001" maxlength="3"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Desde</label>
           <input v-model.number="createForm.numeroDesde" type="number" min="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Hasta</label>
           <input v-model.number="createForm.numeroHasta" type="number" min="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha Inicio Vigencia *</label>
-          <input v-model="createForm.fechaInicioVigencia" type="date"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <DateInput v-model="createForm.fechaInicioVigencia" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha Fin Vigencia *</label>
-          <input v-model="createForm.fechaFinVigencia" type="date"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <DateInput v-model="createForm.fechaFinVigencia" />
         </div>
       </div>
       <template #footer>
@@ -422,46 +442,46 @@ async function confirmDeactivate() {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
+          <SearchableSelect v-model="editForm.sucursalId" :options="sucursalSelectOptions" placeholder="Sucursal" />
+        </div>
+        <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="editForm.numeroTimbrado" type="text"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Establecimiento *</label>
           <input v-model="editForm.establecimiento" type="text" maxlength="3"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Punto de Expedición *</label>
           <input v-model="editForm.puntoExpedicion" type="text" maxlength="3"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Desde</label>
           <input v-model.number="editForm.numeroDesde" type="number" min="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">N° Hasta</label>
           <input v-model.number="editForm.numeroHasta" type="number" min="1"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha Inicio Vigencia *</label>
-          <input v-model="editForm.fechaInicioVigencia" type="date"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <DateInput v-model="editForm.fechaInicioVigencia" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Fecha Fin Vigencia *</label>
-          <input v-model="editForm.fechaFinVigencia" type="date"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <DateInput v-model="editForm.fechaFinVigencia" />
         </div>
         <div class="col-span-2 flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">
           <input v-model="editForm.isActive" type="checkbox" id="editIsActive" class="w-4 h-4 rounded" />

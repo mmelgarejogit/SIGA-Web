@@ -132,7 +132,7 @@ const kpis = computed(() => {
       icon: "inventory_2",
       badge: "Total",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
   ]
@@ -163,7 +163,7 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const CAT_COLORS = [
   "var(--color-on-info-container)", "var(--color-success)", "var(--color-tertiary)", "var(--color-warning)", "var(--color-error)",
-  "#0891b2", "#db2777", "#65a30d", "#9333ea", "#0d9488",
+  "var(--color-chart-5)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-tertiary)", "var(--color-chart-5)",
 ]
 
 const catChart = computed<CategoriaInventario[]>(() => {
@@ -369,11 +369,12 @@ function exportCsv() {
 
                 <div v-if="showTrend">
                   <p class="text-xs font-semibold mb-2" style="color: var(--color-outline)">Máx: {{ serieMax }}</p>
-                  <div class="flex items-end gap-1" style="height: 200px">
+                  <div class="overflow-x-auto">
+                  <div class="flex items-end gap-1" :style="{ height: '200px', minWidth: `max(100%, ${reporte.serieTemporal.length * 36}px)` }">
                     <div
                       v-for="(p, i) in reporte.serieTemporal"
                       :key="i"
-                      class="flex-1 flex flex-col items-center justify-end gap-1 h-full"
+                      class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1 h-full"
                       :title="`${p.periodo} · Entradas ${p.entradas} · Salidas ${p.salidas}`"
                     >
                       <div class="w-full flex items-end justify-center gap-0.5 h-full">
@@ -396,6 +397,7 @@ function exportCsv() {
                       >
                       <span v-else class="text-[9px]">&nbsp;</span>
                     </div>
+                  </div>
                   </div>
                 </div>
                 <div v-else class="flex flex-col items-center justify-center gap-1" style="height: 200px">
@@ -451,7 +453,7 @@ function exportCsv() {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- Stock crítico -->
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -486,7 +488,7 @@ function exportCsv() {
 
               <!-- Top por valor -->
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">

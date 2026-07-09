@@ -108,7 +108,7 @@ const kpis = computed(() => {
       icon: "receipt_long",
       badge: "Comprob.",
       badgeType: "neutral" as const,
-      iconBg: "#E2DFFF",
+      iconBg: "var(--color-tertiary-fixed)",
       iconColor: "var(--color-tertiary)",
     },
     {
@@ -156,7 +156,7 @@ const DONUT_R = 60
 const DONUT_C = 2 * Math.PI * DONUT_R
 const metodoColors: Record<string, string> = {
   Efectivo: "var(--color-success)",
-  Tarjeta: "#2563eb",
+  Tarjeta: "var(--color-chart-1)",
   Transferencia: "var(--color-tertiary)",
   Cheque: "var(--color-warning)",
 }
@@ -362,11 +362,12 @@ function exportCsv() {
                   <p class="text-xs font-semibold mb-2" style="color: var(--color-outline)">
                     Máx: {{ fmt(serieMax) }}
                   </p>
-                  <div class="flex items-end gap-1" style="height: 200px">
+                  <div class="overflow-x-auto">
+                  <div class="flex items-end gap-1" :style="{ height: '200px', minWidth: `max(100%, ${reporte.serieTemporal.length * 36}px)` }">
                     <div
                       v-for="(p, i) in reporte.serieTemporal"
                       :key="i"
-                      class="flex-1 flex flex-col items-center justify-end gap-1 h-full"
+                      class="flex-1 min-w-0 flex flex-col items-center justify-end gap-1 h-full"
                       :title="`${p.periodo} · Facturado ${fmt(p.facturado)} · Cobrado ${fmt(p.cobrado)}`"
                     >
                       <div class="w-full flex items-end justify-center gap-0.5 h-full">
@@ -389,6 +390,7 @@ function exportCsv() {
                       >
                       <span v-else class="text-[9px]">&nbsp;</span>
                     </div>
+                  </div>
                   </div>
                 </div>
                 <div v-else class="flex items-center justify-center" style="height: 200px">
@@ -496,7 +498,7 @@ function exportCsv() {
             <!-- Top productos + servicios -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -521,7 +523,7 @@ function exportCsv() {
               </div>
 
               <div
-                class="rounded-2xl overflow-hidden"
+                class="rounded-lg overflow-hidden"
                 style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
               >
                 <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">
@@ -548,7 +550,7 @@ function exportCsv() {
 
             <!-- Por cajero -->
             <div
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)"
             >
               <div class="px-6 py-5" style="border-bottom: 1px solid var(--color-hairline)">

@@ -2,6 +2,8 @@ import { http } from "@/api/http"
 
 export interface Timbrado {
   id: number
+  sucursalId: number
+  sucursalNombre?: string
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string
@@ -17,6 +19,7 @@ export interface Timbrado {
 }
 
 export interface CreateTimbradoRequest {
+  sucursalId?: number
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string
@@ -27,6 +30,7 @@ export interface CreateTimbradoRequest {
 }
 
 export interface UpdateTimbradoRequest {
+  sucursalId?: number
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string

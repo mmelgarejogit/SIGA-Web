@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, reactive, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -58,6 +60,8 @@ const tipoIvaOpciones: { value: TipoIva; label: string }[] = [
   { value: "Iva10",  label: "IVA 10%" },
 ]
 
+const tipoIvaSelectOptions = computed(() => tipoIvaOpciones.map(o => ({ value: o.value, label: o.label })))
+
 const ocItems = ref<ItemLinea[]>([])
 const directaItems = ref<ItemLinea[]>([newItemLinea()])
 
@@ -68,6 +72,7 @@ const form = reactive({
   fechaEmision: new Date().toISOString().slice(0, 10),
   fechaVencimiento: "",
   condicionVenta: "Contado",
+  metodoPago: "Efectivo",
   observaciones: "",
 })
 
@@ -106,6 +111,21 @@ const proveedorOptions = computed(() =>
 const productoOptions = computed(() =>
   productos.value.map(p => ({ value: p.id, label: p.nombre, code: p.sku ?? undefined })),
 )
+
+// Formato automático Paraguay: 001-001-0000001 (3-3-7 dígitos)
+function onNroFacturaInput(e: Event) {
+  const el     = e.target as HTMLInputElement
+  const cursor = el.selectionStart ?? el.value.length
+  const prev   = el.value
+  const digits  = prev.replace(/\D/g, '').slice(0, 13)
+  let formatted = digits
+  if (digits.length > 6) formatted = digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6)
+  else if (digits.length > 3) formatted = digits.slice(0, 3) + '-' + digits.slice(3)
+  form.nroFactura = formatted
+  const added = formatted.length - prev.length
+  const next  = Math.max(0, cursor + (added > 0 ? added : 0))
+  requestAnimationFrame(() => el.setSelectionRange(next, next))
+}
 
 function formatMonto(n: number) {
   return new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", minimumFractionDigits: 0 }).format(n)
@@ -198,7 +218,12 @@ async function guardar() {
   if (form.condicionVenta === "Credito" && !form.fechaVencimiento) {
     saveError.value = "La fecha de vencimiento es obligatoria para crédito."; return
   }
+  if (form.condicionVenta === "Contado" && !form.metodoPago) {
+    saveError.value = "El método de pago es obligatorio para facturas al contado."; return
+  }
   if (montoTotal.value <= 0) { saveError.value = "El total de la factura debe ser mayor a cero. Agregá ítems."; return }
+
+  const metodoPago = form.condicionVenta === "Contado" ? form.metodoPago : undefined
 
   if (origen.value === "ConOC") {
     if (!form.pedidoId) { saveError.value = "Seleccioná una Orden de Compra."; return }
@@ -220,12 +245,13 @@ async function guardar() {
         fechaEmision: form.fechaEmision,
         fechaVencimiento: form.condicionVenta === "Credito" ? form.fechaVencimiento : undefined,
         condicionVenta: form.condicionVenta,
+        metodoPago,
         observaciones: form.observaciones || undefined,
         items,
       })
       router.push("/compras/facturas")
-    } catch (err: any) {
-      saveError.value = err.response?.data?.message ?? err.message ?? "Error al registrar la factura."
+    } catch (e) {
+      saveError.value = e instanceof Error ? e.message : "Error al registrar la factura."
     } finally {
       isSaving.value = false
     }
@@ -242,6 +268,7 @@ async function guardar() {
         fechaEmision: form.fechaEmision,
         fechaVencimiento: form.condicionVenta === "Credito" ? form.fechaVencimiento : undefined,
         condicionVenta: form.condicionVenta,
+        metodoPago,
         observaciones: form.observaciones || undefined,
         items: itemsValidos.map(i => ({
           productoId: i.productoId,
@@ -252,8 +279,8 @@ async function guardar() {
         })),
       })
       router.push("/compras/facturas")
-    } catch (err: any) {
-      saveError.value = err.response?.data?.message ?? err.message ?? "Error al registrar la factura."
+    } catch (e) {
+      saveError.value = e instanceof Error ? e.message : "Error al registrar la factura."
     } finally {
       isSaving.value = false
     }
@@ -273,12 +300,12 @@ const condicionOptions = [
   { value: "Credito", label: "Crédito" },
 ]
 
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
+const metodoPagoOptions = [
+  { value: "Efectivo",      label: "Efectivo" },
+  { value: "Tarjeta",       label: "Tarjeta" },
+  { value: "Transferencia", label: "Transferencia" },
+  { value: "Cheque",        label: "Cheque" },
+]
 </script>
 
 <template>
@@ -329,7 +356,7 @@ function inputStyle(hasError = false) {
                 :key="opt.v"
                 class="flex items-center gap-3 px-4 py-4 rounded-xl cursor-pointer transition-all"
                 :style="origen === opt.v
-                  ? 'border: 1.5px solid var(--color-primary); background-color: #EEF2FF;'
+                  ? 'border: 1.5px solid var(--color-primary); background-color: var(--color-primary-fixed);'
                   : 'border: 1px solid var(--color-outline-variant); background-color: var(--color-surface-container-low);'"
               >
                 <input type="radio" :value="opt.v" v-model="origen" class="hidden" @change="onOrigenChange" />
@@ -396,9 +423,9 @@ function inputStyle(hasError = false) {
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
                   Número de Factura *
                 </label>
-                <input v-model="form.nroFactura" type="text" placeholder="001-001-0000001" maxlength="15"
+                <input :value="form.nroFactura" @input="onNroFacturaInput" type="text" placeholder="001-001-0000001"
+                  inputmode="numeric" maxlength="15"
                   class="w-full px-4 h-12 text-sm font-mono outline-none appearance-none shadow-none transition-all" :style="inputStyle(false)" />
-                <p class="text-xs mt-1" style="color: var(--color-outline)">Formato: 001-001-0000001</p>
               </div>
             </div>
 
@@ -421,6 +448,20 @@ function inputStyle(hasError = false) {
                   :options="condicionOptions"
                   :searchable="false"
                   @update:model-value="form.condicionVenta = $event as string"
+                />
+              </div>
+
+              <!-- Método de pago (solo Contado) -->
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">
+                  Método de Pago <span v-if="form.condicionVenta === 'Contado'" style="color: var(--color-error)">*</span>
+                </label>
+                <SearchableSelect
+                  :model-value="form.metodoPago"
+                  :options="metodoPagoOptions"
+                  :searchable="false"
+                  :disabled="form.condicionVenta !== 'Contado'"
+                  @update:model-value="form.metodoPago = $event as string"
                 />
               </div>
 
@@ -471,11 +512,7 @@ function inputStyle(hasError = false) {
                   <td class="px-6 py-3 text-right" style="color: var(--color-on-surface-variant)">{{ formatMonto(item.precioUnitario) }}</td>
                   <td class="px-6 py-3 text-right font-semibold" style="color: var(--color-on-surface)">{{ formatMonto(item.cantidad * item.precioUnitario) }}</td>
                   <td class="px-6 py-3">
-                    <select v-model="item.tipoIva"
-                      class="w-full px-2 py-1.5 appearance-none shadow-none text-xs outline-none"
-                      :style="inputStyle(false)">
-                      <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
+                    <SearchableSelect v-model="item.tipoIva" :options="tipoIvaSelectOptions" />
                   </td>
                 </tr>
               </tbody>
@@ -502,7 +539,7 @@ function inputStyle(hasError = false) {
               </div>
               <button @click="addItem"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
-                style="background-color: #EEF2FF; color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
+                style="background-color: var(--color-primary-fixed); color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
                 <span class="material-symbols-outlined" style="font-size: 18px">add</span>
                 Agregar ítem
               </button>
@@ -540,16 +577,11 @@ function inputStyle(hasError = false) {
                       :style="inputStyle(false)" />
                   </td>
                   <td class="px-3 py-3">
-                    <input v-model.number="item.precioUnitario" type="number" min="0" step="1"
-                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
-                      :style="inputStyle(false)" />
+                    <MontoInput :model-value="item.precioUnitario" align="right"
+                      @update:model-value="item.precioUnitario = $event ?? 0" />
                   </td>
                   <td class="px-3 py-3">
-                    <select v-model="item.tipoIva"
-                      class="w-full px-2 py-2 appearance-none shadow-none text-xs outline-none"
-                      :style="inputStyle(false)">
-                      <option v-for="opt in tipoIvaOpciones" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
+                    <SearchableSelect v-model="item.tipoIva" :options="tipoIvaSelectOptions" />
                   </td>
                   <td class="px-3 py-3">
                     <button :disabled="directaItems.length <= 1" @click="removeItem(i)"
@@ -564,7 +596,7 @@ function inputStyle(hasError = false) {
 
             <!-- Mensaje sobre productos a stock -->
             <div v-if="itemsConProducto > 0" class="px-6 py-3 flex items-center gap-2 text-xs"
-              style="background-color: #EEF2FF; border-top: 1px solid rgba(0, 40, 142, 0.15); color: var(--color-primary)">
+              style="background-color: var(--color-primary-fixed); border-top: 1px solid rgba(0, 40, 142, 0.15); color: var(--color-primary)">
               <span class="material-symbols-outlined" style="font-size: 16px">inventory_2</span>
               <span><strong>{{ itemsConProducto }}</strong> ítem{{ itemsConProducto === 1 ? '' : 's' }} con producto seleccionado se sumará{{ itemsConProducto === 1 ? '' : 'n' }} al stock.</span>
             </div>

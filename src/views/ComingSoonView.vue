@@ -13,8 +13,7 @@ const label = computed(() => (route.meta.label as string) ?? "Esta sección")
   <AppSidebar />
   <AppHeader />
   <main
-    class="ml-[280px] pt-16 min-h-screen flex items-center justify-center"
-    style="background-color: var(--color-surface)"
+    style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: var(--color-surface)"
   >
     <div class="flex flex-col items-center gap-5 text-center px-8">
       <div
@@ -37,8 +36,8 @@ const label = computed(() => (route.meta.label as string) ?? "Esta sección")
         </span>
       </div>
       <div>
-        <h1 class="text-2xl font-black" style="color: var(--color-on-surface)">{{ label }}</h1>
-        <p class="mt-2 text-sm" style="color: var(--color-outline)">
+        <h1 class="text-4xl font-extrabold tracking-tight mb-2">{{ label }}</h1>
+        <p class="font-medium" style="color: var(--color-on-surface-variant)">
           Esta sección está en desarrollo y estará disponible próximamente.
         </p>
       </div>

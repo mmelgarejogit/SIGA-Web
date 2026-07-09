@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -93,6 +96,62 @@ const productosPaginados = computed(() => {
 
 watch([categoriasSeleccionadas, search], () => { page.value = 1 })
 
+// ── PDF planilla en blanco ────────────────────────────────────────────────────
+
+function descargarPlanilla() {
+  const lista = productosFiltrados.value
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+  const PRIMARY: [number, number, number] = [0, 40, 142]
+  const WHITE: [number, number, number] = [255, 255, 255]
+  const GRAY: [number, number, number] = [107, 114, 128]
+
+  // Encabezado
+  doc.setFillColor(...PRIMARY)
+  doc.rect(0, 0, 210, 28, "F")
+  doc.setTextColor(...WHITE)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(14)
+  doc.text("PLANILLA DE INVENTARIO FÍSICO", 15, 12)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(9)
+  doc.text(`Fecha: ${new Date().toLocaleDateString("es-PY")}`, 15, 20)
+  doc.text(`Total de productos: ${lista.length}`, 210 - 15, 20, { align: "right" })
+
+  autoTable(doc, {
+    startY: 34,
+    margin: { left: 15, right: 15 },
+    head: [["#", "Producto", "SKU", "Categoría", "Cantidad contada"]],
+    body: lista.map((p, i) => [
+      (i + 1).toString(),
+      p.nombre,
+      p.sku ?? "—",
+      p.categoria ?? "—",
+      "",
+    ]),
+    headStyles: { fillColor: PRIMARY, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 8.5, minCellHeight: 10 },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 32 },
+      4: { cellWidth: 36, halign: "center" },
+    },
+    alternateRowStyles: { fillColor: [248, 249, 254] },
+  })
+
+  // @ts-expect-error — jspdf-autotable extiende el doc
+  const finalY: number = doc.lastAutoTable.finalY + 14
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8.5)
+  doc.setTextColor(...GRAY)
+  doc.text("Contado por: ___________________________", 15, finalY)
+  doc.text("Verificado por: ___________________________", 15, finalY + 8)
+  doc.text(`Fecha de conteo: _______________`, 210 - 15, finalY, { align: "right" })
+
+  doc.save(`Planilla-Inventario-${new Date().toISOString().slice(0, 10)}.pdf`)
+}
+
 // ── Envío ─────────────────────────────────────────────────────────────────────
 
 const observaciones = ref("")
@@ -147,11 +206,19 @@ async function submit() {
         <template v-else>
 
           <!-- Header -->
-          <div class="mb-8">
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nuevo Conteo de Inventario</h1>
-            <p class="font-medium" style="color: var(--color-on-surface-variant)">
-              Seleccioná las categorías a contar, ingresá las cantidades físicas y dejá en blanco los productos que no contaste.
-            </p>
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
+            <div>
+              <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nuevo Conteo de Inventario</h1>
+              <p class="font-medium" style="color: var(--color-on-surface-variant)">
+                Seleccioná las categorías a contar, ingresá las cantidades físicas y dejá en blanco los productos que no contaste.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <BaseButton variant="secondary" size="lg" @click="descargarPlanilla">
+                <span class="material-symbols-outlined" style="font-size: 20px">download</span>
+                Descargar planilla
+              </BaseButton>
+            </div>
           </div>
 
           <!-- Error de guardado -->
@@ -229,7 +296,7 @@ async function submit() {
                   v-for="p in productosPaginados"
                   :key="p.id"
                   style="border-top: 1px solid var(--color-hairline-soft)"
-                  :style="cantidades[p.id] != null ? 'background-color: #F8FAFF' : ''"
+                  :style="cantidades[p.id] != null ? 'background-color: color-mix(in srgb, var(--color-primary) 6%, transparent)' : ''"
                 >
                   <td class="px-6 py-3">
                     <p class="font-semibold" style="color: var(--color-on-surface)">{{ p.nombre }}</p>
@@ -292,8 +359,8 @@ async function submit() {
               v-model="observaciones"
               rows="3"
               placeholder="Ej. Conteo parcial de lentes — categoría contactología"
-              class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-              style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+              class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all"
+              :style="inputStyle()"
             />
           </div>
 

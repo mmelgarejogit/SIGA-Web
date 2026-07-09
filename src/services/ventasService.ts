@@ -22,6 +22,7 @@ export type CategoriaFiscal = "Exento" | "Gravado5" | "Gravado10"
 export type TipoLinea       = "Producto" | "Servicio" | "Lente"
 export type TipoMovCaja     = "Ingreso" | "Egreso"
 export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado"
+export type MedioEnvioLaboratorio = "WhatsApp" | "Email" | "Portal" | "Telefono" | "EnPersona" | "Otro"
 
 export interface VentaLinea {
   id: number
@@ -40,6 +41,7 @@ export interface CobroLinea {
   id: number
   metodoPago: MetodoPago
   monto: number
+  referencia?: string
 }
 
 export interface Cobro {
@@ -127,6 +129,8 @@ export interface Devolucion {
 export interface Venta {
   id: number
   numeroComprobante: string
+  sucursalId: number
+  sucursalNombre?: string
   clienteId?: number
   clienteNombre: string
   recetaId?: number
@@ -251,6 +255,7 @@ export interface ActualizarVentaRequest {
 export interface CobroLineaRequest {
   metodoPago: MetodoPago
   monto: number
+  referencia?: string
 }
 
 export interface RegistrarCobroRequest {
@@ -393,6 +398,8 @@ export interface TrabajoPedidoListDto {
   observacionAprobacion?: string
   aprobadoPorNombre?: string
   fechaEnvio?: string
+  fechaEstimadaEntrega?: string
+  medioEnvio?: MedioEnvioLaboratorio
   fechaRecepcion?: string
   observacion?: string
   factura?: FacturaLaboratorioDto
@@ -407,6 +414,11 @@ export interface TrabajoPedidoListDto {
 export interface GestionarTrabajoPedidoRequest {
   accion: "Aprobar" | "Rechazar"
   observacion?: string
+}
+
+export interface RegistrarEnvioRequest {
+  fechaEstimadaEntrega?: string   // "yyyy-MM-dd"
+  medioEnvio?: MedioEnvioLaboratorio
 }
 
 export interface EmitirFacturaLaboratorioRequest {

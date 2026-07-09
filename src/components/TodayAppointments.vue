@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { getTurnos, type Turno } from "@/services/turnoService"
@@ -16,23 +17,6 @@ const todayStr = toDateStr(new Date())
 
 const turnos = ref<Turno[]>([])
 const isLoading = ref(true)
-
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, var(--color-surface-container-lowest))", color: "var(--color-outline)" },
-]
-
-const AVATAR_FALLBACK = { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" }
-
-function avatarStyle(id: number) {
-  return AVATAR_PALETTE[id % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
-}
-
-function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase()
-}
 
 function formatHour(iso: string): string {
   const match = iso.match(/T(\d{2}:\d{2})/)
@@ -147,10 +131,8 @@ onMounted(loadTurnos)
       <div
         v-for="turno in turnos"
         :key="turno.id"
-        class="flex items-center gap-4 px-6 py-4 transition-colors"
+        class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-surface"
         style="border-bottom: 1px solid var(--color-hairline-soft)"
-        onmouseover="this.style.backgroundColor = 'var(--color-surface)'"
-        onmouseout="this.style.backgroundColor = 'transparent'"
       >
         <!-- Avatar -->
         <div

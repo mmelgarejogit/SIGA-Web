@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -6,6 +7,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { type Egreso, getEgresos, aprobarEgreso, rechazarEgreso } from "@/services/egresosService"
 
 const formatPrice = (n: number) =>
@@ -62,7 +64,18 @@ const columns = [
   { key: "acciones", label: "", align: "right" as const },
 ]
 
-// ── Detalle + acciones inline ──────────────────────────────────────────────────
+// ── Menú contextual ────────────────────────────────────────────────────────────
+
+function menuItems(e: Egreso): ContextMenuItem[] {
+  return [
+    { type: "item", label: "Ver detalle",  icon: "visibility",   action: () => openDetalle(e) },
+    { type: "separator" },
+    { type: "item", label: "Aprobar",      icon: "check_circle", action: () => openAprobar(e) },
+    { type: "item", label: "Rechazar",     icon: "cancel",       action: () => openRechazar(e), danger: true },
+  ]
+}
+
+// ── Detalle ────────────────────────────────────────────────────────────────────
 
 const showDetalle = ref(false)
 const detalleEgreso = ref<Egreso | null>(null)
@@ -79,7 +92,7 @@ function tipoLabel(tipo: string) {
 function tipoColor(tipo: string) {
   return {
     FacturaCompra: { bg: "var(--color-info-container)", color: "var(--color-on-info-container)" },
-    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "#6D28D9" },
+    Honorario:     { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-on-tertiary-fixed-variant)" },
     GastoGeneral:  { bg: "var(--color-warning-container)", color: "var(--color-on-warning-container)" },
   }[tipo] ?? { bg: "var(--color-surface-container)", color: "var(--color-on-surface-variant)" }
 }
@@ -129,13 +142,6 @@ function openRechazar(e: Egreso) {
   rechazarMotivo.value = ""
   rechazarError.value = ""
   showRechazar.value = true
-}
-
-function inputStyle(hasError = false) {
-  const base = 'border-radius: 12px; '
-  return hasError
-    ? base + 'border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));'
-    : base + 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);'
 }
 
 async function submitRechazar() {
@@ -217,21 +223,8 @@ async function submitRechazar() {
           </template>
 
           <template #acciones="{ item }">
-            <div class="flex items-center justify-end gap-2">
-              <button @click="openDetalle(item)"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                style="background-color: var(--color-surface-container-high)" title="Ver detalle">
-                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-on-surface-variant)">visibility</span>
-              </button>
-              <button @click="openRechazar(item)"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                style="background-color: var(--color-error-container)" title="Rechazar">
-                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--color-error)">cancel</span>
-              </button>
-              <button @click="openAprobar(item)"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 bg-green-100" title="Aprobar">
-                <span class="material-symbols-outlined text-green-700" style="font-size: 18px">check_circle</span>
-              </button>
+            <div class="flex items-center justify-end">
+              <RowContextMenu :items="menuItems(item)" />
             </div>
           </template>
         </BaseTable>

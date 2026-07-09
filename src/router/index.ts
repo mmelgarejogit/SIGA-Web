@@ -7,7 +7,7 @@ import PacientesView from "@/views/PacientesView.vue"
 import PacienteDetailView from "@/views/PacienteDetailView.vue"
 import UsuariosView from "@/views/UsuariosView.vue"
 import { useAuthStore } from "@/stores/auth"
-import { menuConfig } from "@/config/menuConfig"
+import { firstAccessibleRoute } from "@/config/menuConfig"
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -16,22 +16,6 @@ declare module "vue-router" {
     permission?: string
     label?: string
   }
-}
-
-function findFirstAccessibleRoute(permissions: string[]): string {
-  for (const item of menuConfig) {
-    if (item.route && (!item.permission || permissions.includes(item.permission))) {
-      return item.route
-    }
-    if (item.children) {
-      for (const child of item.children) {
-        if (!child.permission || permissions.includes(child.permission)) {
-          return child.route
-        }
-      }
-    }
-  }
-  return "/"
 }
 
 const router = createRouter({
@@ -50,9 +34,26 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: "/cambiar-contrasena",
+      name: "cambiar-contrasena",
+      component: () => import("@/views/CambiarContrasenaObligatoriaView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/verificar-email",
       name: "verificar-email",
       component: () => import("@/views/VerifyEmailView.vue"),
+    },
+    {
+      path: "/olvide-contrasena",
+      name: "olvide-contrasena",
+      component: () => import("@/views/OlvideContrasenaView.vue"),
+      meta: { requiresGuest: true },
+    },
+    {
+      path: "/restablecer-contrasena",
+      name: "restablecer-contrasena",
+      component: () => import("@/views/RestablecerContrasenaView.vue"),
     },
     {
       path: "/confirmar-turno",
@@ -468,6 +469,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_reportes", label: "Reporte de Inventario" },
     },
     {
+      path: "/reportes/operativo/:tipo",
+      name: "reportes-operativo",
+      component: () => import("@/views/ReporteOperativoView.vue"),
+      meta: { requiresAuth: true, permission: "ver_reportes", label: "Reporte operativo" },
+    },
+    {
       path: "/admin/config",
       name: "admin-config",
       component: () => import("@/views/ConfiguracionView.vue"),
@@ -480,6 +487,18 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "gestionar_configuracion", label: "Ubicaciones" },
     },
     {
+      path: "/admin/sucursales",
+      name: "admin-sucursales",
+      component: () => import("@/views/SucursalesView.vue"),
+      meta: { requiresAuth: true, permission: "ver_sucursales", label: "Sucursales" },
+    },
+    {
+      path: "/stock/transferencias",
+      name: "stock-transferencias",
+      component: () => import("@/views/TransferenciasView.vue"),
+      meta: { requiresAuth: true, permission: "transferir_stock", label: "Transferencias" },
+    },
+    {
       path: "/egresos",
       name: "egresos",
       component: () => import("@/views/EgresosView.vue"),
@@ -489,7 +508,7 @@ const router = createRouter({
       path: "/egresos/nuevo",
       name: "egresos-nuevo",
       component: () => import("@/views/NuevoEgresoView.vue"),
-      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nueva Solicitud" },
+      meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nuevo Egreso" },
     },
     {
       path: "/egresos/aprobacion",
@@ -560,7 +579,7 @@ const router = createRouter({
     {
       path: "/notificaciones",
       name: "notificaciones",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/NotificacionesView.vue"),
       meta: { requiresAuth: true, permission: "ver_notificaciones", label: "Notificaciones" },
     },
     {
@@ -583,13 +602,17 @@ router.beforeEach((to) => {
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: "login" }
 
+  if (auth.isAuthenticated && auth.user?.mustChangePassword && to.path !== "/cambiar-contrasena") {
+    return "/cambiar-contrasena"
+  }
+
   if (to.meta.requiresGuest && auth.isAuthenticated) {
-    const fallback = findFirstAccessibleRoute(auth.user?.permissions ?? [])
+    const fallback = firstAccessibleRoute(auth.user?.permissions ?? [])
     return fallback === "/" ? { name: "dashboard" } : fallback
   }
 
   if (to.meta.permission && !auth.hasPermission(to.meta.permission)) {
-    const fallback = findFirstAccessibleRoute(auth.user?.permissions ?? [])
+    const fallback = firstAccessibleRoute(auth.user?.permissions ?? [])
     // Si no hay ninguna ruta accesible o el fallback es la misma ruta que falló, dejamos pasar
     // para evitar el loop infinito. El contenido de la vista puede manejar el estado vacío.
     if (!fallback || fallback === to.path) return true

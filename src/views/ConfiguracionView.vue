@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, reactive, onMounted } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -72,10 +73,6 @@ async function save() {
   }
 }
 
-function inputStyle() {
-  return "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
-}
-
 onMounted(load)
 </script>
 
@@ -120,45 +117,45 @@ onMounted(load)
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nombre Fantasía *</label>
               <input v-model="form.nombreFantasia" type="text" placeholder="Óptica San Martín" :disabled="!canEdit"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Razón Social</label>
                 <input v-model="form.razonSocial" type="text" :disabled="!canEdit"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">CUIT / RUT</label>
                 <input v-model="form.cuit" type="text" placeholder="20-12345678-9" :disabled="!canEdit"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
               </div>
             </div>
 
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Dirección</label>
               <input v-model="form.direccion" type="text" placeholder="Av. Corrientes 1234, CABA" :disabled="!canEdit"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Teléfono</label>
                 <input v-model="form.telefono" type="text" placeholder="+54 11 1234-5678" :disabled="!canEdit"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Email de contacto</label>
                 <input v-model="form.email" type="email" placeholder="info@optica.com" :disabled="!canEdit"
-                  class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                  class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
               </div>
             </div>
 
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Sitio Web</label>
               <input v-model="form.sitioWeb" type="text" placeholder="https://optica.com" :disabled="!canEdit"
-                class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all disabled:opacity-60" :style="inputStyle()" />
+                class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all disabled:opacity-60" :style="inputStyle()" />
             </div>
 
             <div v-if="canEdit" class="flex justify-end pt-2">

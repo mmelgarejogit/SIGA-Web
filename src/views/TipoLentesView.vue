@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -228,13 +230,13 @@ async function confirmDelete() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2" style="color: var(--color-on-surface)">Tipos de Lente</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Tipos de Lente</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ items.filter(i => i.isActive).length }} tipo{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }} activo{{ items.filter(i => i.isActive).length !== 1 ? "s" : "" }}
             </p>
@@ -258,7 +260,7 @@ async function confirmDelete() {
         </div>
 
         <!-- Tabla -->
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="itemsPaginados" :loading="isLoading" empty-text="No hay tipos de lente registrados.">
             <template #nombre="{ item }">
               <div class="flex items-center gap-3">
@@ -328,14 +330,11 @@ async function confirmDelete() {
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
           <input v-model="createForm.nombre" type="text" placeholder="Ej: Monofocal, Progresivo…"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all" :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio base (Gs.)</label>
-          <input v-model.number="createForm.precioBase" type="number" min="0" placeholder="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <MontoInput :model-value="createForm.precioBase ?? null" @update:model-value="createForm.precioBase = $event ?? 0" placeholder="0" />
           <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Sugerido al elegir el diseño en una venta. Editable por venta.</p>
         </div>
       </div>
@@ -357,14 +356,12 @@ async function confirmDelete() {
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Nombre *</label>
-          <input v-model="editForm.nombre" type="text" class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <input v-model="editForm.nombre" type="text" class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()" />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Precio base (Gs.)</label>
-          <input v-model.number="editForm.precioBase" type="number" min="0"
-            class="w-full px-4 py-3 rounded-xl text-sm outline-none"
-            style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)" />
+          <MontoInput :model-value="editForm.precioBase ?? null" @update:model-value="editForm.precioBase = $event ?? 0" placeholder="0" />
           <p class="mt-1.5 text-xs" style="color: var(--color-outline)">Sugerido al elegir el diseño en una venta. Editable por venta.</p>
         </div>
         <div class="flex items-center gap-3 p-4 rounded-xl" style="background-color: var(--color-surface-container-low)">

@@ -117,7 +117,7 @@ async function submit() {
             <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-on-surface-variant)">arrow_back</span>
           </button>
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-1">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">
               {{ isEdit ? `Editar: ${editingRole?.name ?? ''}` : 'Nuevo Rol' }}
             </h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
@@ -186,7 +186,7 @@ async function submit() {
           <!-- Grid de cards -->
           <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))">
             <div v-for="group in PERMISSION_GROUPS" :key="group.module"
-              class="rounded-2xl overflow-hidden"
+              class="rounded-lg overflow-hidden"
               style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
 
               <!-- Header del módulo (toggle all) -->

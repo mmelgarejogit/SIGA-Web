@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -147,14 +148,14 @@ async function submitRechazar() {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Aprobaciones de Caja</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Aprobaciones de Caja</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               Cierres de sesión pendientes de revisión supervisora
             </p>
           </div>
@@ -338,8 +339,8 @@ async function submitRechazar() {
           v-model="motivoRechazo"
           rows="3"
           placeholder="Ej: El monto no coincide con el registrado en el sistema…"
-          class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
-          style="border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low)"
+          class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none transition-all resize-none"
+          :style="inputStyle()"
         />
       </div>
       <p v-if="rechazarError" class="text-xs font-medium" style="color: var(--color-error)">{{ rechazarError }}</p>

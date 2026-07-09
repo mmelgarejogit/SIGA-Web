@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
 import { ref, computed, onMounted, reactive } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -67,8 +68,8 @@ async function submitGestion() {
     await gestionarAprobacion(selectedItem.value.id, { accion: accion.value, observacion: observacion.value || undefined })
     showModal.value = false
     await load()
-  } catch (e: any) {
-    gestionError.value = e?.response?.data?.message ?? "Error al procesar"
+  } catch (e) {
+    gestionError.value = e instanceof Error ? e.message : "Error al procesar"
   } finally {
     isGestion.value = false
   }
@@ -92,7 +93,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
@@ -108,7 +109,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           <SearchInput v-model="search" placeholder="Buscar por cliente o comprobante…" class="w-full sm:w-72" />
         </div>
 
-        <div class="rounded-2xl overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="filtered.length === 0" empty-message="No hay pedidos pendientes de aprobación">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Comprobante</th>
@@ -137,15 +138,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ item.laboratorioNombre }}</td>
                 <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(item.createdAt) }}</td>
                 <td class="px-6 py-4 text-right" @click.stop>
-                  <div v-if="canManage" class="flex items-center justify-end gap-2">
-                    <button class="w-9 h-9 rounded-full flex items-center justify-center bg-green-100 hover:scale-105 transition-all" title="Aprobar" @click="openModal(item, 'Aprobar')">
-                      <span class="material-symbols-outlined text-green-700" style="font-size:18px">check_circle</span>
-                    </button>
-                    <button class="w-9 h-9 rounded-full flex items-center justify-center bg-red-100 hover:scale-105 transition-all" title="Rechazar" @click="openModal(item, 'Rechazar')">
-                      <span class="material-symbols-outlined text-red-600" style="font-size:18px">cancel</span>
-                    </button>
-                  </div>
-                  <RowContextMenu v-else :items="menuItems(item)" />
+                  <RowContextMenu :items="menuItems(item)" />
                 </td>
               </tr>
             </template>
@@ -165,8 +158,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
           </div>
           <div>
             <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observaciones</label>
-            <textarea v-model="observacion" rows="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-              style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-low);color:var(--color-on-surface)"></textarea>
+            <textarea v-model="observacion" rows="2" class="w-full px-4 py-3 rounded-md text-sm outline-none appearance-none shadow-none resize-none transition-all" :style="inputStyle()"></textarea>
           </div>
           <p v-if="gestionError" class="text-xs font-medium" style="color:var(--color-error)">{{ gestionError }}</p>
         </div>

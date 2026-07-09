@@ -3,28 +3,12 @@ import { ref } from "vue"
 import { useRouter } from "vue-router"
 import { login } from "@/services/authService"
 import { useAuthStore } from "@/stores/auth"
-import { menuConfig } from "@/config/menuConfig"
+import { firstAccessibleRoute } from "@/config/menuConfig"
 import BaseButton from "@/components/BaseButton.vue"
 import AuthHero from "@/components/AuthHero.vue"
 
 const router = useRouter()
 const authStore = useAuthStore()
-
-function getFirstAccessibleRoute(permissions: string[]): string {
-  for (const item of menuConfig) {
-    if (item.route && (!item.permission || permissions.includes(item.permission))) {
-      return item.route
-    }
-    if (item.children) {
-      for (const child of item.children) {
-        if (!child.permission || permissions.includes(child.permission)) {
-          return child.route
-        }
-      }
-    }
-  }
-  return "/"
-}
 
 const email = ref("")
 const password = ref("")
@@ -77,14 +61,17 @@ async function handleSubmit() {
       lastName: response.lastName,
       specialty: response.specialty,
       professionalId: response.professionalId,
+      sucursalId: response.sucursalId,
+      sucursalNombre: response.sucursalNombre,
       roles: response.roleClaims,
       permissions: response.permissions ?? [],
+      mustChangePassword: response.mustChangePassword,
     })
 
     // Navegar al primer destino accesible (dashboard si tiene permiso, sino el primero disponible)
     const redirectTo = authStore.hasPermission("ver_dashboard")
       ? "/"
-      : getFirstAccessibleRoute(response.permissions ?? [])
+      : firstAccessibleRoute(response.permissions ?? [])
     router.push(redirectTo)
   } catch (err: unknown) {
     hasError.value = true
@@ -279,13 +266,13 @@ async function handleSubmit() {
             </div>
 
             <div class="flex justify-end pt-1">
-              <button
-                type="button"
+              <RouterLink
+                to="/olvide-contrasena"
                 class="text-sm font-bold transition-colors"
                 style="color: var(--color-primary)"
               >
                 ¿Olvidó su contraseña?
-              </button>
+              </RouterLink>
             </div>
           </div>
 

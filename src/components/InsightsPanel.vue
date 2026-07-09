@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { avatarStyle, initials } from "@/composables/useFieldStyles"
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { getPatients, type Patient } from "@/services/patientService"
@@ -35,23 +36,6 @@ async function loadData() {
 }
 
 onMounted(loadData)
-
-function initials(first: string, last: string) {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase()
-}
-
-const AVATAR_PALETTE = [
-  { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" },
-  { bg: "color-mix(in srgb, var(--color-secondary) 12%, var(--color-surface-container-lowest))", color: "var(--color-secondary)" },
-  { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)" },
-  { bg: "color-mix(in srgb, var(--color-outline) 14%, var(--color-surface-container-lowest))", color: "var(--color-outline)" },
-]
-
-const AVATAR_FALLBACK = { bg: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-container-lowest))", color: "var(--color-primary)" }
-
-function avatarStyle(id: number) {
-  return AVATAR_PALETTE[id % AVATAR_PALETTE.length] ?? AVATAR_FALLBACK
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
@@ -108,14 +92,14 @@ function formatDate(iso: string) {
         </div>
         <div v-else class="flex gap-6">
           <div>
-            <p class="text-3xl font-black" style="color: white">{{ todayTurnosCount }}</p>
+            <p class="text-3xl font-bold" style="color: white; font-family: var(--font-mono); font-variant-numeric: tabular-nums">{{ todayTurnosCount }}</p>
             <p class="text-xs font-semibold mt-0.5" style="color: rgba(184, 196, 255, 0.7)">
               Turnos pendientes
             </p>
           </div>
           <div class="w-px" style="background-color: rgba(255, 255, 255, 0.15)"></div>
           <div>
-            <p class="text-3xl font-black" style="color: white">{{ recentPatients.length }}</p>
+            <p class="text-3xl font-bold" style="color: white; font-family: var(--font-mono); font-variant-numeric: tabular-nums">{{ recentPatients.length }}</p>
             <p class="text-xs font-semibold mt-0.5" style="color: rgba(184, 196, 255, 0.7)">
               Pacientes nuevos
             </p>

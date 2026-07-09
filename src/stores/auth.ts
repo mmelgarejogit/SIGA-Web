@@ -13,8 +13,11 @@ export interface AuthUser {
   lastName: string
   specialty?: string
   professionalId?: number
+  sucursalId?: number
+  sucursalNombre?: string
   roles: string[]
   permissions: string[]
+  mustChangePassword?: boolean
 }
 
 export const useAuthStore = defineStore("auth", () => {
@@ -50,5 +53,11 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, user, isAuthenticated, hasPermission, setSession, clearSession }
+  function clearMustChangePassword() {
+    if (!user.value) return
+    user.value = { ...user.value, mustChangePassword: false }
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+  }
+
+  return { token, user, isAuthenticated, hasPermission, setSession, clearSession, clearMustChangePassword }
 })

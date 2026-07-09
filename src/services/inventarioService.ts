@@ -49,6 +49,8 @@ export interface MovimientoStock {
   id: number
   productoId: number
   productoNombre: string
+  sucursalId: number
+  sucursalNombre?: string
   tipo: "Entrada" | "Salida" | "Ajuste"
   cantidad: number
   motivo: string | null
@@ -493,6 +495,8 @@ export interface StockLote {
   id: number
   productoId: number
   productoNombre: string
+  sucursalId: number
+  sucursalNombre?: string
   productoSku?: string
   marcaNombre?: string
   modeloNombre?: string
@@ -515,6 +519,8 @@ export interface RegistrarConteoRequest {
 
 export interface ConteoInventarioDto {
   id: number
+  sucursalId: number
+  sucursalNombre?: string
   creadoPorNombre: string
   fechaConteo: string
   estado: string

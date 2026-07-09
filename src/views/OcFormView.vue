@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { inputStyle } from "@/composables/useFieldStyles"
+import MontoInput from "@/components/MontoInput.vue"
 import { ref, computed, onMounted, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -198,13 +200,6 @@ function cancel() {
   if (isEdit.value) router.push(`/compras/oc/${editId.value}`)
   else router.push("/compras/oc")
 }
-
-function inputStyle(hasError = false) {
-  const base = "border-radius: 12px; "
-  return hasError
-    ? base + "border: 1.5px solid var(--color-error); color: var(--color-on-surface); background-color: color-mix(in srgb, var(--color-error) 8%, var(--color-surface));"
-    : base + "border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface);"
-}
 </script>
 
 <template>
@@ -325,7 +320,7 @@ function inputStyle(hasError = false) {
               <h3 class="text-xl font-extrabold" style="color: var(--color-primary)">Productos a pedir</h3>
               <button @click="addItem"
                 class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95"
-                style="background-color: #EEF2FF; color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
+                style="background-color: var(--color-primary-fixed); color: var(--color-primary); border: 1px solid rgba(0, 40, 142, 0.15);">
                 <span class="material-symbols-outlined" style="font-size: 18px">add</span>
                 Agregar producto
               </button>
@@ -361,9 +356,8 @@ function inputStyle(hasError = false) {
                       :style="inputStyle(false)" />
                   </td>
                   <td class="px-6 py-3">
-                    <input v-model.number="item.precioUnitario" type="number" min="0" step="1"
-                      class="w-full px-3 py-2 appearance-none shadow-none text-sm text-right outline-none"
-                      :style="inputStyle(false)" />
+                    <MontoInput :model-value="item.precioUnitario" align="right"
+                      @update:model-value="item.precioUnitario = $event ?? 0" />
                   </td>
                   <td class="px-6 py-3 text-right font-bold" style="color: var(--color-on-surface)">
                     {{ formatPrice(item.cantidad * item.precioUnitario) }}
@@ -443,7 +437,7 @@ function inputStyle(hasError = false) {
         </div>
 
         <!-- Resultados -->
-        <div class="rounded-2xl overflow-hidden"
+        <div class="rounded-lg overflow-hidden"
              style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline); max-height: 320px; overflow-y: auto;">
 
           <!-- Estado vacío -->

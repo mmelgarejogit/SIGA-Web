@@ -32,6 +32,7 @@ export interface StatusStyle {
   bg: string
   dot: string
   text: string
+  label: string
 }
 
 /** Colores del badge de estado activo/inactivo (pill o rectangular). */
@@ -41,11 +42,13 @@ export function statusStyle(isActive: boolean): StatusStyle {
         bg: "var(--color-success-container)",
         dot: "var(--color-success)",
         text: "var(--color-on-success-container)",
+        label: "Activo",
       }
     : {
         bg: "var(--color-surface-container-highest)",
         dot: "var(--color-outline)",
         text: "var(--color-on-surface-variant)",
+        label: "Inactivo",
       }
 }
 

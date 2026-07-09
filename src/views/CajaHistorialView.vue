@@ -93,14 +93,14 @@ function duracion(apertura: string, cierre?: string): string {
   <div class="min-h-screen" style="background-color: var(--color-background)">
     <AppSidebar />
     <AppHeader />
-    <main style="margin-left: var(--sidebar-width); padding-top: 64px">
+    <main style="margin-left: var(--sidebar-width); padding-top: 64px; transition: margin-left 0.25s ease">
       <div class="p-4 sm:p-6 lg:p-8">
 
         <!-- Encabezado -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight" style="color: var(--color-on-surface)">Historial de Caja</h1>
-            <p class="mt-1 font-medium" style="color: var(--color-on-surface-variant)">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Historial de Caja</h1>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ total }} sesión{{ total !== 1 ? "es" : "" }} registrada{{ total !== 1 ? "s" : "" }}
             </p>
           </div>
@@ -220,8 +220,23 @@ function duracion(apertura: string, cierre?: string): string {
           <p v-else class="text-sm" style="color: var(--color-on-surface-variant)">Sesión aún abierta</p>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto inicial</p>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto de apertura</p>
           <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ fmt(detalle.montoInicial) }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Monto de cierre (contado)</p>
+          <template v-if="detalle.efectivoContado != null">
+            <p class="text-sm font-bold" style="color: var(--color-on-surface)">{{ fmt(detalle.efectivoContado) }}</p>
+            <p class="text-xs mt-0.5 font-medium"
+              :style="(detalle.diferencia ?? 0) === 0
+                ? 'color: var(--color-on-success-container)'
+                : (detalle.diferencia ?? 0) > 0
+                  ? 'color: var(--color-on-info-container)'
+                  : 'color: var(--color-on-error-container)'">
+              {{ (detalle.diferencia ?? 0) === 0 ? "Cuadrada" : (detalle.diferencia ?? 0) > 0 ? `Sobrante ${fmtSigned(detalle.diferencia ?? 0)}` : `Faltante ${fmtSigned(detalle.diferencia ?? 0)}` }}
+            </p>
+          </template>
+          <p v-else class="text-sm" style="color: var(--color-on-surface-variant)">Sin contar</p>
         </div>
         <div>
           <p class="text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-outline)">Duración</p>
@@ -298,9 +313,11 @@ function duracion(apertura: string, cierre?: string): string {
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-xs font-semibold truncate" style="color: var(--color-on-surface)">{{ m.concepto }}</p>
-              <div class="flex items-center gap-1.5 mt-0.5">
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span class="material-symbols-outlined" style="font-size:12px; color: var(--color-outline)">{{ metodoPagoIcon(m.metodoPago) }}</span>
-                <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }} · {{ fmtTime(m.createdAt) }}</span>
+                <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }}</span>
+                <span v-if="m.referencia" class="text-xs" style="color: var(--color-outline)">· {{ m.referencia }}</span>
+                <span class="text-xs" style="color: var(--color-outline)">· {{ fmtTime(m.createdAt) }}</span>
               </div>
             </div>
             <p class="text-sm font-bold flex-shrink-0"

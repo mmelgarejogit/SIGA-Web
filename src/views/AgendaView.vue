@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from "vue"
+import { inputStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
@@ -468,7 +469,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Agenda</h1>
-            <p class="text-sm font-medium capitalize" style="color: var(--color-outline)">
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">
               {{ headerSubtitle }}
             </p>
           </div>
@@ -484,7 +485,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
         </div>
 
         <!-- ── CONTROLES ───────────────────────────────────────────────── -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <div class="flex items-center gap-3 mb-8 flex-wrap">
           <DateRangeBar v-model="selectedDate" v-model:mode="viewMode" />
 
           <!-- Filtro por profesional -->
@@ -699,7 +700,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
             @focus="showPatientDropdown = true"
             @blur="onPatientBlur"
             class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+            :style="inputStyle()"
           />
           <div v-if="showPatientDropdown && filteredPatients.length > 0"
             class="absolute left-0 right-0 z-20 mt-1 shadow-lg overflow-hidden"
@@ -724,7 +725,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
             type="text"
             placeholder="Ej: Control anual, adaptación de lentes..."
             class="w-full px-4 h-12 text-sm outline-none appearance-none shadow-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+            :style="inputStyle()"
           />
         </div>
 
@@ -739,7 +740,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
             rows="2"
             placeholder="Notas para el staff..."
             class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none"
-            style="border-radius: 12px; border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); background-color: var(--color-surface-container-low);"
+            :style="inputStyle()"
           />
         </div>
       </form>
