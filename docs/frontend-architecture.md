@@ -14,13 +14,13 @@ Stack: Vue 3, TypeScript, Vite (proxy `/api/*` al backend en dev), Vue Router 5,
 src/
 ├── api/          — http.ts: instancia axios única + interceptores (auth, errores)
 ├── assets/       — main.css: tokens del tema (colores, tipografía, radios, sombras)
-├── components/   — 33 componentes reutilizables (BaseButton, BaseTable, BaseModal, FilterChips,
+├── components/   — 34 componentes reutilizables (BaseButton, BaseTable, BaseModal, FilterChips,
 │                   SearchableSelect, MultiSelect, componentes de dominio como VentaEditor,
 │                   TrabajoOpticoCard, ClienteSelector, RecetaSelector, etc.)
-├── composables/  — 9 archivos: useHttp (wrapper de axios), useFieldStyles (estilos de campo),
-│                   optica.ts (estado derivado del editor de venta óptica), y 6 useXxxPdf
-│                   (generación de PDFs client-side por módulo: OC, presupuesto, factura de
-│                   venta, orden de laboratorio, reportes)
+├── composables/  — 11 archivos: useHttp (wrapper de axios), useFieldStyles (estilos de campo),
+│                   optica.ts (estado derivado del editor de venta óptica), y 8 useXxxPdf
+│                   (generación de PDFs client-side: OC, presupuesto, factura de venta, orden de
+│                   laboratorio, y 4 reportes — citas/compras/inventario/ventas)
 ├── config/       — menuConfig.ts: árbol de navegación del sidebar (ver sección Router/Sidebar)
 ├── router/       — index.ts: único archivo, todas las rutas + guard global
 ├── services/     — 24 archivos, uno por dominio de negocio (ventasService, inventarioService,
@@ -40,7 +40,7 @@ No es una cadena rígida de 3 capas — depende de la complejidad de la vista:
 - **Estado local de formulario:** vive en la vista misma (`ref`/`reactive` en `<script setup>`), no en un composable ni en un store — patrón confirmado en `CLAUDE.md` § "Patrón de vista CRUD" y consistente con lo observado en el código real.
 - **Caso con lógica de estado derivado compleja:** un composable dedicado. El ejemplo real es `composables/optica.ts`, que centraliza el estado del editor de venta/presupuesto óptico (`VentaEditor.vue` + `TrabajoOpticoCard.vue`) — deriva líneas de venta y el bloque `TrabajoPedido` a partir de la selección de armazón/cristal/tratamientos, demasiado complejo para vivir en la vista sola.
 - **Generación de PDF:** cada `useXxxPdf.ts` es un composable de un solo propósito (arma el documento a partir del DTO ya cargado), no hace fetch — recibe los datos, no llama a un servicio.
-- **`useHttp()`** (`composables/useHttp.ts`) es el único intermediario real entre servicios y Axios: envuelve la instancia central de `api/http.ts` y devuelve `.data` directamente (sin el wrapper de Axios), para que los servicios no repitan `.then(r => r.data)`.
+- **`useHttp()`** (`composables/useHttp.ts`) envuelve la instancia central de `api/http.ts` y devuelve `.data` directamente (sin el wrapper de Axios), para que los servicios no repitan `.then(r => r.data)`. **Adopción real, verificada por import (2026-07-09): solo 5 de los 24 servicios lo usan** (`egresosService`, `laboratorioService`, `empleadosService`, `reportesService`, `ventasService`) — los otros 19 importan `http` directo de `@/api/http`. Ambos estilos funcionan porque comparten el mismo interceptor; no hay una regla real de "usar siempre `useHttp`" pese a lo que sugiere `CLAUDE.md` — al tocar un servicio, seguir el estilo del archivo vecino, no una regla única.
 
 ```mermaid
 graph LR
@@ -74,6 +74,10 @@ Un único archivo `router/index.ts` con ~90 rutas planas (no anidadas), cada una
 
 La autorización real siempre se revalida en el backend (policies) — este guard es solo UX, no seguridad.
 
+Cobertura de permisos: el backend declara 56 policies (54 simples + 2 compuestas, ver `../../SIGA/docs/architecture.md`), pero el router solo mapea **37 permisos distintos** a `meta.permission` (contado exacto sobre las ~90 rutas, 2026-07-09). El resto se chequea a nivel de acción con `auth.hasPermission(...)` dentro de la vista (botones, ítems de `RowContextMenu`), o directamente no tiene UI todavía.
+
+Dos estrategias de paginación conviven sin unificar: **server-side** en 8 servicios que devuelven `PagedResult<T>` (`clienteService`, `clinicaService`, `comprasService`, `egresosService`, `inventarioService`, `notificacionService`, `patientService`, `ventasService`) y **client-side** en ~18 vistas que hacen slicing local con una constante `PAGE_SIZE` sobre la lista completa ya traída. Antes de armar el footer de una pantalla nueva, verificar cuál usa su servicio — no asumir.
+
 ## Sidebar / navegación (`config/menuConfig.ts`)
 
 Árbol de navegación separado del router: cada nodo (`MenuItem`/`MenuChild`, hasta 3 niveles de anidamiento) tiene `permission` propio y opcionalmente `zone` (agrupa secciones bajo un título: *General, Atención, Óptica, Comercial, Gestión*). `AppSidebar.vue` renderiza este árbol filtrando por `auth.hasPermission()` — **no** es una lista fija hardcodeada en el componente (ver nota de desactualización de `CLAUDE.md` abajo). Detalle completo del rediseño (buscador rápido, zonas por permiso real) en memoria de proyecto `siga_sidebar_redesign.md`.
@@ -93,6 +97,10 @@ Convenciones transversales más citadas en memoria de proyecto (`feedback_siga.m
 - **`design-system.md` — vigente.** Estructura completa y consistente con el código real revisado (tokens, radius, patrones de formulario/tabla/modal). Es la referencia correcta a usar.
 - **`CLAUDE.md` — vigente en patrones, desactualizado en inventarios.** Las secciones de *convenciones* (patrón de servicio, patrón de vista CRUD, reglas de diseño, formularios, modales) coinciden con el código real y siguen siendo correctas. Pero:
   - § "Estructura de carpetas" lista solo 2 servicios y 3 vistas de ejemplo — hoy hay 24 servicios y 90 vistas (esperable como "carpeta de ejemplo", pero vale aclararlo si alguien la lee como inventario completo).
-  - § "Endpoints backend disponibles" lista ~14 endpoints de una versión muy temprana (solo auth/professionals/patients/roles) — completamente desactualizada frente a los ~140 endpoints reales; **reemplazar esa sección por un link a `../../SIGA/docs/api-reference.md`** en vez de mantener una copia que se desincroniza.
+  - § "Endpoints backend disponibles" lista ~14 endpoints de una versión muy temprana (solo auth/professionals/patients/roles) — completamente desactualizada frente a los 230 endpoints reales; **reemplazar esa sección por un link a `../../SIGA/docs/api-reference.md`** en vez de mantener una copia que se desincroniza.
   - § "AppSidebar" describe un `navItems` fijo hardcodeado en el componente con items "Dashboard, Pacientes, Agenda..." y badges "soon" — el sidebar real usa `config/menuConfig.ts` con permisos/zonas dinámicas (ver sección de arriba), no un array fijo en el componente. Esta sección necesita reescritura, no solo actualización.
   - No se corrigió nada de esto en esta pasada (fuera de alcance de Fase 5) — queda para una limpieza puntual de `CLAUDE.md`.
+
+## Código muerto conocido
+
+`inventarioService.ts` exporta `getPedidos`, `createPedido`, `updatePedidoEstado` y `cancelPedido`, que pegan a `/api/proveedores/pedidos*` — un endpoint que **no existe** en el backend (verificado 2026-07-09: no hay ninguna ruta `proveedores/pedidos` en `SIGA.Api/Controllers`; el único `pedidos` real es de `LaboratorioController`, un dominio distinto). Ninguna vista importa estas 4 funciones de `inventarioService` — el flujo real de órdenes de compra usa `laboratorioService.getPedidos` (para el circuito de laboratorio) y las vistas de Compras (`PedidosView.vue`, `/compras/oc`) para las OC a proveedor. Son restos de una feature que se movió de lugar; si aparecen en un import nuevo, es un leftover a eliminar, no un patrón a seguir.
