@@ -7,6 +7,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
 import { useAuthStore } from "@/stores/auth"
 import { type AppUser, getAppUsers, deactivateUser, resetPassword } from "@/services/userService"
 import {
@@ -160,8 +161,9 @@ function openResetPasswordModal() {
 async function handleResetPassword() {
   if (!managingUser.value) return
 
-  if (resetPasswordValue.value.length < 6) {
-    resetPasswordError.value = "La contraseña debe tener al menos 6 caracteres."
+  const passwordError = validatePassword(resetPasswordValue.value)
+  if (passwordError) {
+    resetPasswordError.value = passwordError
     return
   }
   if (resetPasswordValue.value !== resetPasswordConfirm.value) {
@@ -629,7 +631,7 @@ const userColumns = [
         <form class="space-y-4" @submit.prevent="handleResetPassword">
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Nueva contraseña</label>
-            <PasswordInput v-model="resetPasswordValue" placeholder="Mínimo 6 caracteres" />
+            <PasswordInput v-model="resetPasswordValue" :placeholder="PASSWORD_HINT" />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña</label>

@@ -2,6 +2,7 @@
 import { ref } from "vue"
 import { useRoute } from "vue-router"
 import { resetPassword } from "@/services/authService"
+import { validatePassword } from "@/utils/password"
 import BaseButton from "@/components/BaseButton.vue"
 
 const route = useRoute()
@@ -18,8 +19,8 @@ const hasError = ref(false)
 const errorMessage = ref("")
 
 function validate(): string | null {
-  if (!newPassword.value) return "La nueva contraseña es obligatoria."
-  if (newPassword.value.length < 6) return "La contraseña debe tener al menos 6 caracteres."
+  const passwordError = validatePassword(newPassword.value)
+  if (passwordError) return passwordError
   if (newPassword.value !== confirmPassword.value) return "Las contraseñas no coinciden."
   return null
 }

@@ -11,6 +11,7 @@ import {
   marcarLeida,
 } from "@/services/notificacionService"
 import { changePassword } from "@/services/authService"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
@@ -141,8 +142,9 @@ function openChangePasswordModal() {
 async function submitChangePassword() {
   changePasswordError.value = ""
 
-  if (newPassword.value.length < 6) {
-    changePasswordError.value = "La nueva contraseña debe tener al menos 6 caracteres."
+  const passwordError = validatePassword(newPassword.value)
+  if (passwordError) {
+    changePasswordError.value = passwordError
     return
   }
   if (newPassword.value !== confirmPassword.value) {
@@ -403,7 +405,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña nueva</label>
-          <PasswordInput v-model="newPassword" placeholder="Mínimo 6 caracteres" />
+          <PasswordInput v-model="newPassword" :placeholder="PASSWORD_HINT" />
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña nueva</label>
