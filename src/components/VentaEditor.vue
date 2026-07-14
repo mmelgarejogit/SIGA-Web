@@ -18,7 +18,7 @@ import {
 import { type Cliente, getClienteById } from "@/services/clienteService"
 import { type ProveedorSimple, getLaboratorios } from "@/services/comprasService"
 import { getProductos, type Producto } from "@/services/inventarioService"
-import SearchableSelect from "@/components/SearchableSelect.vue"
+import SearchableSelect, { type SelectOption } from "@/components/SearchableSelect.vue"
 import { http } from "@/api/http"
 import { emptyOptica, opticaLineas, opticaTrabajoPedido, type LineaUI } from "@/composables/optica"
 
@@ -43,6 +43,21 @@ const condicionVenta = ref<CondicionVenta>("Contado")
 const fechaVenta     = ref(new Date().toISOString().slice(0, 10))
 const validezDias    = ref(15)
 const observaciones  = ref("")
+
+// ── Plan de cuotas (opcional, solo aplica a Crédito) ──────────────────────────────
+// Si cantidadCuotas queda en null, la venta a crédito es "libre" (cobros parciales
+// sin cronograma), igual que antes de que existiera esta funcionalidad.
+const cantidadCuotas       = ref<number | null>(null)
+const frecuenciaCuotasDias = ref<number | null>(30)
+const cantidadCuotasOptions: SelectOption[] = [3, 6, 9, 12].map(n => ({ value: n, label: `${n} cuotas` }))
+const frecuenciaOptions: SelectOption[] = [
+  { value: 30, label: "Mensual" },
+  { value: 15, label: "Quincenal" },
+]
+// Al pasar a Crédito, si no hay plan definido, se limpia (queda "libre" por defecto).
+watch(condicionVenta, (v) => {
+  if (v === "Contado") { cantidadCuotas.value = null }
+})
 
 // ── Líneas (Directa: productos/manual; A pedido: extras manuales) ─────────────────
 const lineas = ref<LineaUI[]>([])
@@ -204,6 +219,8 @@ function cargarPresupuesto(v: Venta) {
   condicionVenta.value = v.condicionVenta
   observaciones.value  = v.observaciones ?? ""
   recetaId.value       = v.recetaId ?? null
+  cantidadCuotas.value       = v.cantidadCuotas ?? null
+  frecuenciaCuotasDias.value = v.frecuenciaCuotasDias ?? 30
   labSeleccionadoId.value = v.trabajoPedido?.laboratorioProveedorId ?? null
   presupuestosDelCliente.value = []
   lineas.value = v.lineas.map(l => ({ tipo: l.tipo, productoId: l.productoId, servicioId: l.servicioId, descripcion: l.descripcion, cantidad: l.cantidad, precioUnitario: l.precioUnitario, descuento: l.descuento, categoriaFiscal: l.categoriaFiscal }))
@@ -261,6 +278,8 @@ function buildPayload() {
     observaciones:  observaciones.value || undefined,
     lineas:         lineasFinales.value.map(l => ({ ...l }) as AgregarLineaRequest),
     trabajoPedido:  esPedido.value ? opticaTrabajoPedido(optica) : undefined,
+    cantidadCuotas:       condicionVenta.value === "Credito" ? (cantidadCuotas.value ?? undefined) : undefined,
+    frecuenciaCuotasDias: condicionVenta.value === "Credito" && cantidadCuotas.value ? (frecuenciaCuotasDias.value ?? undefined) : undefined,
   }
 }
 
@@ -296,6 +315,8 @@ async function guardar() {
         observaciones:          observaciones.value || undefined,
         lineas:                 lineasFinales.value.map(l => ({ ...l }) as AgregarLineaRequest),
         laboratorioProveedorId: esPedido.value ? (labSeleccionadoId.value ?? undefined) : undefined,
+        cantidadCuotas:         condicionVenta.value === "Credito" ? (cantidadCuotas.value ?? undefined) : undefined,
+        frecuenciaCuotasDias:   condicionVenta.value === "Credito" && cantidadCuotas.value ? (frecuenciaCuotasDias.value ?? undefined) : undefined,
       })
     } else {
       const v = await crearVenta(buildPayload())
@@ -506,6 +527,28 @@ const guardarLabel = computed(() =>
                   <div class="flex gap-2">
                     <button @click="condicionVenta = 'Contado'" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" :style="condicionVenta === 'Contado' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'">Contado</button>
                     <button @click="condicionVenta = 'Credito'" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" :style="condicionVenta === 'Credito' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'">Crédito</button>
+                  </div>
+                </div>
+                <div v-if="condicionVenta === 'Credito'" class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Plan de cuotas</label>
+                    <SearchableSelect
+                      v-model="cantidadCuotas"
+                      :options="cantidadCuotasOptions"
+                      :searchable="false"
+                      null-label="Sin plan (libre)"
+                      placeholder="Sin plan (libre)"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Frecuencia</label>
+                    <SearchableSelect
+                      v-model="frecuenciaCuotasDias"
+                      :options="frecuenciaOptions"
+                      :searchable="false"
+                      :disabled="!cantidadCuotas"
+                      placeholder="Mensual"
+                    />
                   </div>
                 </div>
                 <div>

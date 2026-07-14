@@ -148,6 +148,12 @@ export interface Venta {
   montoSeña: number
   totalCobrado: number
   saldoPendiente: number
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
+  montoCuota?: number
+  cuotasPagadas?: number
+  proximaCuotaVencimiento?: string
+  cuotaVencida: boolean
   observaciones?: string
   lineas: VentaLinea[]
   cobros: Cobro[]
@@ -239,6 +245,9 @@ export interface CrearVentaRequest {
   condicionVenta: CondicionVenta
   fechaVenta: string
   validezDias?: number
+  // Plan de cuotas (opcional, solo aplica si condicionVenta === "Credito")
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
   trabajoPedido?: CrearVentaTrabajoPedidoRequest
@@ -247,6 +256,8 @@ export interface CrearVentaRequest {
 export interface ActualizarVentaRequest {
   condicionVenta: CondicionVenta
   fechaVenta: string
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
   laboratorioProveedorId?: number | null
