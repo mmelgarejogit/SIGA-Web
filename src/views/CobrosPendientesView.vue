@@ -77,14 +77,35 @@ const porPaciente = computed(() => {
 
 // ── Estado badge ───────────────────────────────────────────────────────────────
 
-function estadoBadge(estado: string) {
+function estadoBadge(v: Venta) {
+  // Venta ya cobrada en su totalidad pero todavía sin comprobante/factura emitido:
+  // el back-end no cambia el Estado al registrar el cobro (eso ocurre recién al
+  // emitir el comprobante), así que lo distinguimos acá para que no parezca "sin cobrar".
+  if (v.estado === "ListaParaCobrar" && v.saldoPendiente <= 0) {
+    return {
+      bg: "var(--color-secondary-container)",
+      text: "var(--color-on-secondary-container)",
+      label: "Pagado — falta comprobante",
+    }
+  }
+
   const map: Record<string, { bg: string; text: string; label: string }> = {
     Confirmada:         { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)",  label: "Confirmada" },
     EnProceso:          { bg: "var(--color-info-container)", text: "var(--color-on-info-container)",  label: "En proceso" },
     ListaParaCobrar:    { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)",  label: "Lista cobrar" },
     ComprobanteEmitido: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)",  label: "Emitido" },
   }
-  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
+  return map[v.estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: v.estado }
+}
+
+// ── Plan de cuotas ─────────────────────────────────────────────────────────────
+
+function proximaCuotaInfo(v: Venta): { text: string; overdue: boolean } | null {
+  if (!v.cantidadCuotas || !v.proximaCuotaVencimiento) return null
+  return {
+    text: `Próx. cuota ${(v.cuotasPagadas ?? 0) + 1}/${v.cantidadCuotas}: ${formatPrice(v.montoCuota ?? 0)} · vence ${formatDate(v.proximaCuotaVencimiento)}`,
+    overdue: v.cuotaVencida,
+  }
 }
 
 // ── Semáforo de antigüedad ────────────────────────────────────────────────────
@@ -164,7 +185,17 @@ function menuItems(v: Venta): ContextMenuItem[] {
                     <td class="px-6 py-4">
                       <span class="text-sm font-mono font-semibold" style="color: var(--color-primary)">{{ v.numeroComprobante }}</span>
                     </td>
-                    <td class="px-6 py-4 text-sm font-medium" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</td>
+                    <td class="px-6 py-4">
+                      <p class="text-sm font-medium" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</p>
+                      <p
+                        v-if="proximaCuotaInfo(v)"
+                        class="text-xs mt-0.5 font-semibold flex items-center gap-1"
+                        :style="proximaCuotaInfo(v)!.overdue ? 'color: var(--color-error)' : 'color: var(--color-on-surface-variant)'"
+                      >
+                        <span v-if="proximaCuotaInfo(v)!.overdue" class="material-symbols-outlined" style="font-size: 14px">warning</span>
+                        {{ proximaCuotaInfo(v)!.text }}
+                      </p>
+                    </td>
                     <td class="px-6 py-4 text-sm" style="color: var(--color-on-surface-variant)">{{ formatDate(v.fechaVenta) }}</td>
                     <td class="px-6 py-4">
                       <span
@@ -180,8 +211,8 @@ function menuItems(v: Venta): ContextMenuItem[] {
                     <td class="px-6 py-4">
                       <span
                         class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                        :style="`background-color: ${estadoBadge(v.estado).bg}; color: ${estadoBadge(v.estado).text}`"
-                      >{{ estadoBadge(v.estado).label }}</span>
+                        :style="`background-color: ${estadoBadge(v).bg}; color: ${estadoBadge(v).text}`"
+                      >{{ estadoBadge(v).label }}</span>
                     </td>
                     <td class="px-6 py-4 text-right" @click.stop>
                       <RowContextMenu :items="menuItems(v)" />

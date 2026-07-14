@@ -9,6 +9,7 @@ import {
   getNotificaciones,
   getContadorNoLeidas,
   marcarLeida,
+  marcarTodasLeidas,
 } from "@/services/notificacionService"
 import { changePassword } from "@/services/authService"
 import { PASSWORD_HINT, validatePassword } from "@/utils/password"
@@ -105,11 +106,32 @@ function toggleDropdown() {
   if (showDropdown.value) showNotifications.value = false
 }
 
-function toggleNotifications() {
+async function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   if (showNotifications.value) {
     showDropdown.value = false
-    cargarUltimasNotificaciones()
+    await cargarUltimasNotificaciones()
+    await marcarTodasComoLeidas()
+  }
+}
+
+async function marcarTodasComoLeidas() {
+  if (contadorNoLeidas.value === 0) return
+  const previousCount = contadorNoLeidas.value
+  const previousEstados = ultimasNotificaciones.value.map((n) => n.leido)
+
+  contadorNoLeidas.value = 0
+  ultimasNotificaciones.value = ultimasNotificaciones.value.map((n) => ({ ...n, leido: true }))
+
+  try {
+    await marcarTodasLeidas()
+  } catch {
+    // Si falla, restauramos el estado anterior para no ocultar notificaciones sin confirmar.
+    contadorNoLeidas.value = previousCount
+    ultimasNotificaciones.value = ultimasNotificaciones.value.map((n, i) => ({
+      ...n,
+      leido: previousEstados[i] ?? n.leido,
+    }))
   }
 }
 

@@ -267,17 +267,13 @@ function confirmarCierreYSalir() {
             </div>
           </div>
 
-          <!-- ── Bloque 1: Posición de efectivo ────────────────────────────── -->
-          <h3 class="text-base font-extrabold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Posición de efectivo</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <KpiCard title="Efectivo inicial" :value="fmt(sesion.montoInicial)" icon="account_balance_wallet" iconBg="color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))" iconColor="var(--color-tertiary)" />
-            <KpiCard title="Ingresos efectivo" :value="fmt(sesion.efectivoIngresos)" icon="trending_up" iconBg="var(--color-success-container)" iconColor="var(--color-success)" />
-            <KpiCard
-              title="Egresos efectivo"
-              :value="fmt(sesion.movimientos.filter(m => m.tipo === 'Egreso' && m.metodoPago === 'Efectivo').reduce((s, m) => s + m.monto, 0))"
-              icon="trending_down" iconBg="var(--color-error-container)" iconColor="var(--color-error)"
-            />
-            <KpiCard title="Movimientos" :value="String(sesion.cantidadMovimientos)" icon="receipt_long" iconBg="var(--color-info-container)" iconColor="var(--color-info)" />
+          <!-- ── Bloque 1: Resumen de sesión ──────────────────────────────── -->
+          <h3 class="text-base font-extrabold uppercase tracking-wider mb-3" style="color: var(--color-outline)">Resumen de sesión</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <KpiCard title="Total ingresos" :value="fmt(sesion.totalIngresos)" icon="trending_up" iconBg="var(--color-success-container)" iconColor="var(--color-success)" />
+            <KpiCard title="Total egresos" :value="fmt(sesion.totalEgresos)" icon="trending_down" iconBg="var(--color-error-container)" iconColor="var(--color-error)" />
+            <KpiCard title="Efectivo" :value="fmt(sesion.efectivoIngresos)" icon="payments" iconBg="color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))" iconColor="var(--color-tertiary)" />
+            <KpiCard title="Tarjeta / Transf. / Cheque" :value="fmt(sesion.tarjetaTotal + sesion.transferenciaTotal + sesion.chequeTotal)" icon="credit_card" iconBg="var(--color-info-container)" iconColor="var(--color-info)" />
           </div>
 
 
@@ -323,11 +319,6 @@ function confirmarCierreYSalir() {
                   <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span class="material-symbols-outlined" style="font-size:14px; color: var(--color-outline)">{{ metodoPagoIcon(m.metodoPago) }}</span>
                     <span class="text-xs" style="color: var(--color-outline)">{{ m.metodoPago }}</span>
-                    <span v-if="m.metodoPago !== 'Efectivo'"
-                          class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style="background-color: var(--color-surface-container-high); color: var(--color-outline)">
-                      No afecta caja
-                    </span>
                     <span v-if="m.referencia" class="text-xs" style="color: var(--color-outline)">· {{ m.referencia }}</span>
                     <span class="text-xs" style="color: var(--color-outline)">· {{ fmtTime(m.createdAt) }}</span>
                   </div>
