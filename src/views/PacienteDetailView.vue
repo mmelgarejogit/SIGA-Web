@@ -19,6 +19,12 @@ import { type ConsultaClinica, getConsultasByPatient } from "@/services/clinicaS
 
 import { type Turno, getTurnos } from "@/services/turnoService"
 
+import {
+  type NotificacionPreferencia,
+  getPreferenciasByPersona,
+  updatePreferenciasByPersona,
+} from "@/services/notificacionPreferenciaService"
+
 const TabPending = defineComponent({
   props: {
     icon: { type: String, required: true },
@@ -106,13 +112,14 @@ const patientId = computed(() => Number(route.params.id))
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabId = "info" | "citas" | "clinico" | "ventas"
+type TabId = "info" | "citas" | "clinico" | "ventas" | "preferencias"
 
 const ALL_TABS: { id: TabId; label: string; icon: string; available: boolean; permission: string | null }[] = [
   { id: "info",    label: "Información",     icon: "badge",               available: true,  permission: null },
   { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_agenda" },
   { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true, permission: "ver_historia_clinica" },
   { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: false, permission: "ver_ventas" },
+  { id: "preferencias", label: "Notificaciones", icon: "notifications", available: true, permission: "gestionar_notificaciones" },
 ]
 
 const tabs = computed(() =>
@@ -231,7 +238,57 @@ async function loadCitas() {
 watch(activeTab, (tab) => {
   if (tab === "clinico" && !consultas.value.length) loadConsultas()
   if (tab === "citas" && !citas.value.length) loadCitas()
+  if (tab === "preferencias" && !preferencia.value) loadPreferencia()
 })
+
+// ── Preferencias de notificación ─────────────────────────────────────────────
+
+const preferencia = ref<NotificacionPreferencia | null>(null)
+const isLoadingPreferencia = ref(false)
+const isSavingPreferencia = ref(false)
+const preferenciaError = ref("")
+const preferenciaSaved = ref(false)
+
+const recibirEmail = ref(true)
+const usaVentanaSilencio = ref(false)
+const ventanaInicio = ref("21:00")
+const ventanaFin = ref("08:00")
+
+async function loadPreferencia() {
+  if (!patient.value) return
+  isLoadingPreferencia.value = true
+  preferenciaError.value = ""
+  try {
+    preferencia.value = await getPreferenciasByPersona(patient.value.personId)
+    recibirEmail.value = preferencia.value.recibirEmail
+    usaVentanaSilencio.value = !!preferencia.value.ventanaSilencioInicio
+    if (preferencia.value.ventanaSilencioInicio) ventanaInicio.value = preferencia.value.ventanaSilencioInicio.slice(0, 5)
+    if (preferencia.value.ventanaSilencioFin) ventanaFin.value = preferencia.value.ventanaSilencioFin.slice(0, 5)
+  } catch (err: unknown) {
+    preferenciaError.value = err instanceof Error ? err.message : "Error al cargar las preferencias."
+  } finally {
+    isLoadingPreferencia.value = false
+  }
+}
+
+async function savePreferencia() {
+  if (!patient.value || isSavingPreferencia.value) return
+  isSavingPreferencia.value = true
+  preferenciaError.value = ""
+  preferenciaSaved.value = false
+  try {
+    preferencia.value = await updatePreferenciasByPersona(patient.value.personId, {
+      recibirEmail: recibirEmail.value,
+      ventanaSilencioInicio: usaVentanaSilencio.value ? `${ventanaInicio.value}:00` : null,
+      ventanaSilencioFin: usaVentanaSilencio.value ? `${ventanaFin.value}:00` : null,
+    })
+    preferenciaSaved.value = true
+  } catch (err: unknown) {
+    preferenciaError.value = err instanceof Error ? err.message : "Error al guardar las preferencias."
+  } finally {
+    isSavingPreferencia.value = false
+  }
+}
 
 // ── Modal Editar ──────────────────────────────────────────────────────────────
 
@@ -908,6 +965,98 @@ async function confirmDelete() {
               accent="var(--color-primary)"
               accent-bg="rgba(0,40,142,0.06)"
             />
+          </div>
+
+          <!-- ── Tab: Preferencias de notificación ─────────────────────────── -->
+          <div v-else-if="activeTab === 'preferencias'">
+            <div
+              class="rounded-2xl p-6 max-w-xl"
+              style="
+                background-color: var(--color-surface-container-lowest);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
+              "
+            >
+              <div class="flex items-center gap-2 mb-5">
+                <span class="material-symbols-outlined" style="color: var(--color-primary); font-size: 20px">notifications</span>
+                <h2 class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">
+                  Preferencias de notificación
+                </h2>
+              </div>
+
+              <div v-if="isLoadingPreferencia" class="flex justify-center py-10">
+                <svg class="animate-spin w-6 h-6" style="color: var(--color-primary)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+
+              <template v-else>
+                <div class="flex items-center justify-between py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
+                  <div>
+                    <p class="text-sm font-bold" style="color: var(--color-on-surface)">Recordatorios y avisos por email</p>
+                    <p class="text-xs mt-0.5" style="color: var(--color-outline)">Turnos, cambios de cita y avisos de pickup.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="recibirEmail"
+                    @click="recibirEmail = !recibirEmail"
+                    class="relative flex-shrink-0 transition-colors duration-200"
+                    style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+                    :style="recibirEmail ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+                  >
+                    <span
+                      class="absolute bg-white transition-all duration-200"
+                      style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+                      :style="recibirEmail ? 'left: 24px;' : 'left: 4px;'"
+                    ></span>
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
+                  <div>
+                    <p class="text-sm font-bold" style="color: var(--color-on-surface)">Ventana de silencio</p>
+                    <p class="text-xs mt-0.5" style="color: var(--color-outline)">No enviar avisos no urgentes en este horario.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="usaVentanaSilencio"
+                    @click="usaVentanaSilencio = !usaVentanaSilencio"
+                    class="relative flex-shrink-0 transition-colors duration-200"
+                    style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+                    :style="usaVentanaSilencio ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+                  >
+                    <span
+                      class="absolute bg-white transition-all duration-200"
+                      style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+                      :style="usaVentanaSilencio ? 'left: 24px;' : 'left: 4px;'"
+                    ></span>
+                  </button>
+                </div>
+
+                <div v-if="usaVentanaSilencio" class="flex items-center gap-4 py-4">
+                  <div class="flex-1">
+                    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Desde</label>
+                    <input v-model="ventanaInicio" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+                  </div>
+                  <div class="flex-1">
+                    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Hasta</label>
+                    <input v-model="ventanaFin" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+                  </div>
+                </div>
+
+                <p v-if="preferenciaError" class="text-xs font-medium mt-4" style="color: var(--color-error)">{{ preferenciaError }}</p>
+                <p v-if="preferenciaSaved" class="text-xs font-medium mt-4" style="color: var(--color-success)">Preferencias guardadas.</p>
+
+                <div class="pt-5">
+                  <BaseButton variant="primary" size="default" :disabled="isSavingPreferencia" @click="savePreferencia">
+                    {{ isSavingPreferencia ? "Guardando..." : "Guardar" }}
+                  </BaseButton>
+                </div>
+              </template>
+            </div>
           </div>
         </template>
       </div>
