@@ -397,6 +397,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_ventas", label: "Cobros Pendientes" },
     },
     {
+      path: "/ventas/devoluciones",
+      name: "ventas-devoluciones",
+      component: () => import("@/views/DevolucionesPendientesView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_ventas", label: "Devoluciones" },
+    },
+    {
       path: "/ventas/:id(\\d+)/cobrar",
       name: "venta-cobrar",
       component: () => import("@/views/VentaCobrarView.vue"),

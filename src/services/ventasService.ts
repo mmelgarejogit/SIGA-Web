@@ -115,6 +115,7 @@ export interface Devolucion {
   id: number
   ventaId: number
   numeroComprobante: string
+  clienteNombre: string
   tipo: TipoDevolucion
   estado: EstadoDevolucion
   motivo: string
@@ -447,6 +448,9 @@ export const solicitarDevolucion = (ventaId: number, data: SolicitarDevolucionRe
 
 export const getDevoluciones = (ventaId: number) =>
   get<Devolucion[]>(`/api/ventas/${ventaId}/devoluciones`)
+
+export const getDevolucionesPendientes = () =>
+  get<Devolucion[]>(`/api/ventas/devoluciones/pendientes`)
 
 export const gestionarDevolucion = (devolucionId: number, data: GestionarDevolucionRequest) =>
   post<Devolucion>(`/api/ventas/devoluciones/${devolucionId}/gestionar`, data)
