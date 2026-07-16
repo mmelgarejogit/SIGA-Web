@@ -63,9 +63,9 @@ async function onMarcarTodas() {
 const hayNoLeidas = computed(() => notificaciones.value.some((n) => !n.leido))
 
 const iconoPorTipo: Record<string, string> = {
-  bajo_stock:              "inventory_2",
-  transferencia_pendiente: "sync_alt",
-  pedido_lab_recibido:     "science",
+  BajoStock:              "inventory_2",
+  TransferenciaPendiente: "sync_alt",
+  PedidoLabRecibido:      "science",
 }
 
 function iconoDe(tipo: string) {

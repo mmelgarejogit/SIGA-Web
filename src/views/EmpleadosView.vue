@@ -11,6 +11,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
 import DateInput from "@/components/DateInput.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -167,8 +168,8 @@ function validateCreate(): boolean {
   if (!f.email.trim()) e.email = "El email es obligatorio."
   else if (!EMAIL_RE.test(f.email.trim())) e.email = "El formato del email no es válido."
 
-  if (!f.password.trim()) e.password = "La contraseña es obligatoria."
-  else if (f.password.length < 6) e.password = "Mínimo 6 caracteres."
+  const passwordError = validatePassword(f.password.trim())
+  if (passwordError) e.password = passwordError
 
   if (!f.cargoId) e.cargoId = "El cargo es obligatorio."
 
@@ -498,7 +499,7 @@ async function confirmDelete() {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña *</label>
-            <PasswordInput v-model="createForm.password" placeholder="Mínimo 6 caracteres" :error="!!createErrors.password" />
+            <PasswordInput v-model="createForm.password" :placeholder="PASSWORD_HINT" :error="!!createErrors.password" />
             <p v-if="createErrors.password" class="text-xs font-medium" style="color: var(--color-error)">{{ createErrors.password }}</p>
           </div>
         </div>

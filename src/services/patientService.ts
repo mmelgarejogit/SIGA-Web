@@ -19,6 +19,7 @@ export interface GetPatientsParams {
 export interface Patient {
   id: number
   userId?: number
+  personId: number
   ci: string
   firstName: string
   lastName: string

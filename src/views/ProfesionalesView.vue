@@ -9,6 +9,7 @@ import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
 import BirthDateInput from "@/components/BirthDateInput.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -173,8 +174,8 @@ function validateCreate(): boolean {
   if (!f.email.trim()) e.email = "El email es obligatorio."
   else if (!EMAIL_RE.test(f.email.trim())) e.email = "El formato del email no es válido."
 
-  if (!f.password.trim()) e.password = "La contraseña es obligatoria."
-  else if (f.password.length < 6) e.password = "Mínimo 6 caracteres."
+  const passwordError = validatePassword(f.password.trim())
+  if (passwordError) e.password = passwordError
 
   if (!f.licenseNumber.trim()) e.licenseNumber = "El nro. de matrícula es obligatorio."
 
@@ -777,7 +778,7 @@ async function submitHorario() {
             >
             <PasswordInput
               v-model="createForm.password"
-              placeholder="Mínimo 6 caracteres"
+              :placeholder="PASSWORD_HINT"
               :error="!!createErrors.password"
             />
             <p
