@@ -58,9 +58,11 @@ const tipoFiltro = ref<"todos" | "Ingreso" | "Egreso">("todos")
 
 const movsFiltrados = computed(() => {
   if (!sesion.value) return []
-  return tipoFiltro.value === "todos"
+  const movs = tipoFiltro.value === "todos"
     ? sesion.value.movimientos
     : sesion.value.movimientos.filter((m) => m.tipo === tipoFiltro.value)
+  // Más reciente primero.
+  return [...movs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 })
 
 function metodoPagoIcon(m: string) {

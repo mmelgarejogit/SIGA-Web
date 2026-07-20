@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -57,6 +57,11 @@ const showDetalle    = ref(false)
 const detalle        = ref<SesionCaja | null>(null)
 const isLoadDetalle  = ref(false)
 const detalleError   = ref("")
+
+// Movimientos con el más reciente primero.
+const movimientosOrdenados = computed(() =>
+  detalle.value ? [...detalle.value.movimientos].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
+)
 
 async function verDetalle(s: SesionCajaListItem) {
   isLoadDetalle.value = true
@@ -297,7 +302,7 @@ function duracion(apertura: string, cierre?: string): string {
         </p>
         <div class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-hairline)">
           <div
-            v-for="m in detalle.movimientos"
+            v-for="m in movimientosOrdenados"
             :key="m.id"
             class="flex items-center gap-3 px-4 py-3"
             style="border-bottom: 1px solid var(--color-hairline-soft)"

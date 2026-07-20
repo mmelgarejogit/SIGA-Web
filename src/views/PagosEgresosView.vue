@@ -22,8 +22,6 @@ const egresos = ref<Egreso[]>([])
 const totalCount = ref(0)
 const isLoading = ref(false)
 const loadError = ref("")
-const currentPage = ref(1)
-const pageSize = 10
 
 const tipoFiltros = ref<string[]>([])
 const tipoOptions = [
@@ -37,10 +35,11 @@ async function load() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const params: Record<string, unknown> = { estado: "Aprobado", page: currentPage.value, pageSize }
+    const params: Record<string, unknown> = { page: 1, pageSize: 500 }
     if (tipoFiltros.value.length === 1) params.tipo = tipoFiltros.value[0]
     const res = await getEgresos(params as Parameters<typeof getEgresos>[0])
-    egresos.value = res.items.filter(e => e.estado === "Aprobado")
+    // Pagable = Pendiente (flujo actual) o Aprobado (egresos del flujo anterior).
+    egresos.value = res.items.filter(e => e.estado === "Pendiente" || e.estado === "Aprobado")
     totalCount.value = egresos.value.length
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar egresos."
@@ -54,7 +53,6 @@ onMounted(load)
 function setTipoFiltro(val: string[]) {
   const added = val.find(v => !tipoFiltros.value.includes(v))
   tipoFiltros.value = added ? [added] : val
-  currentPage.value = 1
   load()
 }
 
@@ -109,7 +107,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Pagos Pendientes</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
-              {{ totalCount }} egreso{{ totalCount !== 1 ? "s" : "" }} aprobado{{ totalCount !== 1 ? "s" : "" }} esperando pago
+              {{ totalCount }} egreso{{ totalCount !== 1 ? "s" : "" }} pendiente{{ totalCount !== 1 ? "s" : "" }} de pago
             </p>
           </div>
         </div>
@@ -132,7 +130,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
                  box-shadow: var(--shadow-sm);
                  outline: 1px solid var(--color-hairline)">
           <BaseTable :columns="columns" :items="egresos" :loading="isLoading"
-            empty-text="No hay egresos aprobados pendientes de pago.">
+            empty-text="No hay egresos pendientes de pago.">
 
             <template #tipo="{ item }">
               <div class="flex items-center gap-2">

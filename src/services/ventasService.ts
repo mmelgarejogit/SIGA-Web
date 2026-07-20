@@ -111,6 +111,17 @@ export interface DevolucionLinea {
   cantidadNueva?: number
 }
 
+export interface NotaCredito {
+  id: number
+  numeroNotaCredito: string
+  timbrado: string
+  montoExento: number
+  montoGravado5: number
+  montoGravado10: number
+  total: number
+  fechaEmision: string
+}
+
 export interface Devolucion {
   id: number
   ventaId: number
@@ -124,6 +135,7 @@ export interface Devolucion {
   observacionesRevision?: string
   fechaRevision?: string
   lineas: DevolucionLinea[]
+  notaCredito?: NotaCredito | null
   createdAt: string
 }
 

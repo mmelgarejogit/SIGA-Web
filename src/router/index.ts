@@ -424,7 +424,7 @@ const router = createRouter({
       path: "/ventas/facturas",
       name: "ventas-facturas",
       component: () => import("@/views/FacturasVentaView.vue"),
-      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Facturas" },
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Comprobantes de Venta" },
     },
     {
       path: "/ventas/timbrados",
@@ -515,12 +515,6 @@ const router = createRouter({
       name: "egresos-nuevo",
       component: () => import("@/views/NuevoEgresoView.vue"),
       meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nuevo Egreso" },
-    },
-    {
-      path: "/egresos/aprobacion",
-      name: "egresos-aprobacion",
-      component: () => import("@/views/AprobacionEgresosView.vue"),
-      meta: { requiresAuth: true, permission: "aprobar_egresos", label: "Aprobación de Egresos" },
     },
     {
       path: "/egresos/pagos",

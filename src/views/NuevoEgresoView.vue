@@ -39,15 +39,6 @@ const empleados = ref<Empleado[]>([])
 
 const categoriaOptions = computed(() => categorias.value.filter(c => c.activo).map(c => ({ value: c.id, label: c.nombre })))
 
-const METODO_PAGO_OPTIONS = [
-  { value: "Efectivo", label: "Efectivo" },
-  { value: "Tarjeta", label: "Tarjeta" },
-  { value: "Transferencia", label: "Transferencia" },
-  { value: "Cheque", label: "Cheque" },
-]
-
-const metodoPagoOptions = computed(() => METODO_PAGO_OPTIONS.map(o => ({ value: o.value, label: o.label })))
-
 onMounted(async () => {
   const [cats, profs, emps] = await Promise.allSettled([getCategorias(), getProfessionals(), getEmpleados(true)])
   if (cats.status === "fulfilled") categorias.value = cats.value
@@ -73,7 +64,6 @@ const form = reactive({
   observaciones: "",
   fechaEmision: new Date().toISOString().slice(0, 10),
   fechaVencimiento: "",
-  metodoPago: "Efectivo",
   professionalId: 0,
   periodo: null as string | null,
   categoriaGastoId: 0,
@@ -88,7 +78,6 @@ function selectTipo(t: TipoNuevo) {
     monto: 0, concepto: "", observaciones: "",
     fechaEmision: new Date().toISOString().slice(0, 10),
     fechaVencimiento: "",
-    metodoPago: "Efectivo",
     professionalId: 0, periodo: null,
     categoriaGastoId: 0,
     empleadoId: 0,
@@ -115,7 +104,6 @@ async function submit() {
   if (!form.concepto.trim()) { formError.value = "El concepto es obligatorio."; return }
   if (!form.monto || form.monto <= 0) { formError.value = "El monto debe ser mayor a 0."; return }
   if (!form.fechaEmision) { formError.value = "La fecha es obligatoria."; return }
-  if (!form.metodoPago) { formError.value = "El método de pago es obligatorio."; return }
   if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Profesional" && !form.professionalId) { formError.value = "Seleccioná un profesional."; return }
   if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Profesional" && !form.periodo) { formError.value = "El período es obligatorio."; return }
   if (selectedTipo.value === "PagoPersonal" && subTipoPersonal.value === "Empleado" && !form.empleadoId) { formError.value = "Seleccioná un empleado."; return }
@@ -211,7 +199,7 @@ const empleadoOptions = computed(() =>
           </button>
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Nuevo Egreso</h1>
-            <p class="font-medium" style="color: var(--color-on-surface-variant)">El egreso quedará pendiente de aprobación</p>
+            <p class="font-medium" style="color: var(--color-on-surface-variant)">El egreso quedará pendiente de pago</p>
           </div>
         </div>
 
@@ -343,12 +331,6 @@ const empleadoOptions = computed(() =>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Vencimiento</label>
                 <DateInput v-model="form.fechaVencimiento" placeholder="Opcional" />
               </div>
-            </div>
-
-            <!-- Método de pago -->
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Método de pago *</label>
-              <SearchableSelect v-model="form.metodoPago" :options="metodoPagoOptions" placeholder="Método de pago" />
             </div>
 
             <!-- Observaciones -->

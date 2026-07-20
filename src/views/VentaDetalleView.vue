@@ -13,7 +13,7 @@ import {
   getVentaById, confirmarVenta, cancelarVenta,
   solicitarDevolucion, gestionarDevolucion,
 } from "@/services/ventasService"
-import { registrarEnvio, registrarRecepcion } from "@/services/laboratorioService"
+import { registrarEnvio } from "@/services/laboratorioService"
 
 const route  = useRoute()
 const router = useRouter()
@@ -81,12 +81,16 @@ function estadoDevBadge(estado: string) {
 
 // ── Flags de estado ───────────────────────────────────────────────────────────
 
-const puedeCancelar         = computed(() => ["Borrador", "Confirmada", "EnProceso"].includes(venta.value?.estado ?? ""))
+const puedeCancelar         = computed(() => ["Borrador", "Confirmada", "EnProceso", "ListaParaCobrar"].includes(venta.value?.estado ?? ""))
 const puedeConfirmar        = computed(() => venta.value?.estado === "Borrador")
 const puedeEnviarLab        = computed(() => venta.value?.trabajoPedido?.estado === "PendienteEnvio")
-const puedeRecibirLab       = computed(() => venta.value?.trabajoPedido?.estado === "Enviado")
 const puedeDevolver         = computed(() => venta.value?.estado === "ComprobanteEmitido")
-const puedeEmitirDoc        = computed(() => venta.value?.estado === "ListaParaCobrar" && !venta.value?.comprobante && !venta.value?.factura)
+// Un trabajo a pedido solo se factura al entregar: no se emite hasta que el trabajo esté Recibido.
+const trabajoListoParaEmitir = computed(() => {
+  const t = venta.value?.trabajoPedido
+  return !t || t.estado === "Recibido"
+})
+const puedeEmitirDoc        = computed(() => venta.value?.estado === "ListaParaCobrar" && !venta.value?.comprobante && !venta.value?.factura && trabajoListoParaEmitir.value)
 
 // ── Modal: Confirmar ──────────────────────────────────────────────────────────
 
@@ -111,6 +115,16 @@ const isCancelando  = ref(false)
 const motivoCancel  = ref("")
 const cancelError   = ref("")
 
+// Qué pasa con la seña al cancelar: si el trabajo ya se envió/recibió del laboratorio, se retiene;
+// si no (pedido sin enviar o producto de stock), se reembolsa lo cobrado. Coincide con el backend.
+const disposicionSeña = computed<{ tipo: "retiene" | "reembolsa" | "ninguna"; monto: number }>(() => {
+  const cobrado = venta.value?.totalCobrado ?? 0
+  if (cobrado <= 0) return { tipo: "ninguna", monto: 0 }
+  const estadoTrabajo = venta.value?.trabajoPedido?.estado
+  const yaEnLab = estadoTrabajo === "Enviado" || estadoTrabajo === "Recibido"
+  return { tipo: yaEnLab ? "retiene" : "reembolsa", monto: cobrado }
+})
+
 async function submitCancelar() {
   if (!venta.value) return
   isCancelando.value = true
@@ -118,8 +132,8 @@ async function submitCancelar() {
   try {
     venta.value = await cancelarVenta(venta.value.id, { motivo: motivoCancel.value || undefined })
     showCancelar.value = false
-  } catch (e: any) {
-    cancelError.value = e?.response?.data?.message ?? "Error al cancelar"
+  } catch (e: unknown) {
+    cancelError.value = e instanceof Error ? e.message : "Error al cancelar"
   } finally {
     isCancelando.value = false
   }
@@ -128,7 +142,6 @@ async function submitCancelar() {
 // ── Envío / Recepción lab (confirmación simple) ───────────────────────────────
 
 const showEnvioLab    = ref(false)
-const showRecepcionLab = ref(false)
 const isLabOp         = ref(false)
 const labObservacion  = ref("")
 
@@ -139,18 +152,6 @@ async function submitEnvioLab() {
     await registrarEnvio(venta.value.trabajoPedido!.id)
     await load()
     showEnvioLab.value = false
-  } finally {
-    isLabOp.value = false
-  }
-}
-
-async function submitRecepcionLab() {
-  if (!venta.value) return
-  isLabOp.value = true
-  try {
-    await registrarRecepcion(venta.value.trabajoPedido!.id)
-    await load()
-    showRecepcionLab.value = false
   } finally {
     isLabOp.value = false
   }
@@ -176,12 +177,43 @@ const devLineaOptions = computed(() =>
     .map(ln => ({ value: ln.productoId!, label: ln.descripcion }))
 )
 
+/** Cantidad vendida por producto (sumando líneas del mismo producto). */
+const cantidadVendidaPorProducto = computed(() => {
+  const map = new Map<number, number>()
+  for (const ln of venta.value?.lineas ?? []) {
+    if (ln.productoId) map.set(ln.productoId, (map.get(ln.productoId) ?? 0) + ln.cantidad)
+  }
+  return map
+})
+
+/** Máximo devolvible del producto seleccionado (0 si aún no eligió producto). */
+function maxDevolver(productoId: number): number {
+  return productoId > 0 ? (cantidadVendidaPorProducto.value.get(productoId) ?? 0) : 0
+}
+
+type DevLinea = typeof devLineas.value[number]
+
+/** Ajusta la cantidad al rango válido [1, máximo vendido]. */
+function clampCantidad(l: DevLinea) {
+  const max = maxDevolver(l.productoDevueltoId)
+  if (!Number.isFinite(l.cantidadDevuelta) || l.cantidadDevuelta < 1) l.cantidadDevuelta = 1
+  if (max > 0 && l.cantidadDevuelta > max) l.cantidadDevuelta = max
+}
+function incDev(l: DevLinea) { const max = maxDevolver(l.productoDevueltoId); if (max === 0 || l.cantidadDevuelta < max) l.cantidadDevuelta++ }
+function decDev(l: DevLinea) { if (l.cantidadDevuelta > 1) l.cantidadDevuelta-- }
+function onProductoDevueltoChange(l: DevLinea) { l.cantidadDevuelta = 1; clampCantidad(l) }
+
+/** Una venta admite una sola devolución; una rechazada no bloquea reintentar. */
+const yaTieneDevolucion = computed(() =>
+  (venta.value?.devoluciones ?? []).some(d => d.estado !== "Rechazada"))
+
 function addDevLinea() { devLineas.value.push({ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined, cantidadNueva: undefined }) }
 function removeDevLinea(i: number) { devLineas.value.splice(i, 1) }
 
 async function submitDevolucion() {
   if (!venta.value) return
   if (!devMotivo.value.trim()) { devError.value = "El motivo es obligatorio"; return }
+  devLineas.value.forEach(clampCantidad)
   isDevolviendo.value = true
   devError.value      = ""
   try {
@@ -192,8 +224,8 @@ async function submitDevolucion() {
     })
     showDevolucion.value = false
     await load()
-  } catch (e: any) {
-    devError.value = e?.response?.data?.message ?? "Error al registrar devolución"
+  } catch (e: unknown) {
+    devError.value = e instanceof Error ? e.message : "Error al registrar devolución"
   } finally {
     isDevolviendo.value = false
   }
@@ -226,8 +258,8 @@ async function submitGestionDev() {
     })
     showGestionDev.value = false
     await load()
-  } catch (e: any) {
-    gestionDevError.value = e?.response?.data?.message ?? "Error al gestionar devolución"
+  } catch (e: unknown) {
+    gestionDevError.value = e instanceof Error ? e.message : "Error al gestionar devolución"
   } finally {
     isGestionando.value = false
   }
@@ -288,11 +320,9 @@ async function submitGestionDev() {
                 <span class="material-symbols-outlined" style="font-size:18px">local_shipping</span>
                 Registrar envío
               </BaseButton>
-              <BaseButton v-if="puedeRecibirLab" variant="primary" @click="labObservacion = ''; showRecepcionLab = true">
-                <span class="material-symbols-outlined" style="font-size:18px">inventory</span>
-                Registrar recepción
-              </BaseButton>
-              <BaseButton v-if="puedeDevolver" variant="secondary" @click="devMotivo = ''; devLineas = [{ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined, cantidadNueva: undefined }]; showDevolucion = true">
+              <BaseButton v-if="puedeDevolver" variant="secondary" :disabled="yaTieneDevolucion"
+                :title="yaTieneDevolucion ? 'Esta venta ya tiene una devolución registrada' : ''"
+                @click="devMotivo = ''; devLineas = [{ productoDevueltoId: 0, cantidadDevuelta: 1, productoNuevoId: undefined, cantidadNueva: undefined }]; showDevolucion = true">
                 <span class="material-symbols-outlined" style="font-size:18px">undo</span>
                 Devolver / Cambiar
               </BaseButton>
@@ -451,6 +481,14 @@ async function submitGestionDev() {
                         <span v-if="l.productoNuevoNombre">→ {{ l.cantidadNueva }}x {{ l.productoNuevoNombre }}</span>
                       </div>
                     </div>
+                    <div v-if="d.notaCredito" class="mt-3 flex items-center justify-between rounded-lg px-3 py-2"
+                      style="background-color: var(--color-secondary-container); color: var(--color-on-secondary-container, #003544)">
+                      <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined" style="font-size:16px">receipt_long</span>
+                        <span class="text-xs font-bold">Nota de Crédito {{ d.notaCredito.numeroNotaCredito }}</span>
+                      </div>
+                      <span class="text-xs font-semibold">{{ formatPrice(d.notaCredito.total) }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -557,6 +595,19 @@ async function submitGestionDev() {
     <template #body>
       <div class="space-y-4">
         <p class="text-sm" style="color:var(--color-on-surface-variant)">Esta acción no se puede deshacer. La venta pasará a estado <strong>Cancelada</strong>.</p>
+
+        <!-- Disposición de la seña -->
+        <div v-if="disposicionSeña.tipo === 'reembolsa'" class="rounded-lg px-4 py-3 text-sm"
+          style="background:var(--color-warning-container); color:var(--color-on-warning-container)">
+          Se reembolsará la seña de <strong>{{ formatPrice(disposicionSeña.monto) }}</strong> en efectivo.
+          Requiere una caja abierta.
+        </div>
+        <div v-else-if="disposicionSeña.tipo === 'retiene'" class="rounded-lg px-4 py-3 text-sm"
+          style="background:var(--color-error-container); color:var(--color-on-error-container)">
+          La seña de <strong>{{ formatPrice(disposicionSeña.monto) }}</strong> <strong>no se reembolsa</strong>:
+          el trabajo ya se envió al laboratorio y el cristal fue fabricado a pedido.
+        </div>
+
         <div>
           <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Motivo (opcional)</label>
           <textarea v-model="motivoCancel" rows="3" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
@@ -591,26 +642,6 @@ async function submitGestionDev() {
     </template>
   </BaseModal>
 
-  <!-- ── Modal: Recepción del laboratorio ─────────────────────────────────── -->
-  <BaseModal :open="showRecepcionLab" size="sm" title="Registrar Recepción del Laboratorio" @close="showRecepcionLab = false">
-    <template #body>
-      <div class="space-y-4">
-        <p class="text-sm" style="color:var(--color-on-surface-variant)">
-          Se registrará la recepción de los lentes desde el laboratorio. La venta pasará automáticamente a <strong>Lista para cobrar</strong>.
-        </p>
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color:var(--color-outline)">Observación (opcional)</label>
-          <textarea v-model="labObservacion" rows="2" class="w-full px-4 py-3 text-sm outline-none appearance-none shadow-none resize-none" :style="inputStyle()"></textarea>
-        </div>
-      </div>
-    </template>
-    <template #footer>
-      <BaseButton variant="secondary" class="flex-1" @click="showRecepcionLab = false">Cancelar</BaseButton>
-      <BaseButton variant="primary" class="flex-1" :disabled="isLabOp" @click="submitRecepcionLab">
-        {{ isLabOp ? "Registrando…" : "Registrar recepción" }}
-      </BaseButton>
-    </template>
-  </BaseModal>
 
   <!-- ── Modal: Solicitar devolución ──────────────────────────────────────── -->
   <BaseModal :open="showDevolucion" size="lg" title="Devolución / Cambio" @close="showDevolucion = false">
@@ -638,17 +669,34 @@ async function submitGestionDev() {
           <div class="space-y-3">
             <div v-for="(l, i) in devLineas" :key="i" class="rounded-xl p-3 space-y-2" style="background:var(--color-surface-container-low)">
               <div class="flex gap-3 items-center">
-                <SearchableSelect v-model="l.productoDevueltoId" :options="devLineaOptions" placeholder="Producto a devolver…" class="flex-1" />
-                <input
-                  v-model.number="l.cantidadDevuelta"
-                  type="number" min="1" placeholder="Cant."
-                  class="w-20 px-3 py-2 rounded-lg text-sm outline-none text-center"
-                  style="border:1px solid var(--color-outline-variant);background:var(--color-surface-container-lowest);color:var(--color-on-surface)"
-                />
+                <SearchableSelect v-model="l.productoDevueltoId" :options="devLineaOptions" placeholder="Producto a devolver…" class="flex-1"
+                  @update:model-value="onProductoDevueltoChange(l)" />
+                <div class="flex items-center rounded-lg overflow-hidden flex-shrink-0" style="border:1px solid var(--color-outline-variant); background:var(--color-surface-container-lowest)">
+                  <button type="button" title="Quitar uno"
+                    class="w-8 h-9 flex items-center justify-center transition-all hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed"
+                    :disabled="l.cantidadDevuelta <= 1" @click="decDev(l)">
+                    <span class="material-symbols-outlined" style="font-size:16px; color:var(--color-on-surface-variant)">remove</span>
+                  </button>
+                  <input
+                    v-model.number="l.cantidadDevuelta"
+                    type="number" min="1" :max="maxDevolver(l.productoDevueltoId) || undefined"
+                    class="w-10 h-9 text-sm outline-none text-center bg-transparent"
+                    style="color:var(--color-on-surface)"
+                    @change="clampCantidad(l)" @blur="clampCantidad(l)"
+                  />
+                  <button type="button" title="Agregar uno"
+                    class="w-8 h-9 flex items-center justify-center transition-all hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed"
+                    :disabled="l.productoDevueltoId > 0 && l.cantidadDevuelta >= maxDevolver(l.productoDevueltoId)" @click="incDev(l)">
+                    <span class="material-symbols-outlined" style="font-size:16px; color:var(--color-on-surface-variant)">add</span>
+                  </button>
+                </div>
                 <button v-if="devLineas.length > 1" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--color-error-container);color:var(--color-on-error-container)" @click="removeDevLinea(i)">
                   <span class="material-symbols-outlined" style="font-size:14px">close</span>
                 </button>
               </div>
+              <p v-if="l.productoDevueltoId > 0" class="text-[11px] pl-0.5" style="color:var(--color-outline)">
+                Máximo {{ maxDevolver(l.productoDevueltoId) }} — cantidad vendida en esta venta
+              </p>
               <div v-if="devTipo === 'Cambio'" class="flex gap-3 items-center">
                 <SearchableSelect v-model="l.productoNuevoId" :options="devLineaOptions" placeholder="Producto de reemplazo…" class="flex-1" />
                 <input

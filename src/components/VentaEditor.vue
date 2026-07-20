@@ -486,7 +486,9 @@ const guardarLabel = computed(() =>
                       <label class="flex items-center gap-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">P.Unit</span>
                         <div class="w-24">
-                          <MontoInput compact align="right" :model-value="l.precioUnitario ?? null"
+                          <!-- Producto: precio fijo del catálogo, no editable -->
+                          <span v-if="l.tipo === 'Producto'" class="block text-right text-xs font-semibold px-2 py-1" style="color: var(--color-on-surface)" title="El precio del producto se toma del catálogo y no se edita en la venta">{{ formatPrice(l.precioUnitario) }}</span>
+                          <MontoInput v-else compact align="right" :model-value="l.precioUnitario ?? null"
                             @update:model-value="l.precioUnitario = $event ?? 0" />
                         </div>
                       </label>

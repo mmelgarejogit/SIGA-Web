@@ -232,7 +232,6 @@ export const menuConfig: MenuItem[] = [
         children: [
           { label: "Lista de Egresos", icon: "receipt_long", route: "/egresos", permission: "ver_egresos" },
           { label: "Nuevo Egreso", icon: "add_circle", route: "/egresos/nuevo", permission: "gestionar_egresos" },
-          { label: "Aprobación", icon: "task_alt", route: "/egresos/aprobacion", permission: "aprobar_egresos" },
           { label: "Pagos Pendientes", icon: "payments", route: "/egresos/pagos", permission: "pagar_egresos" },
         ],
       },
@@ -263,7 +262,7 @@ export const menuConfig: MenuItem[] = [
           { label: "Lista de Ventas", icon: "list_alt", route: "/ventas", permission: "ver_ventas" },
           { label: "Cobros Pendientes", icon: "pending_actions", route: "/ventas/cobros-pendientes", permission: "ver_ventas" },
           { label: "Devoluciones", icon: "assignment_return", route: "/ventas/devoluciones", permission: "gestionar_ventas" },
-          { label: "Facturas de Venta", icon: "folder_open", route: "/ventas/facturas", permission: "ver_ventas" },
+          { label: "Comprobantes de Venta", icon: "folder_open", route: "/ventas/facturas", permission: "ver_ventas" },
         ],
       },
     ],

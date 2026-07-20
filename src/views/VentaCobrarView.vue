@@ -59,7 +59,8 @@ async function load() {
   error.value = ""
   try {
     venta.value = await getVentaById(Number(route.params.id))
-    tipo.value  = venta.value.estado === "EnProceso" ? "Seña" : "Cuota"
+    // En una venta a crédito el primer cobro es la seña; los siguientes, cuotas.
+    tipo.value  = !isContado.value && venta.value.cobros.length === 0 ? "Seña" : "Cuota"
     resetFormToSaldo()
     // Hay caja disponible solo si la sesión actual está Abierta (PendienteAprobacion no acepta cobros).
     cajaAbierta.value = (await getSesionActual().catch(() => null))?.estado === "Abierta"

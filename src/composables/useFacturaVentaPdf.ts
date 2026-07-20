@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
-import type { Venta } from "@/services/ventasService"
+import type { Venta, Devolucion } from "@/services/ventasService"
 import type { ConfiguracionNegocio } from "@/services/configService"
 
 const PRIMARY:      [number, number, number] = [0,   40,  142]
@@ -21,8 +21,50 @@ function fmtDate(iso?: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
+/** Banda de cabecera común (nombre, contacto, número y etiqueta del documento). */
+function cabecera(
+  doc: jsPDF, config: ConfiguracionNegocio, pageW: number, margin: number,
+  numeroDoc: string, etiqueta: string,
+) {
+  doc.setFillColor(...PRIMARY)
+  doc.rect(0, 0, pageW, 35, "F")
+
+  doc.setTextColor(...WHITE)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(16)
+  doc.text(config.nombreFantasia, margin, 14)
+
+  if (config.razonSocial) {
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    doc.text(config.razonSocial, margin, 20)
+  }
+
+  const contactLines: string[] = []
+  if (config.direccion) contactLines.push(config.direccion)
+  if (config.telefono)  contactLines.push(`Tel: ${config.telefono}`)
+  if (config.email)     contactLines.push(config.email)
+  if (config.cuit)      contactLines.push(`RUC: ${config.cuit}`)
+
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(7.5)
+  doc.setTextColor(200, 215, 255)
+  doc.text(contactLines.join("  ·  "), margin, 27)
+
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(22)
+  doc.setTextColor(...WHITE)
+  doc.text(numeroDoc, pageW - margin, 15, { align: "right" })
+
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.setTextColor(200, 215, 255)
+  doc.text(etiqueta, pageW - margin, 24, { align: "right" })
+}
+
 export function useFacturaVentaPdf() {
-  function generarPdfFactura(venta: Venta, config: ConfiguracionNegocio): void {
+  /** Construye el PDF de la factura y devuelve el documento jsPDF (sin descargar). */
+  function buildFacturaDoc(venta: Venta, config: ConfiguracionNegocio): jsPDF {
     const doc    = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
     const pageW  = 210
     const margin = 15
@@ -32,40 +74,8 @@ export function useFacturaVentaPdf() {
 
     // ── Banda de cabecera ──────────────────────────────────────────────────────
 
-    doc.setFillColor(...PRIMARY)
-    doc.rect(0, 0, pageW, 35, "F")
-
-    doc.setTextColor(...WHITE)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(16)
-    doc.text(config.nombreFantasia, margin, 14)
-
-    if (config.razonSocial) {
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(8)
-      doc.text(config.razonSocial, margin, 20)
-    }
-
-    const contactLines: string[] = []
-    if (config.direccion) contactLines.push(config.direccion)
-    if (config.telefono)  contactLines.push(`Tel: ${config.telefono}`)
-    if (config.email)     contactLines.push(config.email)
-    if (config.cuit)      contactLines.push(`RUC: ${config.cuit}`)
-
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(7.5)
-    doc.setTextColor(200, 215, 255)
-    doc.text(contactLines.join("  ·  "), margin, 27)
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(22)
-    doc.setTextColor(...WHITE)
-    doc.text(factura?.numeroFactura ?? venta.numeroComprobante, pageW - margin, 15, { align: "right" })
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.setTextColor(200, 215, 255)
-    doc.text("FACTURA TIMBRADA", pageW - margin, 24, { align: "right" })
+    cabecera(doc, config, pageW, margin,
+      factura?.numeroFactura ?? venta.numeroComprobante, "FACTURA TIMBRADA")
 
     // ── Info timbrado ──────────────────────────────────────────────────────────
 
@@ -210,9 +220,139 @@ export function useFacturaVentaPdf() {
       pageW / 2, footerY + 5, { align: "center" },
     )
 
-    const nombreArchivo = `Factura-${factura?.numeroFactura ?? "desconocida"}-${venta.clienteNombre.replace(/\s+/g, "-")}.pdf`
+    return doc
+  }
+
+  /** Construye el PDF de la Nota de Crédito asociada a una devolución. */
+  function buildNotaCreditoDoc(venta: Venta, devolucion: Devolucion, config: ConfiguracionNegocio): jsPDF {
+    const nc = devolucion.notaCredito!
+    const doc    = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+    const pageW  = 210
+    const margin = 15
+    const contentW = pageW - margin * 2
+
+    cabecera(doc, config, pageW, margin, nc.numeroNotaCredito, "NOTA DE CRÉDITO")
+
+    // ── Info timbrado / referencia ───────────────────────────────────────────────
+    let y = 44
+
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(11)
+    doc.setTextColor(...PRIMARY)
+    doc.text("Timbrado", margin, y)
+    doc.text("Cliente", pageW / 2 + 5, y)
+
+    y += 5
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
+    doc.setTextColor(...DARK)
+    doc.text(`N° ${nc.timbrado}`, margin, y)
+    doc.text(venta.clienteNombre, pageW / 2 + 5, y)
+
+    y += 5
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.setTextColor(...GRAY)
+    doc.text("Fecha de emisión:", margin, y)
+    doc.setTextColor(...DARK)
+    doc.text(fmtDate(nc.fechaEmision), margin + 30, y)
+
+    y += 5
+    doc.setTextColor(...GRAY)
+    doc.text("Compensa factura:", margin, y)
+    doc.setTextColor(...ACCENT)
+    doc.setFont("helvetica", "bold")
+    doc.text(venta.factura?.numeroFactura ?? "—", margin + 33, y)
+
+    doc.setFont("helvetica", "italic")
+    doc.setFontSize(8.5)
+    doc.setTextColor(...GRAY)
+    const motivo = doc.splitTextToSize(`Motivo: ${devolucion.motivo}`, contentW / 2)
+    doc.text(motivo, pageW / 2 + 5, y)
+
+    // Separador
+    y += 8
+    doc.setDrawColor(...BORDER)
+    doc.setLineWidth(0.3)
+    doc.line(margin, y, pageW - margin, y)
+    y += 6
+
+    // ── Detalle de productos devueltos ───────────────────────────────────────────
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.setTextColor(...GRAY)
+    doc.text("PRODUCTOS DEVUELTOS", margin, y)
+    y += 4
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Producto devuelto", "Cant."]],
+      body: devolucion.lineas.map(l => [
+        l.productoDevueltoNombre,
+        { content: l.cantidadDevuelta.toString(), styles: { halign: "center" } },
+      ]),
+      headStyles: { fillColor: PRIMARY, textColor: WHITE, fontStyle: "bold", fontSize: 8.5, cellPadding: 3 },
+      bodyStyles: { fontSize: 9, textColor: DARK, cellPadding: 2.5 },
+      alternateRowStyles: { fillColor: ROW_ALT },
+      columnStyles: { 0: { cellWidth: "auto" }, 1: { cellWidth: 24, halign: "center" } },
+      tableLineColor: BORDER,
+      tableLineWidth: 0.2,
+    })
+
+    // @ts-expect-error jspdf-autotable
+    const finalY: number = doc.lastAutoTable.finalY ?? 200
+
+    // ── Resumen del crédito ──────────────────────────────────────────────────────
+    let ry = finalY + 8
+    const summaryX = pageW - margin - 70
+
+    const rows: Array<[string, string, boolean]> = []
+    if (nc.montoExento > 0)    rows.push(["Exento",      fmt(nc.montoExento),                      false])
+    if (nc.montoGravado5 > 0)  rows.push(["Gravado 5%",  fmt(nc.montoGravado5),                    false])
+    if (nc.montoGravado5 > 0)  rows.push(["  IVA 5%",    fmt(Math.round(nc.montoGravado5 / 21)),   false])
+    if (nc.montoGravado10 > 0) rows.push(["Gravado 10%", fmt(nc.montoGravado10),                   false])
+    if (nc.montoGravado10 > 0) rows.push(["  IVA 10%",   fmt(Math.round(nc.montoGravado10 / 11)),  false])
+    rows.push(["TOTAL CRÉDITO", fmt(nc.total), true])
+
+    for (const [label, value, bold] of rows) {
+      const labelColor: [number, number, number] = bold ? ACCENT : GRAY
+      const valueColor: [number, number, number] = bold ? ACCENT : DARK
+      doc.setFont("helvetica", bold ? "bold" : "normal")
+      doc.setFontSize(bold ? 10 : 9)
+      doc.setTextColor(...labelColor)
+      doc.text(label, summaryX, ry)
+      doc.setTextColor(...valueColor)
+      doc.text(value, pageW - margin, ry, { align: "right" })
+      ry += bold ? 6 : 5
+    }
+
+    // ── Pie de página ────────────────────────────────────────────────────────────
+    const footerY = 282
+    doc.setDrawColor(...BORDER)
+    doc.setLineWidth(0.2)
+    doc.line(margin, footerY, pageW - margin, footerY)
+
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7.5)
+    doc.setTextColor(...GRAY)
+    doc.text(
+      `Generado el ${fmtDate(new Date().toISOString().slice(0,10))} · ${config.nombreFantasia} · La factura original mantiene su validez; esta nota la compensa.`,
+      pageW / 2, footerY + 5, { align: "center" },
+    )
+
+    return doc
+  }
+
+  /** Descarga el documento con el nombre indicado. */
+  function descargarDoc(doc: jsPDF, nombreArchivo: string): void {
     doc.save(nombreArchivo)
   }
 
-  return { generarPdfFactura }
+  /** Devuelve una URL de blob para previsualizar el PDF en un iframe. */
+  function previewDoc(doc: jsPDF): string {
+    return doc.output("bloburl") as unknown as string
+  }
+
+  return { buildFacturaDoc, buildNotaCreditoDoc, descargarDoc, previewDoc }
 }

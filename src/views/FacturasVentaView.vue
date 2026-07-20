@@ -4,26 +4,46 @@ import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
+import BaseButton from "@/components/BaseButton.vue"
+import BaseModal from "@/components/BaseModal.vue"
 import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import BaseTable from "@/components/BaseTable.vue"
-import { type Venta, getVentas, getVentaById } from "@/services/ventasService"
+import { type Venta, type Devolucion, getVentas, getVentaById } from "@/services/ventasService"
 import { getConfiguracion } from "@/services/configService"
 import { useFacturaVentaPdf } from "@/composables/useFacturaVentaPdf"
 
 const router = useRouter()
+const pdf = useFacturaVentaPdf()
+
+type TipoDoc = "Factura" | "NotaCredito"
+
+interface ComprobanteRow {
+  key: string
+  ventaId: number
+  tipoDoc: TipoDoc
+  numero: string
+  subNumero: string
+  clienteNombre: string
+  tipoVenta: string
+  condicion: string
+  fecha: string
+  total: number
+  ivaTotal: number
+  devolucionId?: number
+}
 
 const ventas      = ref<Venta[]>([])
 const isLoading   = ref(false)
 const loadError   = ref("")
 const search      = ref("")
-const isDownloading = ref<number | null>(null)
+const isBusy      = ref<string | null>(null)
 
 const columns = [
-  { key: "nroFactura", label: "Nro. Factura" },
+  { key: "numero", label: "Número" },
+  { key: "documento", label: "Documento" },
   { key: "cliente", label: "Cliente" },
-  { key: "tipo", label: "Tipo" },
   { key: "condicion", label: "Condición" },
   { key: "fecha", label: "Fecha Emisión" },
   { key: "total", label: "Total" },
@@ -32,45 +52,80 @@ const columns = [
 ]
 
 // ── Filtros ──────────────────────────────────────────────────────────────────
-const filtroTipo      = ref<string[]>([])
+const filtroDoc       = ref<string[]>([])
 const filtroCondicion = ref<string[]>([])
 const filtroFechaDesde = ref("")
 const filtroFechaHasta = ref("")
 
-const tipoOpciones = [
-  { value: "Directa",        label: "Directa",   dot: "var(--color-on-info-container)" },
-  { value: "TrabajoAPedido", label: "A pedido",  dot: "var(--color-tertiary)" },
+const docOpciones = [
+  { value: "Factura",     label: "Factura",         dot: "var(--color-primary)" },
+  { value: "NotaCredito", label: "Nota de Crédito", dot: "var(--color-tertiary)" },
 ]
 const condicionOpciones = [
   { value: "Contado", label: "Contado", dot: "var(--color-info)" },
   { value: "Credito", label: "Crédito", dot: "var(--color-tertiary)" },
 ]
 
+// ── Filas normalizadas (facturas + notas de crédito) ─────────────────────────
+const comprobantes = computed<ComprobanteRow[]>(() => {
+  const rows: ComprobanteRow[] = []
+  for (const v of ventas.value) {
+    if (v.factura) {
+      rows.push({
+        key: `f-${v.id}`,
+        ventaId: v.id,
+        tipoDoc: "Factura",
+        numero: v.factura.numeroFactura,
+        subNumero: `${v.numeroComprobante}${v.factura.timbrado ? " · Timb. " + v.factura.timbrado : ""}`,
+        clienteNombre: v.clienteNombre,
+        tipoVenta: v.tipo,
+        condicion: v.condicionVenta,
+        fecha: v.factura.fechaEmision ?? "",
+        total: v.factura.total ?? v.total,
+        ivaTotal: (v.factura.iva5 ?? 0) + (v.factura.iva10 ?? 0),
+      })
+    }
+    for (const d of v.devoluciones ?? []) {
+      if (!d.notaCredito) continue
+      const nc = d.notaCredito
+      rows.push({
+        key: `nc-${nc.id}`,
+        ventaId: v.id,
+        tipoDoc: "NotaCredito",
+        numero: nc.numeroNotaCredito,
+        subNumero: `Compensa ${v.factura?.numeroFactura ?? "—"}`,
+        clienteNombre: v.clienteNombre,
+        tipoVenta: v.tipo,
+        condicion: v.condicionVenta,
+        fecha: nc.fechaEmision ?? "",
+        total: nc.total,
+        ivaTotal: Math.round(nc.montoGravado5 / 21) + Math.round(nc.montoGravado10 / 11),
+        devolucionId: d.id,
+      })
+    }
+  }
+  return rows
+})
 
-function formatFilterDate(d: string) {
-  return new Date(d + "T12:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short" })
-}
-
-// ── Datos filtrados ──────────────────────────────────────────────────────────
-const ventasFiltradas = computed(() => {
-  let list = ventas.value
+const comprobantesFiltrados = computed(() => {
+  let list = comprobantes.value
+  if (filtroDoc.value.length)
+    list = list.filter(r => filtroDoc.value.includes(r.tipoDoc))
   if (search.value.trim()) {
     const q = search.value.toLowerCase()
-    list = list.filter(v =>
-      v.clienteNombre.toLowerCase().includes(q) ||
-      v.numeroComprobante.toLowerCase().includes(q) ||
-      (v.factura?.numeroFactura ?? "").toLowerCase().includes(q),
+    list = list.filter(r =>
+      r.clienteNombre.toLowerCase().includes(q) ||
+      r.numero.toLowerCase().includes(q) ||
+      r.subNumero.toLowerCase().includes(q),
     )
   }
-  if (filtroTipo.value.length)
-    list = list.filter(v => filtroTipo.value.includes(v.tipo))
   if (filtroCondicion.value.length)
-    list = list.filter(v => filtroCondicion.value.includes(v.condicionVenta))
+    list = list.filter(r => filtroCondicion.value.includes(r.condicion))
   if (filtroFechaDesde.value)
-    list = list.filter(v => (v.factura?.fechaEmision ?? "") >= filtroFechaDesde.value)
+    list = list.filter(r => r.fecha >= filtroFechaDesde.value)
   if (filtroFechaHasta.value)
-    list = list.filter(v => (v.factura?.fechaEmision ?? "") <= filtroFechaHasta.value)
-  return list
+    list = list.filter(r => r.fecha <= filtroFechaHasta.value)
+  return [...list].sort((a, b) => b.fecha.localeCompare(a.fecha))
 })
 
 async function load() {
@@ -78,9 +133,10 @@ async function load() {
   loadError.value = ""
   try {
     const result = await getVentas({ pageSize: 500 })
-    ventas.value = (result.items ?? []).filter(v => !!v.factura)
+    ventas.value = (result.items ?? []).filter(v =>
+      !!v.factura || (v.devoluciones ?? []).some(d => d.notaCredito))
   } catch (err: unknown) {
-    loadError.value = err instanceof Error ? err.message : "Error al cargar facturas."
+    loadError.value = err instanceof Error ? err.message : "Error al cargar comprobantes."
   } finally {
     isLoading.value = false
   }
@@ -95,10 +151,10 @@ const formatPrice = (n: number) =>
 const formatDate = (s?: string) =>
   s ? new Date(s.includes("T") ? s : s + "T00:00:00").toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" }) : "—"
 
-function tipoBadge(tipo: string) {
-  return tipo === "TrabajoAPedido"
-    ? { text: "A pedido", bg: "var(--color-tertiary-fixed)", color: "var(--color-tertiary)" }
-    : { text: "Directa",  bg: "var(--color-info-container)", color: "var(--color-on-info-container)" }
+function docBadge(tipoDoc: TipoDoc) {
+  return tipoDoc === "NotaCredito"
+    ? { text: "Nota de Crédito", bg: "color-mix(in srgb, var(--color-tertiary) 14%, var(--color-surface-container-lowest))", color: "var(--color-tertiary)", icon: "receipt_long" }
+    : { text: "Factura",         bg: "var(--color-info-container)", color: "var(--color-on-info-container)", icon: "receipt" }
 }
 
 function condicionBadge(c: string) {
@@ -107,35 +163,82 @@ function condicionBadge(c: string) {
     : { text: "Contado", bg: "var(--color-info-container)", color: "var(--color-info)" }
 }
 
-// ── Acciones ─────────────────────────────────────────────────────────────────
-function menuItems(item: Venta): ContextMenuItem[] {
-  return [
-    { type: "item", label: "Ver venta",    icon: "open_in_new",    action: () => router.push(`/ventas/${item.id}`) },
-    { type: "separator" },
-    {
-      type:   "item",
-      label:  isDownloading.value === item.id ? "Generando PDF…" : "Descargar PDF",
-      icon:   "picture_as_pdf",
-      action: () => descargarPdf(item),
-    },
-  ]
+// ── PDF: construir doc completo (factura o NC) ────────────────────────────────
+async function buildDocFor(row: ComprobanteRow) {
+  const [venta, config] = await Promise.all([getVentaById(row.ventaId), getConfiguracion()])
+  if (row.tipoDoc === "Factura") return pdf.buildFacturaDoc(venta, config)
+  const dev = venta.devoluciones.find(d => d.id === row.devolucionId && d.notaCredito) as Devolucion | undefined
+  if (!dev) throw new Error("No se encontró la nota de crédito de la venta.")
+  return pdf.buildNotaCreditoDoc(venta, dev, config)
 }
 
-async function descargarPdf(item: Venta) {
-  if (isDownloading.value === item.id) return
-  isDownloading.value = item.id
+function nombreArchivo(row: ComprobanteRow) {
+  const prefijo = row.tipoDoc === "Factura" ? "Factura" : "NotaCredito"
+  return `${prefijo}-${row.numero}-${row.clienteNombre.replace(/\s+/g, "-")}.pdf`
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+const showPreview   = ref(false)
+const previewUrl    = ref("")
+const previewTitle  = ref("")
+const previewRow    = ref<ComprobanteRow | null>(null)
+
+async function openPreview(row: ComprobanteRow) {
+  if (isBusy.value) return
+  isBusy.value = row.key
+  loadError.value = ""
   try {
-    const [ventaCompleta, config] = await Promise.all([
-      getVentaById(item.id),
-      getConfiguracion(),
-    ])
-    const { generarPdfFactura } = useFacturaVentaPdf()
-    generarPdfFactura(ventaCompleta, config)
-  } catch {
-    // silently fail — user can retry
+    const doc = await buildDocFor(row)
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value   = pdf.previewDoc(doc)
+    previewTitle.value = `${row.tipoDoc === "Factura" ? "Factura" : "Nota de Crédito"} ${row.numero}`
+    previewRow.value   = row
+    showPreview.value  = true
+  } catch (e: unknown) {
+    loadError.value = e instanceof Error ? e.message : "No se pudo generar la previsualización."
   } finally {
-    isDownloading.value = null
+    isBusy.value = null
   }
+}
+
+function closePreview() {
+  showPreview.value = false
+  previewRow.value  = null
+  if (previewUrl.value) { URL.revokeObjectURL(previewUrl.value); previewUrl.value = "" }
+}
+
+// ── Descarga ──────────────────────────────────────────────────────────────────
+async function descargar(row: ComprobanteRow) {
+  if (isBusy.value) return
+  isBusy.value = row.key
+  loadError.value = ""
+  try {
+    const doc = await buildDocFor(row)
+    pdf.descargarDoc(doc, nombreArchivo(row))
+  } catch (e: unknown) {
+    loadError.value = e instanceof Error ? e.message : "No se pudo generar el PDF."
+  } finally {
+    isBusy.value = null
+  }
+}
+
+function descargarDesdePreview() {
+  if (previewRow.value) descargar(previewRow.value)
+}
+
+// ── Acciones ─────────────────────────────────────────────────────────────────
+function menuItems(row: ComprobanteRow): ContextMenuItem[] {
+  return [
+    { type: "item", label: "Ver venta", icon: "open_in_new", action: () => router.push(`/ventas/${row.ventaId}`) },
+    { type: "separator" },
+    { type: "item", label: "Visualizar comprobante", icon: "visibility", action: () => openPreview(row) },
+    {
+      type:   "item",
+      label:  isBusy.value === row.key ? "Generando PDF…" : "Descargar PDF",
+      icon:   "picture_as_pdf",
+      action: () => descargar(row),
+    },
+  ]
 }
 </script>
 
@@ -150,9 +253,9 @@ async function descargarPdf(item: Venta) {
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Facturas de Venta</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Comprobantes de Venta</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
-              Historial de facturas timbradas emitidas a clientes
+              Facturas timbradas y notas de crédito emitidas a clientes
             </p>
           </div>
         </div>
@@ -161,9 +264,9 @@ async function descargarPdf(item: Venta) {
         <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div class="flex items-center gap-3 flex-wrap">
             <FilterChips
-              v-model="filtroTipo"
-              :options="tipoOpciones"
-              placeholder="Tipo"
+              v-model="filtroDoc"
+              :options="docOpciones"
+              placeholder="Documento"
             />
             <FilterChips
               v-model="filtroCondicion"
@@ -189,7 +292,7 @@ async function descargarPdf(item: Venta) {
 
           <SearchInput
             v-model="search"
-            placeholder="Buscar por factura, comprobante o cliente…"
+            placeholder="Buscar por número o cliente…"
             class="w-80"
           />
         </div>
@@ -202,68 +305,80 @@ async function descargarPdf(item: Venta) {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="ventasFiltradas" :loading="isLoading" @row-click="v => router.push(`/ventas/${v.id}`)">
+        <BaseTable :columns="columns" :items="comprobantesFiltrados" :loading="isLoading" @row-click="r => router.push(`/ventas/${r.ventaId}`)">
           <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style="background-color: var(--color-surface-container-low)">
               <span class="material-symbols-outlined text-4xl" style="color: var(--color-outline)">receipt</span>
             </div>
-            <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin facturas</p>
+            <p class="font-bold text-lg mb-1" style="color: var(--color-on-surface)">Sin comprobantes</p>
             <p class="text-sm" style="color: var(--color-on-surface-variant)">
-              No hay facturas que coincidan con los filtros aplicados.
+              No hay comprobantes que coincidan con los filtros aplicados.
             </p>
           </template>
-          <template #nroFactura="{ item: v }">
+          <template #numero="{ item: r }">
             <p class="font-mono text-sm font-semibold" style="color: var(--color-on-surface)">
-              {{ v.factura?.numeroFactura ?? "—" }}
+              {{ r.numero }}
             </p>
-            <p class="text-xs mt-0.5" style="color: var(--color-outline)">
-              {{ v.numeroComprobante }}
-              <template v-if="v.factura?.timbrado">
-                · Timb. {{ v.factura.timbrado }}
-              </template>
-            </p>
+            <p class="text-xs mt-0.5" style="color: var(--color-outline)">{{ r.subNumero }}</p>
           </template>
-          <template #cliente="{ item: v }">
-            <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ v.clienteNombre }}</span>
+          <template #documento="{ item: r }">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+              :style="`background-color: ${docBadge(r.tipoDoc).bg}; color: ${docBadge(r.tipoDoc).color}`">
+              <span class="material-symbols-outlined" style="font-size: 14px">{{ docBadge(r.tipoDoc).icon }}</span>
+              {{ docBadge(r.tipoDoc).text }}
+            </span>
           </template>
-          <template #tipo="{ item: v }">
+          <template #cliente="{ item: r }">
+            <span class="font-medium text-sm" style="color: var(--color-on-surface)">{{ r.clienteNombre }}</span>
+          </template>
+          <template #condicion="{ item: r }">
             <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="`background-color: ${tipoBadge(v.tipo).bg}; color: ${tipoBadge(v.tipo).color}`">
-              {{ tipoBadge(v.tipo).text }}
+              :style="`background-color: ${condicionBadge(r.condicion).bg}; color: ${condicionBadge(r.condicion).color}`">
+              {{ condicionBadge(r.condicion).text }}
             </span>
           </template>
-          <template #condicion="{ item: v }">
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold"
-              :style="`background-color: ${condicionBadge(v.condicionVenta).bg}; color: ${condicionBadge(v.condicionVenta).color}`">
-              {{ condicionBadge(v.condicionVenta).text }}
+          <template #fecha="{ item: r }">
+            {{ formatDate(r.fecha) }}
+          </template>
+          <template #total="{ item: r }">
+            <span class="font-bold text-sm" :style="`color: ${r.tipoDoc === 'NotaCredito' ? 'var(--color-tertiary)' : 'var(--color-primary)'}`">
+              {{ r.tipoDoc === 'NotaCredito' ? '−' : '' }}{{ formatPrice(r.total) }}
             </span>
           </template>
-          <template #fecha="{ item: v }">
-            {{ formatDate(v.factura?.fechaEmision) }}
+          <template #ivaTotal="{ item: r }">
+            {{ formatPrice(r.ivaTotal) }}
           </template>
-          <template #total="{ item: v }">
-            <span class="font-bold text-sm" style="color: var(--color-primary)">
-              {{ formatPrice(v.factura?.total ?? v.total) }}
-            </span>
-          </template>
-          <template #ivaTotal="{ item: v }">
-            {{ formatPrice((v.factura?.iva5 ?? 0) + (v.factura?.iva10 ?? 0)) }}
-          </template>
-          <template #acciones="{ item: v }">
+          <template #acciones="{ item: r }">
             <div class="flex justify-end" @click.stop>
-              <RowContextMenu :items="menuItems(v)" />
+              <RowContextMenu :items="menuItems(r)" />
             </div>
           </template>
         </BaseTable>
 
         <p class="text-sm" style="color: var(--color-on-surface-variant)">
-          Mostrando <strong style="color: var(--color-on-surface)">{{ ventasFiltradas.length }}</strong>
-          de <strong style="color: var(--color-on-surface)">{{ ventas.length }}</strong> facturas
+          Mostrando <strong style="color: var(--color-on-surface)">{{ comprobantesFiltrados.length }}</strong>
+          de <strong style="color: var(--color-on-surface)">{{ comprobantes.length }}</strong> comprobantes
         </p>
 
       </div>
     </main>
+
+    <!-- Modal: previsualizar comprobante -->
+    <BaseModal :show="showPreview" size="lg" :title="previewTitle" @close="closePreview">
+      <template #body>
+        <div class="w-full rounded-lg overflow-hidden" style="border: 1px solid var(--color-hairline); height: 70vh; background: var(--color-surface-container-low)">
+          <iframe v-if="previewUrl" :src="previewUrl" title="Previsualización de comprobante" class="w-full h-full" style="border: 0"></iframe>
+        </div>
+      </template>
+      <template #footer>
+        <BaseButton variant="secondary" @click="closePreview">Cerrar</BaseButton>
+        <BaseButton variant="primary" @click="descargarDesdePreview">
+          <span class="material-symbols-outlined" style="font-size: 18px">picture_as_pdf</span>
+          Descargar PDF
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
