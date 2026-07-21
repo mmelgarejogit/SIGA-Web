@@ -573,7 +573,7 @@ const router = createRouter({
     {
       path: "/admin/auditoria",
       name: "admin-auditoria",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/AuditoriaView.vue"),
       meta: { requiresAuth: true, permission: "ver_usuarios", label: "Auditoría" },
     },
     {

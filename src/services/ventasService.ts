@@ -336,6 +336,7 @@ export const getVentas = (params?: {
   fechaDesde?: string
   fechaHasta?: string
   clienteId?: number
+  personId?: number
   page?: number
   pageSize?: number
 }) => {
@@ -345,6 +346,7 @@ export const getVentas = (params?: {
   if (params?.fechaDesde) q.set("fechaDesde",  params.fechaDesde)
   if (params?.fechaHasta) q.set("fechaHasta",  params.fechaHasta)
   if (params?.clienteId)  q.set("clienteId",   String(params.clienteId))
+  if (params?.personId)   q.set("personId",    String(params.personId))
   if (params?.page)       q.set("page",        String(params.page))
   if (params?.pageSize)   q.set("pageSize",    String(params.pageSize))
   const qs = q.toString()
