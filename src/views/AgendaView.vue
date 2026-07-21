@@ -103,6 +103,54 @@ const weekRangeLabel = computed(() => {
   return `${s.getDate()}–${e.getDate()} de ${s.toLocaleDateString("es-AR", { month: "long" })}`
 })
 
+// ── Grilla mensual ──────────────────────────────────────────────────────────────
+
+// 42 días (6 semanas, base lunes) que cubren el mes de selectedDate.
+const monthGrid = computed<Date[]>(() => {
+  const d = selectedDate.value
+  const first = new Date(d.getFullYear(), d.getMonth(), 1)
+  const dow = first.getDay() // 0=Dom
+  const offset = dow === 0 ? 6 : dow - 1 // base lunes
+  const start = new Date(d.getFullYear(), d.getMonth(), 1 - offset)
+  return Array.from({ length: 42 }, (_, i) => {
+    const day = new Date(start)
+    day.setDate(start.getDate() + i)
+    return day
+  })
+})
+
+// Turnos agrupados por fecha (yyyy-mm-dd) para pintar la grilla sin recalcular por celda.
+const turnosPorDia = computed(() => {
+  const map = new Map<string, Turno[]>()
+  for (const t of turnos.value) {
+    const key = t.fechaHora.slice(0, 10)
+    const arr = map.get(key)
+    if (arr) arr.push(t)
+    else map.set(key, [t])
+  }
+  return map
+})
+
+const WEEKDAY_HEADERS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+function turnosDelDia(day: Date): Turno[] {
+  return turnosPorDia.value.get(toDateStr(day)) ?? []
+}
+
+function isToday(day: Date): boolean {
+  return toDateStr(day) === toDateStr(new Date())
+}
+
+function inSelectedMonth(day: Date): boolean {
+  return day.getMonth() === selectedDate.value.getMonth()
+}
+
+// Click en una celda → ir al día.
+function openDay(day: Date) {
+  selectedDate.value = new Date(day)
+  viewMode.value = "dia"
+}
+
 // ── Filtros ───────────────────────────────────────────────────────────────────
 
 const selectedProfessionalId = ref<number | null>(null)
@@ -162,25 +210,19 @@ async function loadTurnos() {
         professionalId: selectedProfessionalId.value ?? undefined,
         estado: estadoFilter.value || undefined,
       })
-    } else if (viewMode.value === "semana") {
-      const dates: string[] = []
-      const d = new Date(rangeStart.value)
-      while (d <= rangeEnd.value) {
-        dates.push(toDateStr(new Date(d)))
-        d.setDate(d.getDate() + 1)
-      }
-      const results = await Promise.all(
-        dates.map((fecha) =>
-          getTurnos({
-            fecha,
-            professionalId: selectedProfessionalId.value ?? undefined,
-            estado: estadoFilter.value || undefined,
-          }),
-        ),
-      )
-      turnos.value = results.flat()
+    } else {
+      // Semana y mes: una sola consulta por rango. En mes se trae toda la grilla
+      // (42 celdas, incluye días de meses vecinos) para que cada celda muestre su conteo real.
+      const [start, end] = viewMode.value === "semana"
+        ? [rangeStart.value, rangeEnd.value]
+        : [monthGrid.value[0]!, monthGrid.value[monthGrid.value.length - 1]!]
+      turnos.value = await getTurnos({
+        desde: toDateStr(start),
+        hasta: toDateStr(end),
+        professionalId: selectedProfessionalId.value ?? undefined,
+        estado: estadoFilter.value || undefined,
+      })
     }
-    // mes: deshabilitado hasta que la API soporte rango de fechas
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar turnos."
   } finally {
@@ -452,7 +494,8 @@ function menuItems(t: Turno): ContextMenuItem[] {
       icon: "close",
       action: () => openCancelModal(t),
       danger: true,
-      hidden: !(t.estado !== "Cancelado" && auth.hasPermission("gestionar_agenda")),
+      // No se cancela un turno ya realizado (Completado) ni uno ya cancelado.
+      hidden: !(["Pendiente", "Confirmado", "Presente"].includes(t.estado) && auth.hasPermission("gestionar_agenda")),
     },
   ]
 }
@@ -540,6 +583,67 @@ function menuItems(t: Turno): ContextMenuItem[] {
           style="color: var(--color-error)"
         >
           {{ loadError }}
+        </div>
+
+        <!-- ── VISTA MENSUAL (grilla de calendario) ──────────────────────── -->
+        <div v-else-if="viewMode === 'mes'" class="p-4">
+          <div class="grid grid-cols-7 gap-2 mb-2">
+            <div
+              v-for="wd in WEEKDAY_HEADERS"
+              :key="wd"
+              class="text-center text-xs font-bold uppercase tracking-wider"
+              style="color: var(--color-outline)"
+            >
+              {{ wd }}
+            </div>
+          </div>
+          <div class="grid grid-cols-7 gap-2">
+            <button
+              v-for="day in monthGrid"
+              :key="day.toISOString()"
+              @click="openDay(day)"
+              class="text-left rounded-lg p-2 min-h-[96px] flex flex-col gap-1 transition-colors hover:bg-surface-container-low"
+              :style="{
+                border: isToday(day) ? '1px solid var(--color-primary)' : '1px solid var(--color-hairline-soft)',
+                background: inSelectedMonth(day) ? 'var(--color-surface-container-lowest)' : 'transparent',
+                opacity: inSelectedMonth(day) ? 1 : 0.45,
+              }"
+              :title="`Ver turnos del ${day.getDate()}`"
+            >
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-xs font-bold"
+                  :style="{ color: isToday(day) ? 'var(--color-primary)' : 'var(--color-on-surface)' }"
+                >{{ day.getDate() }}</span>
+                <span
+                  v-if="turnosDelDia(day).length"
+                  class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style="background: var(--color-primary); color: var(--color-on-primary)"
+                >{{ turnosDelDia(day).length }}</span>
+              </div>
+              <div class="flex flex-col gap-0.5 overflow-hidden">
+                <span
+                  v-for="t in turnosDelDia(day).slice(0, 3)"
+                  :key="t.id"
+                  class="text-[10px] leading-tight truncate flex items-center gap-1"
+                  :title="`${formatHour(t.fechaHora)} · ${t.patientNombre} · ${t.estado}`"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    :class="ESTADO_DOT[t.estado] ?? 'bg-outline-variant'"
+                  ></span>
+                  <span class="truncate" style="color: var(--color-on-surface-variant)">
+                    {{ formatHour(t.fechaHora) }} {{ t.patientNombre }}
+                  </span>
+                </span>
+                <span
+                  v-if="turnosDelDia(day).length > 3"
+                  class="text-[10px] font-semibold"
+                  style="color: var(--color-primary)"
+                >+{{ turnosDelDia(day).length - 3 }} más</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         <BaseTable

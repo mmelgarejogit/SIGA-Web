@@ -21,8 +21,10 @@ export type EstadoDevolucion = "Pendiente" | "Confirmada" | "Rechazada"
 export type CategoriaFiscal = "Exento" | "Gravado5" | "Gravado10"
 export type TipoLinea       = "Producto" | "Servicio" | "Lente"
 export type TipoMovCaja     = "Ingreso" | "Egreso"
-export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado"
+export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado" | "Entregado"
 export type MedioEnvioLaboratorio = "WhatsApp" | "Email" | "Portal" | "Telefono" | "EnPersona" | "Otro"
+export type MotivoRetrabajo = "DefectoLaboratorio" | "ErrorOptica" | "NoAdaptacionCliente" | "RoturaGarantia" | "Otro"
+export type ResponsableRetrabajo = "Laboratorio" | "Optica"
 
 export interface VentaLinea {
   id: number
@@ -425,6 +427,10 @@ export interface TrabajoPedidoListDto {
   fechaEstimadaEntrega?: string
   medioEnvio?: MedioEnvioLaboratorio
   fechaRecepcion?: string
+  fechaEntrega?: string
+  retiradoPor?: string
+  entregadoPorNombre?: string
+  retrabajos: RetrabajoDto[]
   observacion?: string
   factura?: FacturaLaboratorioDto
   createdAt: string
@@ -443,6 +449,24 @@ export interface GestionarTrabajoPedidoRequest {
 export interface RegistrarEnvioRequest {
   fechaEstimadaEntrega?: string   // "yyyy-MM-dd"
   medioEnvio?: MedioEnvioLaboratorio
+}
+
+export interface RegistrarEntregaRequest {
+  retiradoPor?: string
+}
+
+export interface RetrabajoDto {
+  fecha: string
+  motivo: MotivoRetrabajo
+  responsable: ResponsableRetrabajo
+  observacion?: string
+  registradoPorNombre?: string
+}
+
+export interface RegistrarRetrabajoRequest {
+  motivo: MotivoRetrabajo
+  responsable: ResponsableRetrabajo
+  observacion?: string
 }
 
 export interface EmitirFacturaLaboratorioRequest {
