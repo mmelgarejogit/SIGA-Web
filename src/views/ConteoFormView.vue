@@ -7,8 +7,8 @@ import autoTable from "jspdf-autotable"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
-import FilterChips from "@/components/FilterChips.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import { type Producto, getProductos, registrarConteo } from "@/services/inventarioService"
 
 const router = useRouter()
@@ -21,8 +21,20 @@ const loadError = ref("")
 
 async function load() {
   try {
-    const result = await getProductos({ pageSize: 500 })
-    productos.value = result.items.filter((p) => p.isActive)
+    // Traemos TODO el catálogo: página 1 para saber cuántas hay y el resto en paralelo.
+    // Así la tabla y las pills nunca quedan incompletas por más grande que sea el inventario.
+    const PAGE = 200
+    const first = await getProductos({ page: 1, pageSize: PAGE })
+    const items = [...first.items]
+    if (first.totalPages > 1) {
+      const rest = await Promise.all(
+        Array.from({ length: first.totalPages - 1 }, (_, i) =>
+          getProductos({ page: i + 2, pageSize: PAGE }),
+        ),
+      )
+      for (const r of rest) items.push(...r.items)
+    }
+    productos.value = items.filter((p) => p.isActive)
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar productos."
   } finally {
@@ -37,10 +49,24 @@ onMounted(load)
 const categoriasSeleccionadas = ref<string[]>([])
 const search = ref("")
 
-const categoriasDisponibles = computed(() => {
-  const cats = [...new Set(productos.value.map((p) => p.categoria).filter(Boolean))] as string[]
-  return cats.sort().map((c) => ({ value: c, label: c }))
+// Categorías disponibles con la cantidad de productos de cada una (para las pills de alcance).
+const categoriasConConteo = computed(() => {
+  const map = new Map<string, number>()
+  for (const p of productos.value) {
+    if (p.categoria) map.set(p.categoria, (map.get(p.categoria) ?? 0) + 1)
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([value, count]) => ({ value, count }))
 })
+
+function toggleCategoria(cat: string) {
+  const sel = categoriasSeleccionadas.value
+  categoriasSeleccionadas.value = sel.includes(cat) ? sel.filter((c) => c !== cat) : [...sel, cat]
+}
+function seleccionarTodas() {
+  categoriasSeleccionadas.value = []
+}
 
 const productosFiltrados = computed(() => {
   let result = productos.value
@@ -93,6 +119,18 @@ const productosPaginados = computed(() => {
   const start = (page.value - 1) * PAGE_SIZE
   return productosFiltrados.value.slice(start, start + PAGE_SIZE)
 })
+
+const rangeStart = computed(() =>
+  productosFiltrados.value.length === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1,
+)
+const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, productosFiltrados.value.length))
+
+// Progreso del conteo sobre el conjunto filtrado ("en esta vista").
+const progresoPct = computed(() =>
+  productosFiltrados.value.length === 0
+    ? 0
+    : Math.round((productosIncluidos.value.length / productosFiltrados.value.length) * 100),
+)
 
 watch([categoriasSeleccionadas, search], () => { page.value = 1 })
 
@@ -197,7 +235,7 @@ async function submit() {
         </div>
 
         <!-- Error de carga -->
-        <div v-else-if="loadError" class="rounded-2xl p-6"
+        <div v-else-if="loadError" class="rounded-lg p-6"
           style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
           <p class="font-semibold">{{ loadError }}</p>
           <BaseButton variant="secondary" size="default" class="mt-3" @click="router.push('/stock')">Volver</BaseButton>
@@ -222,51 +260,83 @@ async function submit() {
           </div>
 
           <!-- Error de guardado -->
-          <div v-if="saveError" class="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium mb-6"
+          <div v-if="saveError" class="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium mb-6"
             style="background-color: var(--color-error-container); color: var(--color-on-error-container)">
             <span class="material-symbols-outlined" style="font-size: 18px">error</span>
             {{ saveError }}
           </div>
 
           <!-- Filtros y búsqueda -->
-          <div class="rounded-2xl p-5 mb-6"
+          <div class="rounded-lg p-5 mb-6"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
-            <h3 class="text-xl font-extrabold mb-4" style="color: var(--color-primary)">Segmentación</h3>
-            <div class="flex items-center justify-between gap-4 flex-wrap">
-              <div class="flex items-center gap-3 flex-wrap">
-                <FilterChips
-                  :model-value="categoriasSeleccionadas"
-                  :options="categoriasDisponibles"
-                  placeholder="Todas las categorías"
-                  @update:model-value="categoriasSeleccionadas = $event"
-                />
-              </div>
+            <h3 class="text-xl font-extrabold mb-1" style="color: var(--color-primary)">Alcance del conteo</h3>
+            <p class="text-sm mb-4" style="color: var(--color-on-surface-variant)">
+              Filtrá los productos que vas a contar. Podés contar por categoría o buscar uno puntual.
+            </p>
+            <!-- Pills de alcance: categorías con su conteo de productos -->
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                @click="seleccionarTodas"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-95"
+                :style="categoriasSeleccionadas.length === 0
+                  ? 'background-color: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary)'
+                  : 'background-color: var(--color-surface); color: var(--color-on-surface); border: 1px solid var(--color-outline-variant)'"
+              >
+                Todas
+                <span class="text-xs font-bold"
+                  :style="categoriasSeleccionadas.length === 0 ? 'opacity: 0.7' : 'color: var(--color-outline)'">
+                  {{ productos.length }}
+                </span>
+              </button>
+              <button
+                v-for="c in categoriasConConteo"
+                :key="c.value"
+                type="button"
+                @click="toggleCategoria(c.value)"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-95"
+                :style="categoriasSeleccionadas.includes(c.value)
+                  ? 'background-color: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary)'
+                  : 'background-color: var(--color-surface); color: var(--color-on-surface); border: 1px solid var(--color-outline-variant)'"
+              >
+                {{ c.value }}
+                <span class="text-xs font-bold"
+                  :style="categoriasSeleccionadas.includes(c.value) ? 'opacity: 0.7' : 'color: var(--color-outline)'">
+                  {{ c.count }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Búsqueda puntual -->
+            <div class="flex justify-end mt-3">
               <SearchInput
                 :model-value="search"
-                placeholder="Buscar producto o SKU..."
-                class="w-full sm:w-72"
+                placeholder="Buscar un producto o SKU puntual..."
+                class="w-full sm:w-80"
                 @update:model-value="search = $event"
               />
             </div>
 
-            <!-- Resumen -->
-            <div class="flex items-center gap-6 mt-4 pt-4"
-              style="border-top: 1px solid var(--color-hairline)">
-              <div class="text-sm" style="color: var(--color-on-surface-variant)">
-                <span class="font-bold" style="color: var(--color-on-surface)">{{ productosFiltrados.length }}</span>
-                producto{{ productosFiltrados.length !== 1 ? "s" : "" }} en vista
+            <!-- Progreso del conteo -->
+            <div class="mt-4 pt-4" style="border-top: 1px solid var(--color-hairline)">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm" style="color: var(--color-on-surface-variant)">
+                  <span class="font-bold" :style="productosIncluidos.length > 0 ? 'color: var(--color-primary)' : 'color: var(--color-outline)'">{{ productosIncluidos.length }}</span>
+                  de
+                  <span class="font-bold" style="color: var(--color-on-surface)">{{ productosFiltrados.length }}</span>
+                  producto{{ productosFiltrados.length !== 1 ? "s" : "" }} contado{{ productosIncluidos.length !== 1 ? "s" : "" }} en esta vista
+                </p>
+                <span class="text-xs font-bold" style="color: var(--color-outline)">{{ progresoPct }}%</span>
               </div>
-              <div class="text-sm" style="color: var(--color-on-surface-variant)">
-                <span class="font-bold" :style="productosIncluidos.length > 0 ? 'color: var(--color-primary)' : 'color: var(--color-outline)'">
-                  {{ productosIncluidos.length }}
-                </span>
-                incluido{{ productosIncluidos.length !== 1 ? "s" : "" }} en el conteo
+              <div class="h-2 rounded-full overflow-hidden" style="background-color: var(--color-surface-container-high)">
+                <div class="h-full rounded-full transition-all"
+                  :style="`width: ${progresoPct}%; background-color: var(--color-primary)`"></div>
               </div>
             </div>
           </div>
 
           <!-- Tabla de productos -->
-          <div class="rounded-2xl mb-6 overflow-hidden"
+          <div class="rounded-lg mb-6 overflow-hidden"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
 
             <div class="px-6 py-4" style="border-bottom: 1px solid var(--color-hairline-soft)">
@@ -286,9 +356,9 @@ async function submit() {
               <thead>
                 <tr style="background-color: var(--color-surface-container-low)">
                   <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Producto</th>
-                  <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline); width: 160px">Categoría</th>
-                  <th class="text-center px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline); width: 160px">Cant. contada</th>
-                  <th class="text-center px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline); width: 120px">Estado</th>
+                  <th class="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap" style="color: var(--color-outline)">Categoría</th>
+                  <th class="text-center px-6 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap" style="color: var(--color-outline); width: 128px">Cant. contada</th>
+                  <th class="text-center px-6 py-3 text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline); width: 110px">Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,7 +373,7 @@ async function submit() {
                     <p v-if="p.sku" class="text-xs" style="color: var(--color-outline)">SKU {{ p.sku }}</p>
                   </td>
                   <td class="px-6 py-3">
-                    <span class="text-xs px-2.5 py-1 rounded-full font-semibold"
+                    <span class="inline-block text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap"
                       style="background-color: var(--color-surface-container); color: var(--color-on-surface-variant)">
                       {{ p.categoria || "—" }}
                     </span>
@@ -315,10 +385,10 @@ async function submit() {
                       type="number"
                       min="0"
                       placeholder="Sin contar"
-                      class="w-full px-3 py-2 rounded-xl text-sm text-center outline-none transition-all"
+                      class="w-full px-3 py-2 rounded-md text-sm text-center outline-none transition-all"
                       :style="cantidades[p.id] != null
-                        ? 'border: 1.5px solid var(--color-primary); color: var(--color-on-surface); background-color: #fff; font-weight: 700'
-                        : 'border: 1px solid var(--color-outline-variant); color: var(--color-outline); background-color: var(--color-surface-container-low)'"
+                        ? 'border: 1.5px solid var(--color-primary); color: var(--color-on-surface); background-color: var(--color-surface-container-lowest); font-weight: 700'
+                        : 'border: 1px solid var(--color-outline-variant); color: var(--color-on-surface-variant); background-color: var(--color-surface-container-low)'"
                     />
                   </td>
                   <td class="px-6 py-3 text-center">
@@ -333,26 +403,21 @@ async function submit() {
               </tbody>
             </table></div>
 
-            <!-- Paginación -->
-            <div class="px-6 py-4 flex items-center justify-between"
-              style="border-top: 1px solid var(--color-hairline-soft)">
-              <p class="text-sm" style="color: var(--color-on-surface-variant)">
-                Mostrando
-                <span class="font-semibold" style="color: var(--color-on-surface)">
-                  {{ Math.min((page - 1) * PAGE_SIZE + 1, productosFiltrados.length) }}–{{ Math.min(page * PAGE_SIZE, productosFiltrados.length) }}
-                </span>
-                de <span class="font-semibold" style="color: var(--color-on-surface)">{{ productosFiltrados.length }}</span>
-                producto{{ productosFiltrados.length !== 1 ? "s" : "" }}
-              </p>
-              <div v-if="totalPages > 1" class="flex gap-2">
-                <BaseButton variant="secondary" size="sm" :disabled="page === 1" @click="page--">Anterior</BaseButton>
-                <BaseButton variant="secondary" size="sm" :disabled="page === totalPages" @click="page++">Siguiente</BaseButton>
-              </div>
-            </div>
+            <!-- Paginación (§14) -->
+            <PaginationFooter
+              v-if="productosFiltrados.length > 0"
+              :current-page="page"
+              :total-pages="totalPages"
+              :range-start="rangeStart"
+              :range-end="rangeEnd"
+              :total="productosFiltrados.length"
+              noun="productos"
+              @update:current-page="(p: number) => (page = p)"
+            />
           </div>
 
           <!-- Observaciones -->
-          <div class="rounded-2xl p-6 mb-24"
+          <div class="rounded-lg p-6 mb-24"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <h3 class="text-xl font-extrabold mb-3" style="color: var(--color-primary)">Observaciones</h3>
             <textarea
