@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { inputStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -8,6 +8,8 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import FilterChips, { type FilterOption } from "@/components/FilterChips.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { useAuthStore } from "@/stores/auth"
 import {
@@ -28,18 +30,65 @@ const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
 
+// ── Filtro por estado ───────────────────────────────────────────────────────────
+type EstadoStock = "bajo" | "sobre" | "ok"
+
+function estadoDe(p: Producto): EstadoStock {
+  if (p.bajoStock) return "bajo"
+  if (p.stockMaximo != null && p.stockActual >= p.stockMaximo) return "sobre"
+  return "ok"
+}
+
+const estadoFilter = ref<string[]>([])
+const estadoOptions: FilterOption[] = [
+  { value: "bajo",  label: "Bajo stock",  dot: "var(--color-warning)" },
+  { value: "ok",    label: "OK",          dot: "var(--color-success)" },
+  { value: "sobre", label: "Sobre stock", dot: "var(--color-info)" },
+]
+
+// ── Filtro por categoría (derivado de los productos cargados) ─────────────────────
+const categoriaFilter = ref<string[]>([])
+const categoriaOptions = computed<FilterOption[]>(() => {
+  const set = new Set<string>()
+  for (const p of productos.value) if (p.categoria) set.add(p.categoria)
+  return [...set]
+    .sort((a, b) => a.localeCompare(b, "es"))
+    .map((c) => ({ value: c, label: c }))
+})
+
 const productosFiltrados = computed(() => {
-  if (!search.value.trim()) return productos.value
-  const q = search.value.toLowerCase()
-  return productos.value.filter(
-    (p) =>
-      p.nombre.toLowerCase().includes(q) ||
-      p.sku?.toLowerCase().includes(q) ||
-      p.categoria?.toLowerCase().includes(q),
-  )
+  let list = productos.value
+  if (estadoFilter.value.length) {
+    list = list.filter((p) => estadoFilter.value.includes(estadoDe(p)))
+  }
+  if (categoriaFilter.value.length) {
+    list = list.filter((p) => p.categoria != null && categoriaFilter.value.includes(p.categoria))
+  }
+  const q = search.value.toLowerCase().trim()
+  if (q) {
+    list = list.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.categoria?.toLowerCase().includes(q),
+    )
+  }
+  return list
 })
 
 const bajoStockCount = computed(() => productos.value.filter((p) => p.bajoStock).length)
+
+// ── Paginación (design-system §14) ───────────────────────────────────────────────
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalCount  = computed(() => productosFiltrados.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const paged       = computed(() =>
+  productosFiltrados.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE),
+)
+watch([search, estadoFilter, categoriaFilter], () => { currentPage.value = 1 })
 
 const columns = [
   { key: "producto", label: "Producto" },
@@ -133,8 +182,22 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </p>
         </div>
 
-        <!-- Filtro -->
-        <div class="flex items-center justify-end mb-6">
+        <!-- Filtros -->
+        <div class="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div class="flex items-center gap-3 flex-wrap">
+            <FilterChips
+              :model-value="estadoFilter"
+              :options="estadoOptions"
+              placeholder="Estado"
+              @update:model-value="estadoFilter = $event"
+            />
+            <FilterChips
+              :model-value="categoriaFilter"
+              :options="categoriaOptions"
+              placeholder="Categoría"
+              @update:model-value="categoriaFilter = $event"
+            />
+          </div>
           <SearchInput
             :model-value="search"
             placeholder="Buscar por nombre, SKU o categoría..."
@@ -151,7 +214,8 @@ function menuItems(p: Producto): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="productosFiltrados" :loading="isLoading" empty-text="No hay productos activos.">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <BaseTable :columns="columns" :items="paged" :loading="isLoading" empty-text="No hay productos que mostrar.">
 
           <template #producto="{ item }">
             <div>
@@ -206,6 +270,18 @@ function menuItems(p: Producto): ContextMenuItem[] {
           </template>
 
         </BaseTable>
+
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="productos"
+            @update:current-page="currentPage = $event"
+          />
+        </div>
 
       </div>
     </main>
