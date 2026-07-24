@@ -207,12 +207,8 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                   <p class="text-xs" style="color: var(--color-outline)">
                     {{ productoSeleccionado.categoria }}
                     <span v-if="productoSeleccionado.sku"> · SKU {{ productoSeleccionado.sku }}</span>
-                    · Stock actual: <strong>{{ productoSeleccionado.stockActual }}</strong>
                   </p>
                 </div>
-                <span v-if="productoSeleccionado.bajoStock"
-                  class="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style="background-color: var(--color-warning-container); color: var(--color-on-warning-container)">Bajo stock</span>
                 <button
                   @click="limpiarProducto"
                   class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 active:scale-95"
@@ -280,14 +276,6 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
                       <p class="text-xs" style="color: var(--color-outline)">
                         {{ p.categoria }}<span v-if="p.sku"> · {{ p.sku }}</span>
                       </p>
-                    </div>
-                    <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
-                      <span class="text-xs font-bold"
-                        :style="p.bajoStock ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-surface-variant)'">
-                        Stock: {{ p.stockActual }}
-                      </span>
-                      <span v-if="p.bajoStock" class="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                        style="background-color: var(--color-warning-container); color: var(--color-on-warning-container); font-size: 10px">↓ bajo</span>
                     </div>
                   </button>
                 </div>

@@ -77,7 +77,11 @@ const filteredProductos = computed(() =>
     ? productos.value.filter(p => p.nombre.toLowerCase().includes(productoSearch.value.toLowerCase()) || (p.sku ?? "").toLowerCase().includes(productoSearch.value.toLowerCase()))
     : productos.value.slice(0, 20),
 )
+// Un producto sin stock disponible no se puede vender (el backend lo valida al confirmar/emitir;
+// acá se bloquea de entrada para dar feedback inmediato).
+const sinStock = (p: Producto) => p.stockActual <= 0
 function addProducto(p: Producto) {
+  if (sinStock(p)) return
   // El descuento de la categoría es un %; la línea guarda un monto absoluto.
   // Se precarga el descuento aplicando ese % al precio de venta (cantidad inicial = 1).
   const descuento = Math.round(p.precioVenta * (p.descuentoCategoria ?? 0) / 100)
@@ -444,8 +448,16 @@ const guardarLabel = computed(() =>
                     @focus="showProductoDrop = true" @blur="hideProductoDrop" />
                   <div v-if="showProductoDrop && filteredProductos.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
                     style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
-                    <button v-for="p in filteredProductos" :key="p.id" type="button" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.1)" @mousedown.prevent="addProducto(p)">
-                      <span class="font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</span>
+                    <button v-for="p in filteredProductos" :key="p.id" type="button" :disabled="sinStock(p)"
+                      class="w-full text-left px-4 py-3 text-sm flex items-center justify-between"
+                      :class="{ 'cursor-not-allowed': sinStock(p) }"
+                      :style="sinStock(p) ? 'border-bottom: 1px solid rgba(196,197,213,0.1); opacity: 0.55' : 'border-bottom: 1px solid rgba(196,197,213,0.1)'"
+                      @mousedown.prevent="addProducto(p)">
+                      <span class="font-medium flex items-center gap-2" style="color: var(--color-on-surface)">
+                        {{ p.nombre }}
+                        <span v-if="sinStock(p)" class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style="background: var(--color-error-container); color: var(--color-error)">Sin stock</span>
+                        <span v-else class="text-[10px] font-medium" style="color: var(--color-outline)">Stock: {{ p.stockActual }}</span>
+                      </span>
                       <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
                     </button>
                   </div>
