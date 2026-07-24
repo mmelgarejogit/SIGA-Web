@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import { type SesionCajaListItem, type SesionCaja, getSesiones, getSesionById } from "@/services/ventasService"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 
@@ -35,11 +36,16 @@ const page       = ref(1)
 const isLoading  = ref(false)
 const loadError  = ref("")
 
+const PAGE_SIZE  = 10
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+const rangeStart = computed(() => total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1)
+const rangeEnd   = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
+
 async function cargar() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const res = await getSesiones(page.value, 20)
+    const res = await getSesiones(page.value, PAGE_SIZE)
     sesiones.value = res.items
     total.value    = res.totalCount
   } catch (e: any) {
@@ -47,6 +53,11 @@ async function cargar() {
   } finally {
     isLoading.value = false
   }
+}
+
+function irAPagina(p: number) {
+  page.value = p
+  cargar()
 }
 
 onMounted(cargar)
@@ -129,6 +140,7 @@ function duracion(apertura: string, cierre?: string): string {
 
         <!-- Tabla -->
         <template v-else>
+          <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable
             :loading="isLoading"
             :empty="sesiones.length === 0"
@@ -188,9 +200,17 @@ function duracion(apertura: string, cierre?: string): string {
             </template>
           </BaseTable>
 
-          <p class="mt-4 text-sm" style="color: var(--color-on-surface-variant)">
-            Mostrando {{ sesiones.length }} de {{ total }} sesiones
-          </p>
+          <PaginationFooter
+            v-if="total > 0"
+            :current-page="page"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="total"
+            noun="sesiones"
+            @update:current-page="irAPagina"
+          />
+          </div>
         </template>
 
       </div>

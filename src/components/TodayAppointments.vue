@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { avatarStyle, initials } from "@/composables/useFieldStyles"
-import { ref, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { getTurnos, type Turno } from "@/services/turnoService"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 
 const router = useRouter()
 
@@ -17,6 +18,22 @@ const todayStr = toDateStr(new Date())
 
 const turnos = ref<Turno[]>([])
 const isLoading = ref(true)
+
+// ── Paginación ─────────────────────────────────────────────────────────────────
+const PAGE_SIZE   = 10
+const currentPage = ref(1)
+
+const totalCount  = computed(() => turnos.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1)
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const pagedTurnos = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return turnos.value.slice(start, start + PAGE_SIZE)
+})
+
+// Volver a la primera página al recargar los turnos.
+watch(turnos, () => { currentPage.value = 1 })
 
 function formatHour(iso: string): string {
   const match = iso.match(/T(\d{2}:\d{2})/)
@@ -129,7 +146,7 @@ onMounted(loadTurnos)
     <!-- Lista -->
     <div v-else class="divide-y" style="border-top: 1px solid var(--color-hairline-soft)">
       <div
-        v-for="turno in turnos"
+        v-for="turno in pagedTurnos"
         :key="turno.id"
         class="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-surface"
         style="border-bottom: 1px solid var(--color-hairline-soft)"
@@ -183,13 +200,16 @@ onMounted(loadTurnos)
       </div>
     </div>
 
-    <!-- Footer count -->
-    <div
-      v-if="!isLoading && turnos.length > 0"
-      class="px-6 py-3 text-xs font-medium"
-      style="color: var(--color-outline); border-top: 1px solid var(--color-hairline-soft)"
-    >
-      {{ turnos.length }} turno{{ turnos.length !== 1 ? "s" : "" }} para hoy
-    </div>
+    <!-- Footer de paginación -->
+    <PaginationFooter
+      v-if="!isLoading && totalCount > 0"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :range-start="rangeStart"
+      :range-end="rangeEnd"
+      :total="totalCount"
+      noun="turnos para hoy"
+      @update:current-page="currentPage = $event"
+    />
   </div>
 </template>

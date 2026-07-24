@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import FilterChips from "@/components/FilterChips.vue"
@@ -88,6 +89,21 @@ const filtered = computed(() => {
     i.clienteNombre.toLowerCase().includes(q) || i.laboratorioNombre.toLowerCase().includes(q),
   )
 })
+
+// ── Paginación ───────────────────────────────────────────────────────────────
+const PAGE_SIZE   = 10
+const currentPage = ref(1)
+
+const totalCount  = computed(() => filtered.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1)
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const paged       = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filtered.value.slice(start, start + PAGE_SIZE)
+})
+
+watch([search, items], () => { currentPage.value = 1 })
 
 // ── Acciones ───────────────────────────────────────────────────────────────────
 
@@ -272,7 +288,7 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               <th class="px-6 py-5"></th>
             </template>
             <template #body>
-              <tr v-for="item in filtered" :key="item.id"
+              <tr v-for="item in paged" :key="item.id"
                 class="hover:bg-surface-container-low"
                 style="border-bottom: 1px solid var(--color-hairline-soft)">
                 <td class="px-6 py-4">
@@ -308,6 +324,17 @@ function menuItems(item: TrabajoPedidoListDto): ContextMenuItem[] {
               </tr>
             </template>
           </BaseTable>
+
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="pedidos"
+            @update:current-page="currentPage = $event"
+          />
         </div>
 
       </div>

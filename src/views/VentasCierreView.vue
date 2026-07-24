@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { inputStyle } from "@/composables/useFieldStyles"
 import MontoInput from "@/components/MontoInput.vue"
@@ -64,6 +64,39 @@ const movsFiltrados = computed(() => {
   // Más reciente primero.
   return [...movs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 })
+
+// ── Paginación de movimientos ─────────────────────────────────────────────────
+const PAGE_SIZE   = 10
+const currentPage = ref(1)
+
+const totalMovs  = computed(() => movsFiltrados.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalMovs.value / PAGE_SIZE)))
+const rangeStart = computed(() => totalMovs.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1)
+const rangeEnd   = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalMovs.value))
+const movsPaged  = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return movsFiltrados.value.slice(start, start + PAGE_SIZE)
+})
+
+const visiblePages = computed<(number | "...")[]>(() => {
+  const total = totalPages.value
+  const cur   = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (cur > 3) pages.push("...")
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  if (cur < total - 2) pages.push("...")
+  pages.push(total)
+  return pages
+})
+
+function irAPagina(p: number) {
+  if (p < 1 || p > totalPages.value || p === currentPage.value) return
+  currentPage.value = p
+}
+
+// Volver a la primera página al cambiar el filtro o recargar la sesión.
+watch([tipoFiltro, sesion], () => { currentPage.value = 1 })
 
 function metodoPagoIcon(m: string) {
   const icons: Record<string, string> = {
@@ -303,7 +336,7 @@ function confirmarCierreYSalir() {
 
             <div v-else class="divide-y" style="divide-color: var(--color-hairline-soft)">
               <div
-                v-for="m in movsFiltrados"
+                v-for="m in movsPaged"
                 :key="m.id"
                 class="flex items-center gap-4 px-6 py-4"
               >
@@ -332,12 +365,37 @@ function confirmarCierreYSalir() {
               </div>
             </div>
 
-            <div v-if="movsFiltrados.length > 0"
-                 class="flex items-center justify-between px-6 py-4"
+            <div v-if="totalMovs > 0"
+                 class="flex items-center justify-between gap-4 flex-wrap px-6 py-4"
                  style="border-top: 1px solid var(--color-hairline); background-color: var(--color-surface-container-low)">
-              <p class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
-                {{ movsFiltrados.length }} movimiento{{ movsFiltrados.length !== 1 ? "s" : "" }}
-              </p>
+              <div class="flex items-center gap-4 flex-wrap">
+                <p class="text-sm font-semibold" style="color: var(--color-on-surface-variant)">
+                  Mostrando {{ rangeStart }}–{{ rangeEnd }} de {{ totalMovs }} movimiento{{ totalMovs !== 1 ? "s" : "" }}
+                </p>
+                <div v-if="totalPages > 1" class="flex items-center gap-1">
+                  <button
+                    @click="irAPagina(currentPage - 1)"
+                    :disabled="currentPage === 1"
+                    class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                    style="color: var(--color-on-surface-variant)"
+                  ><span class="material-symbols-outlined" style="font-size: 18px">chevron_left</span></button>
+                  <template v-for="(p, i) in visiblePages" :key="i">
+                    <span v-if="p === '...'" class="w-9 h-9 flex items-center justify-center text-sm" style="color: var(--color-outline)">…</span>
+                    <button
+                      v-else
+                      @click="irAPagina(p as number)"
+                      class="w-9 h-9 rounded-full text-sm font-semibold transition-all"
+                      :class="currentPage === p ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                    >{{ p }}</button>
+                  </template>
+                  <button
+                    @click="irAPagina(currentPage + 1)"
+                    :disabled="currentPage === totalPages"
+                    class="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:bg-surface-container-high"
+                    style="color: var(--color-on-surface-variant)"
+                  ><span class="material-symbols-outlined" style="font-size: 18px">chevron_right</span></button>
+                </div>
+              </div>
               <p class="text-base font-extrabold" style="color: var(--color-primary)">
                 Saldo neto: {{ fmt(sesion.saldoNeto) }}
               </p>
