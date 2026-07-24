@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from "vue"
+import { ref, computed, watch, onMounted, reactive } from "vue"
 import { inputStyle, statusStyle } from "@/composables/useFieldStyles"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
@@ -7,6 +7,7 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
@@ -49,6 +50,18 @@ const motivosFiltrados = computed(() => {
     (m) => tipoFilter.value.includes(m.tipo) || (tipoFilter.value.includes("Entrada") && m.tipo === "Ambos") || (tipoFilter.value.includes("Salida") && m.tipo === "Ambos"),
   )
 })
+
+// ── Paginación (design-system §14) ───────────────────────────────────────────────
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalCount  = computed(() => motivosFiltrados.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const motivosPaged = computed(() =>
+  motivosFiltrados.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE),
+)
+watch([tipoFilter, motivos], () => { currentPage.value = 1 })
 
 async function load() {
   isLoading.value = true
@@ -211,7 +224,8 @@ async function submitDelete() {
         </div>
 
         <!-- Tabla -->
-        <BaseTable :columns="columns" :items="motivosFiltrados" :loading="isLoading" empty-text="No hay motivos configurados.">
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <BaseTable :columns="columns" :items="motivosPaged" :loading="isLoading" empty-text="No hay motivos configurados.">
 
           <template #nombre="{ item }">
             <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.nombre }}</span>
@@ -237,6 +251,18 @@ async function submitDelete() {
             </div>
           </template>
         </BaseTable>
+
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="motivos"
+            @update:current-page="currentPage = $event"
+          />
+        </div>
 
       </div>
     </main>

@@ -198,7 +198,7 @@ export const menuConfig: MenuItem[] = [
         icon: "sync_alt",
         children: [
           { label: "Órdenes de Compra", icon: "shopping_cart", route: "/compras/oc", permission: "ver_inventario" },
-          { label: "Aprobación de OC", icon: "task_alt", route: "/compras/aprobaciones", permission: "aprobar_pedidos" },
+          { label: "Aprobaciones", icon: "task_alt", route: "/compras/aprobaciones", permission: "aprobar_pedidos" },
           { label: "Facturas de Compra", icon: "receipt", route: "/compras/facturas", permission: "ver_inventario" },
           { label: "Recepciones", icon: "inventory", route: "/compras/recepciones", permission: "ver_inventario" },
         ],

@@ -126,7 +126,7 @@ const pendientesCount = computed(() => pedidos.value.length)
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
-            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Aprobación de OC</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">Aprobaciones</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
               Revisá y aprobá o rechazá las órdenes de compra pendientes
             </p>

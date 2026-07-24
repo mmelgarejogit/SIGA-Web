@@ -10,7 +10,7 @@ defineProps<{ items: ContextMenuItem[] }>()
 const open = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const btnRef = ref<HTMLElement | null>(null)
-const menuPos = ref({ top: "0px", left: "0px" })
+const menuPos = ref<Record<string, string>>({ top: "0px", left: "0px" })
 
 const MENU_WIDTH = 180
 const GAP = 4        // separación entre botón y menú
@@ -51,13 +51,25 @@ function position() {
   })
 }
 
-function toggle() {
-  if (!open.value) {
+async function toggle() {
+  if (!open.value && btnRef.value) {
+    const rect = btnRef.value.getBoundingClientRect()
+    const gap = 4
+    const left = Math.max(4, rect.right - MENU_WIDTH)
+    // Se abre hacia abajo por defecto; una vez renderizado se mide el alto real
+    // y se voltea hacia arriba si el menú se saldría por el borde inferior.
+    menuPos.value = { top: `${rect.bottom + gap}px`, left: `${left}px` }
     open.value = true
-    position()
-  } else {
-    open.value = false
+    await nextTick()
+    const menuH = menuRef.value?.offsetHeight ?? 0
+    const overflowBelow = rect.bottom + gap + menuH > window.innerHeight
+    const fitsAbove = rect.top - gap - menuH > 0
+    if (overflowBelow && fitsAbove) {
+      menuPos.value = { top: `${rect.top - gap - menuH}px`, left: `${left}px` }
+    }
+    return
   }
+  open.value = !open.value
 }
 
 function handleClickOutside(e: MouseEvent) {

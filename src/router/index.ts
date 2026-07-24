@@ -292,7 +292,7 @@ const router = createRouter({
       path: "/compras/aprobaciones",
       name: "compras-aprobaciones",
       component: () => import("@/views/OcAprobacionView.vue"),
-      meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobación de OC" },
+      meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobaciones" },
     },
     {
       path: "/compras/oc/nueva",
