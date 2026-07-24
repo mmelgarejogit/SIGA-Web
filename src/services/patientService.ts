@@ -80,3 +80,7 @@ export async function updatePatient(id: number, request: UpdatePatientRequest): 
 export async function deletePatient(id: number): Promise<void> {
   await http.delete(`/api/patients/${id}`)
 }
+
+export async function activatePatient(id: number): Promise<void> {
+  await http.post(`/api/patients/${id}/activar`)
+}

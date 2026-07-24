@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
+import { useClientPagination } from "@/composables/useClientPagination"
 import { ref, computed, onMounted, watch, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
@@ -13,6 +14,7 @@ import {
   type Patient,
   getPatientById,
   deletePatient,
+  activatePatient,
 } from "@/services/patientService"
 import PacienteEditModal from "@/components/PacienteEditModal.vue"
 
@@ -167,9 +169,19 @@ const ventasLoaded = ref(false)
 
 async function loadVentas() {
   if (!patient.value) return
+
+  // Sin personId no se puede filtrar: el endpoint devolvería TODAS las ventas de la
+  // óptica y las mostraría como si fueran de este paciente. Mejor lista vacía.
+  const personId = patient.value.personId
+  if (!personId) {
+    ventas.value = []
+    ventasLoaded.value = true
+    return
+  }
+
   isLoadingVentas.value = true
   try {
-    const res = await getVentas({ personId: patient.value.personId, pageSize: 100 })
+    const res = await getVentas({ personId, pageSize: 100 })
     ventas.value = res.items
   } catch {
     ventas.value = []
@@ -217,21 +229,6 @@ function goToVenta(id: number) {
 
 // ── Paginación client-side (footer §14 del design-system) ─────────────────────
 // Los tabs cargan el set completo del paciente; acá lo dividimos en páginas de 10.
-function useClientPagination<T>(source: () => T[], pageSize = 10) {
-  const currentPage = ref(1)
-  const totalPages = computed(() => Math.max(1, Math.ceil(source().length / pageSize)))
-  const pageItems = computed(() =>
-    source().slice((currentPage.value - 1) * pageSize, currentPage.value * pageSize),
-  )
-  const rangeStart = computed(() => (source().length === 0 ? 0 : (currentPage.value - 1) * pageSize + 1))
-  const rangeEnd = computed(() => Math.min(currentPage.value * pageSize, source().length))
-  // Si el origen se achica tras una recarga, no dejar la página fuera de rango.
-  watch(totalPages, (tp) => {
-    if (currentPage.value > tp) currentPage.value = tp
-  })
-  return reactive({ currentPage, totalPages, pageItems, rangeStart, rangeEnd })
-}
-
 const ventasPager = useClientPagination<Venta>(() => ventas.value)
 const citasPager = useClientPagination<Turno>(() => citas.value)
 const consultasPager = useClientPagination<ConsultaClinica>(() => consultas.value)
@@ -318,6 +315,23 @@ async function confirmDelete() {
     deleteError.value = err instanceof Error ? err.message : "Error al desactivar paciente."
   } finally {
     isDeleting.value = false
+  }
+}
+
+// ── Reactivar ─────────────────────────────────────────────────────────────────
+
+const isActivating = ref(false)
+
+async function reactivar() {
+  if (isActivating.value || !patient.value) return
+  isActivating.value = true
+  try {
+    await activatePatient(patient.value.id)
+    await loadPatient()
+  } catch (err: unknown) {
+    loadError.value = err instanceof Error ? err.message : "Error al reactivar paciente."
+  } finally {
+    isActivating.value = false
   }
 }
 </script>
@@ -444,6 +458,16 @@ async function confirmDelete() {
               >
                 <span class="material-symbols-outlined" style="font-size: 18px">person_off</span>
                 Desactivar
+              </BaseButton>
+              <BaseButton
+                v-if="!patient.isActive && auth.hasPermission('desactivar_paciente')"
+                variant="primary"
+                size="default"
+                :disabled="isActivating"
+                @click="reactivar"
+              >
+                <span class="material-symbols-outlined" style="font-size: 18px">person_check</span>
+                {{ isActivating ? "Reactivando…" : "Reactivar" }}
               </BaseButton>
             </div>
           </div>

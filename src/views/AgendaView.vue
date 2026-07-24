@@ -7,6 +7,8 @@ import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
+import { useClientPagination } from "@/composables/useClientPagination"
 import { useAuthStore } from "@/stores/auth"
 import {
   getTurnos,
@@ -97,12 +99,6 @@ const headerSubtitle = computed(() => {
   return label.charAt(0).toUpperCase() + label.slice(1)
 })
 
-const weekRangeLabel = computed(() => {
-  const s = rangeStart.value
-  const e = rangeEnd.value
-  return `${s.getDate()}–${e.getDate()} de ${s.toLocaleDateString("es-AR", { month: "long" })}`
-})
-
 // ── Grilla mensual ──────────────────────────────────────────────────────────────
 
 // 42 días (6 semanas, base lunes) que cubren el mes de selectedDate.
@@ -191,6 +187,10 @@ const patients = ref<Patient[]>([])
 const isLoading = ref(false)
 const loadError = ref("")
 
+// La vista mensual es una grilla de calendario y no se pagina; la tabla de día y
+// semana sí, sobre el set ya cargado (una sola consulta por rango).
+const turnosPager = useClientPagination<Turno>(() => turnos.value)
+
 const stats = computed(() => ({
   total: turnos.value.length,
   pendientes: turnos.value.filter((t) => t.estado === "Pendiente").length,
@@ -226,13 +226,20 @@ async function loadTurnos() {
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : "Error al cargar turnos."
   } finally {
+    // Cambiar de día, semana o filtro es un listado nuevo: arrancar desde la página 1.
+    turnosPager.currentPage = 1
     isLoading.value = false
   }
 }
 
 async function loadInit() {
   try {
-    const [profs, pts] = await Promise.all([getProfessionals(), getPatients({ pageSize: 500 })])
+    // Solo activos: a un paciente inactivo (archivado) el backend no permite agendarle,
+    // así que tampoco tiene que aparecer en el selector.
+    const [profs, pts] = await Promise.all([
+      getProfessionals(),
+      getPatients({ pageSize: 500, status: "active" }),
+    ])
     professionals.value = profs.filter((p) => p.isActive)
     patients.value = pts.items
   } catch {
@@ -649,7 +656,7 @@ function menuItems(t: Turno): ContextMenuItem[] {
         <BaseTable
           v-else
           :columns="turnoColumns"
-          :items="turnos"
+          :items="turnosPager.pageItems"
           :loading="isLoading"
           :empty-text="tableEmptyText"
         >
@@ -709,17 +716,16 @@ function menuItems(t: Turno): ContextMenuItem[] {
           </template>
         </BaseTable>
 
-        <!-- Footer -->
-        <div
-          v-if="!isLoading && turnos.length > 0"
-          class="px-6 py-3 text-xs font-medium"
-          style="color: var(--color-outline); border-top: 1px solid var(--color-hairline-soft)"
-        >
-          Mostrando {{ turnos.length }} turno{{ turnos.length !== 1 ? "s" : "" }}
-          <template v-if="viewMode === 'semana'">
-            · {{ weekRangeLabel }}</template
-          >
-        </div>
+        <!-- Footer: solo en día y semana; la vista mensual no se pagina. -->
+        <PaginationFooter
+          v-if="!isLoading && viewMode !== 'mes' && turnos.length > 0"
+          v-model:current-page="turnosPager.currentPage"
+          :total-pages="turnosPager.totalPages"
+          :range-start="turnosPager.rangeStart"
+          :range-end="turnosPager.rangeEnd"
+          :total="turnos.length"
+          noun="turnos"
+        />
       </div>
     </main>
 

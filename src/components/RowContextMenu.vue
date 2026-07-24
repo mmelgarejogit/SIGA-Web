@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue"
+import { ref, onMounted, onUnmounted, nextTick } from "vue"
 
 export type ContextMenuItem =
   | { type: "item"; label: string; icon: string; action: () => void; danger?: boolean; hidden?: boolean }
@@ -13,16 +13,51 @@ const btnRef = ref<HTMLElement | null>(null)
 const menuPos = ref({ top: "0px", left: "0px" })
 
 const MENU_WIDTH = 180
+const GAP = 4        // separación entre botón y menú
+const MARGIN = 8     // margen mínimo contra el borde del viewport
+
+// Posiciona el menú anclado al botón. Si no entra hacia abajo (última fila
+// cerca del borde inferior), lo abre hacia arriba. Luego mide el alto real
+// del menú renderizado y corrige/clampa contra el viewport para que nunca
+// se corte ninguna opción.
+function position() {
+  if (!btnRef.value) return
+  const rect = btnRef.value.getBoundingClientRect()
+  const left = Math.min(
+    Math.max(MARGIN, rect.right - MENU_WIDTH),
+    window.innerWidth - MENU_WIDTH - MARGIN,
+  )
+  menuPos.value = {
+    top: `${rect.bottom + GAP}px`,
+    left: `${Math.max(MARGIN, left)}px`,
+  }
+
+  nextTick(() => {
+    if (!menuRef.value || !btnRef.value) return
+    const menuH = menuRef.value.offsetHeight
+    const btn = btnRef.value.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - btn.bottom - GAP - MARGIN
+    let top: number
+    if (menuH <= spaceBelow) {
+      top = btn.bottom + GAP
+    } else {
+      // Abrir hacia arriba; si tampoco entra arriba, clampar al viewport.
+      top = Math.max(MARGIN, btn.top - GAP - menuH)
+      if (top + menuH > window.innerHeight - MARGIN) {
+        top = window.innerHeight - MARGIN - menuH
+      }
+    }
+    menuPos.value = { ...menuPos.value, top: `${Math.max(MARGIN, top)}px` }
+  })
+}
 
 function toggle() {
-  if (!open.value && btnRef.value) {
-    const rect = btnRef.value.getBoundingClientRect()
-    menuPos.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${Math.max(4, rect.right - MENU_WIDTH)}px`,
-    }
+  if (!open.value) {
+    open.value = true
+    position()
+  } else {
+    open.value = false
   }
-  open.value = !open.value
 }
 
 function handleClickOutside(e: MouseEvent) {

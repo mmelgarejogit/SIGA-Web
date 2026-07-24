@@ -78,7 +78,10 @@ const filteredProductos = computed(() =>
     : productos.value.slice(0, 20),
 )
 function addProducto(p: Producto) {
-  lineas.value.push({ tipo: "Producto", productoId: p.id, descripcion: p.nombre, cantidad: 1, precioUnitario: p.precioVenta, descuento: 0, categoriaFiscal: "Gravado10" })
+  // El descuento de la categoría es un %; la línea guarda un monto absoluto.
+  // Se precarga el descuento aplicando ese % al precio de venta (cantidad inicial = 1).
+  const descuento = Math.round(p.precioVenta * (p.descuentoCategoria ?? 0) / 100)
+  lineas.value.push({ tipo: "Producto", productoId: p.id, descripcion: p.nombre, cantidad: 1, precioUnitario: p.precioVenta, descuento, categoriaFiscal: "Gravado10" })
   productoSearch.value = ""
   showProductoDrop.value = false
 }

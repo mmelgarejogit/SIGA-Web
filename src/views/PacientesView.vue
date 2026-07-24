@@ -12,6 +12,7 @@ import {
   getPatients,
   createPatient,
   deletePatient,
+  activatePatient,
 } from "@/services/patientService"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
@@ -243,7 +244,10 @@ function openEditModal(p: Patient) {
 // ── Menú contextual de fila ───────────────────────────────────────────────────
 
 function menuItems(p: Patient): ContextMenuItem[] {
-  const canDeactivate = auth.hasPermission("desactivar_paciente") && p.isActive
+  // El mismo permiso gobierna dar de baja y reactivar; solo cambia según el estado actual.
+  const canToggle   = auth.hasPermission("desactivar_paciente")
+  const canDeactivate = canToggle && p.isActive
+  const canActivate   = canToggle && !p.isActive
   return [
     {
       type: "item",
@@ -264,7 +268,26 @@ function menuItems(p: Patient): ContextMenuItem[] {
           { type: "item", label: "Desactivar", icon: "person_off", action: () => openDeleteModal(p), danger: true } as const,
         ]
       : []),
+    ...(canActivate
+      ? [
+          { type: "separator" } as const,
+          { type: "item", label: "Reactivar", icon: "person_check", action: () => reactivar(p) } as const,
+        ]
+      : []),
   ]
+}
+
+const isActivating = ref(false)
+
+async function reactivar(p: Patient) {
+  if (isActivating.value) return
+  isActivating.value = true
+  try {
+    await activatePatient(p.id)
+    await loadPatients()
+  } finally {
+    isActivating.value = false
+  }
 }
 
 // ── Modal Eliminar ────────────────────────────────────────────────────────────
