@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from "vue"
+import { ref, computed, watch, onMounted, reactive } from "vue"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import SearchInput from "@/components/SearchInput.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import { useAuthStore } from "@/stores/auth"
 import { inputStyle } from "@/composables/useFieldStyles"
@@ -54,6 +55,21 @@ async function load() {
 }
 
 onMounted(load)
+
+// ── Paginación (design-system §14) ───────────────────────────────────────────────
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalCount  = computed(() => transferencias.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const transferenciasPaged = computed(() =>
+  transferencias.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE),
+)
+watch(transferencias, () => {
+  // Al recargar (p. ej. tras aceptar/rechazar) clampear la página al nuevo total.
+  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
+})
 
 // ── Gestionar (aceptar / rechazar) ───────────────────────────────────────────
 const gestionandoId = ref<number | null>(null)
@@ -197,7 +213,7 @@ async function submitCreate() {
         </div>
 
         <div v-else class="flex flex-col gap-4">
-          <article v-for="t in transferencias" :key="t.id" class="rounded-2xl p-5"
+          <article v-for="t in transferenciasPaged" :key="t.id" class="rounded-2xl p-5"
             style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div class="flex items-center gap-2 text-sm font-bold" style="color: var(--color-on-surface)">
@@ -234,6 +250,19 @@ async function submitCreate() {
               </div>
             </div>
           </article>
+
+          <div v-if="totalCount > 0" class="rounded-lg overflow-hidden"
+            style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+            <PaginationFooter
+              :current-page="currentPage"
+              :total-pages="totalPages"
+              :range-start="rangeStart"
+              :range-end="rangeEnd"
+              :total="totalCount"
+              noun="transferencias"
+              @update:current-page="currentPage = $event"
+            />
+          </div>
         </div>
       </div>
     </main>
