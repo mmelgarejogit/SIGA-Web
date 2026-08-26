@@ -5,6 +5,7 @@ import { useRouter, useRoute } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
+import BaseModal from "@/components/BaseModal.vue"
 import DateInput from "@/components/DateInput.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import {
@@ -44,7 +45,9 @@ const errors = ref<FormErrors>({})
 onMounted(async () => {
   try {
     egreso.value = await getEgresoById(id)
-    if (egreso.value?.estado !== "Aprobado") {
+    // Pagable = Pendiente (flujo actual) o Aprobado (egresos del flujo anterior).
+    const pagable = egreso.value?.estado === "Pendiente" || egreso.value?.estado === "Aprobado"
+    if (!pagable) {
       router.replace("/egresos/pagos")
     }
   } catch {
@@ -109,8 +112,16 @@ function validate() {
   return Object.keys(e).length === 0
 }
 
-async function submit() {
+// Paso de confirmación antes de mover la plata
+const showConfirm = ref(false)
+
+function abrirConfirmacion() {
+  saveError.value = ""
   if (!validate()) return
+  showConfirm.value = true
+}
+
+async function confirmarPago() {
   isSaving.value = true
   saveError.value = ""
   try {
@@ -122,8 +133,10 @@ async function submit() {
       esExterno: form.esExterno || undefined,
       motivoExterno: form.esExterno ? form.motivoExterno.trim() : undefined,
     })
+    showConfirm.value = false
     router.push("/egresos/pagos")
   } catch (err: unknown) {
+    showConfirm.value = false
     saveError.value = err instanceof Error ? err.message : "Error al registrar el pago."
   } finally {
     isSaving.value = false
@@ -149,7 +162,7 @@ async function submit() {
           <div>
             <h1 class="text-4xl font-extrabold tracking-tight mb-2">Registrar Pago</h1>
             <p class="font-medium" style="color: var(--color-on-surface-variant)">
-              Confirmar el pago de la solicitud aprobada
+              Confirmá el pago del egreso pendiente
             </p>
           </div>
         </div>
@@ -172,7 +185,7 @@ async function submit() {
           <!-- Detalle del egreso (solo lectura) -->
           <div class="rounded-2xl p-6 mb-6"
             style="background-color: var(--color-surface-container-lowest); border: 1px solid var(--color-hairline)">
-            <p class="text-xs font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Solicitud aprobada</p>
+            <p class="text-xs font-bold uppercase tracking-wider mb-4" style="color: var(--color-outline)">Egreso pendiente de pago</p>
 
             <div class="flex items-center gap-3 mb-5 pb-4" style="border-bottom: 1px solid var(--color-hairline)">
               <span class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -328,15 +341,54 @@ async function submit() {
           <!-- Acciones -->
           <div class="flex items-center justify-between mt-6">
             <BaseButton variant="secondary" size="default" @click="router.push('/egresos')">Cancelar</BaseButton>
-            <BaseButton variant="primary" size="lg" :disabled="isSaving" @click="submit">
-              <span v-if="isSaving" class="material-symbols-outlined animate-spin">progress_activity</span>
-              {{ isSaving ? "Registrando..." : "Confirmar Pago" }}
+            <BaseButton variant="primary" size="lg" :disabled="isSaving" @click="abrirConfirmacion">
+              <span class="material-symbols-outlined" style="font-size: 18px">payments</span>
+              Registrar Pago
             </BaseButton>
           </div>
 
         </template>
       </div>
     </main>
+
+    <!-- Modal: confirmar pago -->
+    <BaseModal :show="showConfirm" title="Confirmar pago" size="sm" @close="showConfirm = false">
+      <template #body>
+        <div v-if="egreso" class="space-y-4">
+          <p class="text-sm" style="color: var(--color-on-surface-variant)">
+            Vas a registrar el pago de este egreso. Esta acción no se puede deshacer.
+          </p>
+
+          <div class="rounded-xl p-4 space-y-2.5" style="background-color: var(--color-surface-container-low)">
+            <div class="flex items-start justify-between gap-3">
+              <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ egreso.concepto }}</span>
+              <span class="text-lg font-extrabold flex-shrink-0" style="color: var(--color-primary)">{{ formatPrice(egreso.monto) }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span style="color: var(--color-outline)">Método</span>
+              <span class="font-semibold" style="color: var(--color-on-surface)">{{ form.metodoPago || "—" }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span style="color: var(--color-outline)">Fecha</span>
+              <span class="font-semibold" style="color: var(--color-on-surface)">{{ formatDate(form.fechaPago) }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span style="color: var(--color-outline)">Origen</span>
+              <span class="font-semibold" :style="form.esExterno ? 'color: var(--color-on-warning-container)' : 'color: var(--color-on-surface)'">
+                {{ form.esExterno ? "Pago externo (no afecta caja)" : "Sale de la caja abierta" }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showConfirm = false">Cancelar</BaseButton>
+        <BaseButton variant="primary" :disabled="isSaving" @click="confirmarPago">
+          <span v-if="isSaving" class="material-symbols-outlined animate-spin" style="font-size: 18px">progress_activity</span>
+          {{ isSaving ? "Registrando…" : "Confirmar pago" }}
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 

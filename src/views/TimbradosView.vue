@@ -125,6 +125,7 @@ const isSaving    = ref(false)
 const createError = ref("")
 const createForm  = reactive<CreateTimbradoRequest>({
   sucursalId: undefined,
+  tipo: "Factura",
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -139,6 +140,7 @@ function openCreate() {
   const finVigencia = new Date(today)
   finVigencia.setFullYear(finVigencia.getFullYear() + 1)
   createForm.sucursalId = auth.user?.sucursalId ?? sucursales.value[0]?.id
+  createForm.tipo = "Factura"
   createForm.numeroTimbrado = ""
   createForm.establecimiento = ""
   createForm.puntoExpedicion = ""
@@ -166,6 +168,7 @@ async function submitCreate() {
   try {
     await createTimbrado({
       sucursalId: createForm.sucursalId,
+      tipo: createForm.tipo,
       numeroTimbrado: createForm.numeroTimbrado.trim(),
       establecimiento: createForm.establecimiento.trim(),
       puntoExpedicion: createForm.puntoExpedicion.trim(),
@@ -191,6 +194,7 @@ const editError    = ref("")
 const editingItem  = ref<Timbrado | null>(null)
 const editForm     = reactive<UpdateTimbradoRequest>({
   sucursalId: undefined,
+  tipo: "Factura",
   numeroTimbrado: "",
   establecimiento: "",
   puntoExpedicion: "",
@@ -204,6 +208,7 @@ const editForm     = reactive<UpdateTimbradoRequest>({
 function openEdit(item: Timbrado) {
   editingItem.value = item
   editForm.sucursalId = item.sucursalId
+  editForm.tipo = item.tipo
   editForm.numeroTimbrado = item.numeroTimbrado
   editForm.establecimiento = item.establecimiento
   editForm.puntoExpedicion = item.puntoExpedicion
@@ -226,6 +231,7 @@ async function submitEdit() {
   try {
     await updateTimbrado(editingItem.value.id, {
       sucursalId: editForm.sucursalId,
+      tipo: editForm.tipo,
       numeroTimbrado: editForm.numeroTimbrado.trim(),
       establecimiento: editForm.establecimiento.trim(),
       puntoExpedicion: editForm.puntoExpedicion.trim(),
@@ -310,7 +316,15 @@ async function confirmDeactivate() {
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--color-primary-container)">
                   <span class="material-symbols-outlined" style="font-size: 18px; color: white">verified</span>
                 </div>
-                <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.numeroTimbrado }}</span>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-sm font-semibold" style="color: var(--color-on-surface)">{{ item.numeroTimbrado }}</span>
+                  <span class="inline-flex items-center w-fit px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                    :style="item.tipo === 'NotaCredito'
+                      ? 'background-color:var(--color-secondary-container);color:var(--color-on-secondary-container, #003544)'
+                      : 'background-color:var(--color-surface-container-high);color:var(--color-on-surface-variant)'">
+                    {{ item.tipo === "NotaCredito" ? "Nota de Crédito" : "Factura" }}
+                  </span>
+                </div>
               </div>
             </template>
             <template #sucursal="{ item }">
@@ -387,6 +401,15 @@ async function confirmDeactivate() {
           <SearchableSelect v-model="createForm.sucursalId" :options="sucursalSelectOptions" placeholder="Sucursal" />
         </div>
         <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Tipo de Documento *</label>
+          <select v-model="createForm.tipo"
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()">
+            <option value="Factura">Factura</option>
+            <option value="NotaCredito">Nota de Crédito</option>
+          </select>
+        </div>
+        <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>
           <input v-model="createForm.numeroTimbrado" type="text" placeholder="Ej: 12345678"
             class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
@@ -444,6 +467,15 @@ async function confirmDeactivate() {
         <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Sucursal *</label>
           <SearchableSelect v-model="editForm.sucursalId" :options="sucursalSelectOptions" placeholder="Sucursal" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Tipo de Documento *</label>
+          <select v-model="editForm.tipo"
+            class="w-full px-4 h-12 rounded-md text-sm outline-none appearance-none shadow-none transition-all"
+            :style="inputStyle()">
+            <option value="Factura">Factura</option>
+            <option value="NotaCredito">Nota de Crédito</option>
+          </select>
         </div>
         <div class="col-span-2">
           <label class="block text-xs font-bold uppercase tracking-wider mb-1.5" style="color: var(--color-outline)">Número de Timbrado *</label>

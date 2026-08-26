@@ -49,7 +49,6 @@ const isLoading = ref(false)
 const loadError = ref("")
 const search = ref("")
 const categoriaFilter = ref<string[]>([])
-const bajoStockFilter = ref(false)
 const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
@@ -107,7 +106,6 @@ async function loadProductos() {
       pageSize: PAGE_SIZE,
       search: search.value || undefined,
       categoria: categoriaFilter.value[0] || undefined,
-      bajoStock: bajoStockFilter.value || undefined,
     })
     productos.value = result.items
     totalPages.value = result.totalPages
@@ -140,12 +138,6 @@ function onSearch(val: string) {
 
 function onCategoriaChange(val: string[]) {
   categoriaFilter.value = val
-  currentPage.value = 1
-  loadProductos()
-}
-
-function toggleBajoStock() {
-  bajoStockFilter.value = !bajoStockFilter.value
   currentPage.value = 1
   loadProductos()
 }
@@ -544,18 +536,6 @@ function menuItems(p: Producto): ContextMenuItem[] {
               placeholder="Categoría"
               @update:model-value="onCategoriaChange"
             />
-            <button
-              @click="toggleBajoStock"
-              class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-              :style="
-                bajoStockFilter
-                  ? 'background-color: var(--color-warning-container); color: var(--color-on-warning-container); border: 1px solid var(--color-warning-container);'
-                  : 'background-color: var(--color-surface); border: 1px solid var(--color-outline-variant); color: var(--color-on-surface);'
-              "
-            >
-              <span class="material-symbols-outlined" style="font-size: 18px">warning</span>
-              Bajo stock
-            </button>
           </div>
           <SearchInput
             :model-value="search"

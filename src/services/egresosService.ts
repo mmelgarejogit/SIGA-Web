@@ -117,12 +117,6 @@ export interface RegistrarPagoRequest {
   motivoExterno?: string
 }
 
-export interface AprobarEgresoRequest { }
-
-export interface RechazarEgresoRequest {
-  motivo: string
-}
-
 export interface AnularEgresoRequest {
   motivo?: string
 }
@@ -172,12 +166,6 @@ export const crearSalario = (data: CrearSalarioRequest) =>
 
 export const registrarPago = (id: number, data: RegistrarPagoRequest) =>
   put<Egreso>(`/api/egresos/${id}/pago`, data)
-
-export const aprobarEgreso = (id: number) =>
-  put<Egreso>(`/api/egresos/${id}/aprobar`, {})
-
-export const rechazarEgreso = (id: number, data: RechazarEgresoRequest) =>
-  put<Egreso>(`/api/egresos/${id}/rechazar`, data)
 
 export const anularEgreso = (id: number, data: AnularEgresoRequest) =>
   put<Egreso>(`/api/egresos/${id}/anular`, data)

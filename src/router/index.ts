@@ -292,7 +292,7 @@ const router = createRouter({
       path: "/compras/aprobaciones",
       name: "compras-aprobaciones",
       component: () => import("@/views/OcAprobacionView.vue"),
-      meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobación de OC" },
+      meta: { requiresAuth: true, permission: "aprobar_pedidos", label: "Aprobaciones" },
     },
     {
       path: "/compras/oc/nueva",
@@ -397,6 +397,12 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "ver_ventas", label: "Cobros Pendientes" },
     },
     {
+      path: "/ventas/devoluciones",
+      name: "ventas-devoluciones",
+      component: () => import("@/views/DevolucionesPendientesView.vue"),
+      meta: { requiresAuth: true, permission: "gestionar_ventas", label: "Devoluciones" },
+    },
+    {
       path: "/ventas/:id(\\d+)/cobrar",
       name: "venta-cobrar",
       component: () => import("@/views/VentaCobrarView.vue"),
@@ -418,7 +424,7 @@ const router = createRouter({
       path: "/ventas/facturas",
       name: "ventas-facturas",
       component: () => import("@/views/FacturasVentaView.vue"),
-      meta: { requiresAuth: true, permission: "ver_ventas", label: "Historial de Facturas" },
+      meta: { requiresAuth: true, permission: "ver_ventas", label: "Comprobantes de Venta" },
     },
     {
       path: "/ventas/timbrados",
@@ -511,12 +517,6 @@ const router = createRouter({
       meta: { requiresAuth: true, permission: "gestionar_egresos", label: "Nuevo Egreso" },
     },
     {
-      path: "/egresos/aprobacion",
-      name: "egresos-aprobacion",
-      component: () => import("@/views/AprobacionEgresosView.vue"),
-      meta: { requiresAuth: true, permission: "aprobar_egresos", label: "Aprobación de Egresos" },
-    },
-    {
       path: "/egresos/pagos",
       name: "egresos-pagos",
       component: () => import("@/views/PagosEgresosView.vue"),
@@ -573,7 +573,7 @@ const router = createRouter({
     {
       path: "/admin/auditoria",
       name: "admin-auditoria",
-      component: () => import("@/views/ComingSoonView.vue"),
+      component: () => import("@/views/AuditoriaView.vue"),
       meta: { requiresAuth: true, permission: "ver_usuarios", label: "Auditoría" },
     },
     {

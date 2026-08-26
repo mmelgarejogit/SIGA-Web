@@ -50,6 +50,8 @@ export async function getTurnos(
     professionalId?: number
     estado?: string
     patientId?: number
+    desde?: string
+    hasta?: string
   } = {},
 ): Promise<Turno[]> {
   const q = new URLSearchParams()
@@ -57,6 +59,8 @@ export async function getTurnos(
   if (params.professionalId) q.set("professionalId", String(params.professionalId))
   if (params.estado) q.set("estado", params.estado)
   if (params.patientId) q.set("patientId", String(params.patientId))
+  if (params.desde) q.set("desde", params.desde)
+  if (params.hasta) q.set("hasta", params.hasta)
   const { data } = await http.get<Turno[]>(`/api/turnos?${q}`)
   return data
 }

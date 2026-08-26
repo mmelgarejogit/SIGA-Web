@@ -118,7 +118,6 @@ const modes: { value: "dia" | "semana" | "mes"; label: string }[] = [
 ]
 
 function setMode(m: "dia" | "semana" | "mes") {
-  if (m === "mes") return // disabled until API supports range
   emit("update:mode", m)
 }
 
@@ -276,7 +275,6 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
             props.mode === m.value
               ? ''
               : 'text-on-surface-variant hover:bg-surface-container-high',
-            m.value === 'mes' ? 'opacity-50 cursor-not-allowed' : '',
           ]"
           :style="[
             props.mode === m.value
@@ -284,7 +282,6 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocumentClick))
               : {},
             { height: '36px' },
           ]"
-          :title="m.value === 'mes' ? 'Próximamente' : undefined"
         >
           {{ m.label }}
         </button>

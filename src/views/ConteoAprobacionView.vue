@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -7,6 +7,7 @@ import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import FilterChips from "@/components/FilterChips.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import { type ConteoInventarioDto, getConteoById, getConteos } from "@/services/inventarioService"
 
@@ -23,6 +24,19 @@ const estadoOptions = [
 ]
 
 const pendientesCount = computed(() => conteos.value.filter((c) => c.estado === "Pendiente").length)
+
+// ── Paginación (design-system §14) ───────────────────────────────────────────────
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalCount  = computed(() => conteos.value.length)
+const totalPages  = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart  = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd    = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+const conteosPaged = computed(() =>
+  conteos.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE),
+)
+// El filtro de estado recarga la lista → volver a la página 1.
+watch(conteos, () => { currentPage.value = 1 })
 
 const columns = [
   { key: "fecha",       label: "Fecha" },
@@ -211,7 +225,8 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
           {{ loadError }}
         </div>
 
-        <BaseTable :columns="columns" :items="conteos" :loading="isLoading"
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
+        <BaseTable :columns="columns" :items="conteosPaged" :loading="isLoading"
           empty-text="No hay inventarios registrados."
           @row-click="(item) => router.push(`/stock/conteos/${item.id}`)">
 
@@ -252,6 +267,18 @@ function menuItems(c: ConteoInventarioDto): ContextMenuItem[] {
           </template>
 
         </BaseTable>
+
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="inventarios"
+            @update:current-page="currentPage = $event"
+          />
+        </div>
       </div>
     </main>
   </div>

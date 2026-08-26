@@ -9,8 +9,12 @@ import {
   getNotificaciones,
   getContadorNoLeidas,
   marcarLeida,
+  marcarTodasLeidas,
 } from "@/services/notificacionService"
 import { changePassword } from "@/services/authService"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
+import { getMisPreferencias, updateMisPreferencias } from "@/services/notificacionPreferenciaService"
+import { inputStyle } from "@/composables/useFieldStyles"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
@@ -102,11 +106,32 @@ function toggleDropdown() {
   if (showDropdown.value) showNotifications.value = false
 }
 
-function toggleNotifications() {
+async function toggleNotifications() {
   showNotifications.value = !showNotifications.value
   if (showNotifications.value) {
     showDropdown.value = false
-    cargarUltimasNotificaciones()
+    await cargarUltimasNotificaciones()
+    await marcarTodasComoLeidas()
+  }
+}
+
+async function marcarTodasComoLeidas() {
+  if (contadorNoLeidas.value === 0) return
+  const previousCount = contadorNoLeidas.value
+  const previousEstados = ultimasNotificaciones.value.map((n) => n.leido)
+
+  contadorNoLeidas.value = 0
+  ultimasNotificaciones.value = ultimasNotificaciones.value.map((n) => ({ ...n, leido: true }))
+
+  try {
+    await marcarTodasLeidas()
+  } catch {
+    // Si falla, restauramos el estado anterior para no ocultar notificaciones sin confirmar.
+    contadorNoLeidas.value = previousCount
+    ultimasNotificaciones.value = ultimasNotificaciones.value.map((n, i) => ({
+      ...n,
+      leido: previousEstados[i] ?? n.leido,
+    }))
   }
 }
 
@@ -141,8 +166,9 @@ function openChangePasswordModal() {
 async function submitChangePassword() {
   changePasswordError.value = ""
 
-  if (newPassword.value.length < 6) {
-    changePasswordError.value = "La nueva contraseña debe tener al menos 6 caracteres."
+  const passwordError = validatePassword(newPassword.value)
+  if (passwordError) {
+    changePasswordError.value = passwordError
     return
   }
   if (newPassword.value !== confirmPassword.value) {
@@ -158,6 +184,52 @@ async function submitChangePassword() {
     changePasswordError.value = err instanceof Error ? err.message : "No se pudo cambiar la contraseña."
   } finally {
     isChangingPassword.value = false
+  }
+}
+
+// ── Mis preferencias de notificación ────────────────────────────────────
+const showPreferenciasModal = ref(false)
+const isLoadingPreferencias = ref(false)
+const isSavingPreferencias = ref(false)
+const preferenciasError = ref("")
+const recibirEmail = ref(true)
+const usaVentanaSilencio = ref(false)
+const ventanaInicio = ref("21:00")
+const ventanaFin = ref("08:00")
+
+async function openPreferenciasModal() {
+  showDropdown.value = false
+  showPreferenciasModal.value = true
+  preferenciasError.value = ""
+  isLoadingPreferencias.value = true
+  try {
+    const pref = await getMisPreferencias()
+    recibirEmail.value = pref.recibirEmail
+    usaVentanaSilencio.value = !!pref.ventanaSilencioInicio
+    if (pref.ventanaSilencioInicio) ventanaInicio.value = pref.ventanaSilencioInicio.slice(0, 5)
+    if (pref.ventanaSilencioFin) ventanaFin.value = pref.ventanaSilencioFin.slice(0, 5)
+  } catch (err: unknown) {
+    preferenciasError.value = err instanceof Error ? err.message : "No se pudieron cargar las preferencias."
+  } finally {
+    isLoadingPreferencias.value = false
+  }
+}
+
+async function submitPreferencias() {
+  if (isSavingPreferencias.value) return
+  isSavingPreferencias.value = true
+  preferenciasError.value = ""
+  try {
+    await updateMisPreferencias({
+      recibirEmail: recibirEmail.value,
+      ventanaSilencioInicio: usaVentanaSilencio.value ? `${ventanaInicio.value}:00` : null,
+      ventanaSilencioFin: usaVentanaSilencio.value ? `${ventanaFin.value}:00` : null,
+    })
+    showPreferenciasModal.value = false
+  } catch (err: unknown) {
+    preferenciasError.value = err instanceof Error ? err.message : "No se pudieron guardar las preferencias."
+  } finally {
+    isSavingPreferencias.value = false
   }
 }
 
@@ -371,6 +443,14 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
             <!-- Acciones -->
             <div class="py-1.5">
               <button
+                @click="openPreferenciasModal"
+                class="account-action-btn w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
+                style="color: var(--color-on-surface-variant)"
+              >
+                <span class="material-symbols-outlined" style="font-size: 18px">notifications</span>
+                Preferencias de notificación
+              </button>
+              <button
                 @click="openChangePasswordModal"
                 class="account-action-btn w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors text-left"
                 style="color: var(--color-on-surface-variant)"
@@ -403,7 +483,7 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña nueva</label>
-          <PasswordInput v-model="newPassword" placeholder="Mínimo 6 caracteres" />
+          <PasswordInput v-model="newPassword" :placeholder="PASSWORD_HINT" />
         </div>
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña nueva</label>
@@ -416,6 +496,82 @@ onUnmounted(() => document.removeEventListener("mousedown", handleClickOutside))
       <BaseButton variant="secondary" size="sm" @click="showChangePasswordModal = false">Cancelar</BaseButton>
       <BaseButton variant="primary" size="sm" :disabled="isChangingPassword" @click="submitChangePassword">
         {{ isChangingPassword ? "Guardando..." : "Guardar" }}
+      </BaseButton>
+    </template>
+  </BaseModal>
+
+  <!-- Modal: mis preferencias de notificación -->
+  <BaseModal :show="showPreferenciasModal" title="Preferencias de notificación" size="sm" @close="showPreferenciasModal = false">
+    <template #body>
+      <div v-if="isLoadingPreferencias" class="flex justify-center py-8">
+        <svg class="animate-spin w-6 h-6" style="color: var(--color-primary)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+      <div v-else class="space-y-4">
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="text-sm font-bold" style="color: var(--color-on-surface)">Recibir avisos por email</p>
+            <p class="text-xs mt-0.5" style="color: var(--color-outline)">Turnos, cambios de cita y avisos de pickup.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="recibirEmail"
+            @click="recibirEmail = !recibirEmail"
+            class="relative flex-shrink-0 transition-colors duration-200"
+            style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+            :style="recibirEmail ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+          >
+            <span
+              class="absolute bg-white transition-all duration-200"
+              style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+              :style="recibirEmail ? 'left: 24px;' : 'left: 4px;'"
+            ></span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="text-sm font-bold" style="color: var(--color-on-surface)">Ventana de silencio</p>
+            <p class="text-xs mt-0.5" style="color: var(--color-outline)">No enviar avisos no urgentes en este horario.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="usaVentanaSilencio"
+            @click="usaVentanaSilencio = !usaVentanaSilencio"
+            class="relative flex-shrink-0 transition-colors duration-200"
+            style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+            :style="usaVentanaSilencio ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+          >
+            <span
+              class="absolute bg-white transition-all duration-200"
+              style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+              :style="usaVentanaSilencio ? 'left: 24px;' : 'left: 4px;'"
+            ></span>
+          </button>
+        </div>
+
+        <div v-if="usaVentanaSilencio" class="flex items-center gap-4">
+          <div class="flex-1">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Desde</label>
+            <input v-model="ventanaInicio" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+          </div>
+          <div class="flex-1">
+            <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Hasta</label>
+            <input v-model="ventanaFin" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+          </div>
+        </div>
+
+        <p v-if="preferenciasError" class="text-xs font-medium" style="color: var(--color-error)">{{ preferenciasError }}</p>
+      </div>
+    </template>
+    <template #footer>
+      <BaseButton variant="secondary" size="sm" @click="showPreferenciasModal = false">Cancelar</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="isSavingPreferencias" @click="submitPreferencias">
+        {{ isSavingPreferencias ? "Guardando..." : "Guardar" }}
       </BaseButton>
     </template>
   </BaseModal>

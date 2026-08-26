@@ -21,8 +21,10 @@ export type EstadoDevolucion = "Pendiente" | "Confirmada" | "Rechazada"
 export type CategoriaFiscal = "Exento" | "Gravado5" | "Gravado10"
 export type TipoLinea       = "Producto" | "Servicio" | "Lente"
 export type TipoMovCaja     = "Ingreso" | "Egreso"
-export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado"
+export type EstadoTrabajoPedido = "PendienteAprobacion" | "PendienteEnvio" | "Enviado" | "Recibido" | "Rechazado" | "Entregado"
 export type MedioEnvioLaboratorio = "WhatsApp" | "Email" | "Portal" | "Telefono" | "EnPersona" | "Otro"
+export type MotivoRetrabajo = "DefectoLaboratorio" | "ErrorOptica" | "NoAdaptacionCliente" | "RoturaGarantia" | "Otro"
+export type ResponsableRetrabajo = "Laboratorio" | "Optica"
 
 export interface VentaLinea {
   id: number
@@ -111,10 +113,22 @@ export interface DevolucionLinea {
   cantidadNueva?: number
 }
 
+export interface NotaCredito {
+  id: number
+  numeroNotaCredito: string
+  timbrado: string
+  montoExento: number
+  montoGravado5: number
+  montoGravado10: number
+  total: number
+  fechaEmision: string
+}
+
 export interface Devolucion {
   id: number
   ventaId: number
   numeroComprobante: string
+  clienteNombre: string
   tipo: TipoDevolucion
   estado: EstadoDevolucion
   motivo: string
@@ -123,6 +137,7 @@ export interface Devolucion {
   observacionesRevision?: string
   fechaRevision?: string
   lineas: DevolucionLinea[]
+  notaCredito?: NotaCredito | null
   createdAt: string
 }
 
@@ -148,6 +163,12 @@ export interface Venta {
   montoSeña: number
   totalCobrado: number
   saldoPendiente: number
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
+  montoCuota?: number
+  cuotasPagadas?: number
+  proximaCuotaVencimiento?: string
+  cuotaVencida: boolean
   observaciones?: string
   lineas: VentaLinea[]
   cobros: Cobro[]
@@ -239,6 +260,9 @@ export interface CrearVentaRequest {
   condicionVenta: CondicionVenta
   fechaVenta: string
   validezDias?: number
+  // Plan de cuotas (opcional, solo aplica si condicionVenta === "Credito")
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
   trabajoPedido?: CrearVentaTrabajoPedidoRequest
@@ -247,6 +271,8 @@ export interface CrearVentaRequest {
 export interface ActualizarVentaRequest {
   condicionVenta: CondicionVenta
   fechaVenta: string
+  cantidadCuotas?: number
+  frecuenciaCuotasDias?: number
   observaciones?: string
   lineas: AgregarLineaRequest[]
   laboratorioProveedorId?: number | null
@@ -312,6 +338,7 @@ export const getVentas = (params?: {
   fechaDesde?: string
   fechaHasta?: string
   clienteId?: number
+  personId?: number
   page?: number
   pageSize?: number
 }) => {
@@ -321,6 +348,7 @@ export const getVentas = (params?: {
   if (params?.fechaDesde) q.set("fechaDesde",  params.fechaDesde)
   if (params?.fechaHasta) q.set("fechaHasta",  params.fechaHasta)
   if (params?.clienteId)  q.set("clienteId",   String(params.clienteId))
+  if (params?.personId)   q.set("personId",    String(params.personId))
   if (params?.page)       q.set("page",        String(params.page))
   if (params?.pageSize)   q.set("pageSize",    String(params.pageSize))
   const qs = q.toString()
@@ -401,6 +429,10 @@ export interface TrabajoPedidoListDto {
   fechaEstimadaEntrega?: string
   medioEnvio?: MedioEnvioLaboratorio
   fechaRecepcion?: string
+  fechaEntrega?: string
+  retiradoPor?: string
+  entregadoPorNombre?: string
+  retrabajos: RetrabajoDto[]
   observacion?: string
   factura?: FacturaLaboratorioDto
   createdAt: string
@@ -421,6 +453,24 @@ export interface RegistrarEnvioRequest {
   medioEnvio?: MedioEnvioLaboratorio
 }
 
+export interface RegistrarEntregaRequest {
+  retiradoPor?: string
+}
+
+export interface RetrabajoDto {
+  fecha: string
+  motivo: MotivoRetrabajo
+  responsable: ResponsableRetrabajo
+  observacion?: string
+  registradoPorNombre?: string
+}
+
+export interface RegistrarRetrabajoRequest {
+  motivo: MotivoRetrabajo
+  responsable: ResponsableRetrabajo
+  observacion?: string
+}
+
 export interface EmitirFacturaLaboratorioRequest {
   numeroFactura: string
   timbrado?: string
@@ -436,6 +486,9 @@ export const solicitarDevolucion = (ventaId: number, data: SolicitarDevolucionRe
 
 export const getDevoluciones = (ventaId: number) =>
   get<Devolucion[]>(`/api/ventas/${ventaId}/devoluciones`)
+
+export const getDevolucionesPendientes = () =>
+  get<Devolucion[]>(`/api/ventas/devoluciones/pendientes`)
 
 export const gestionarDevolucion = (devolucionId: number, data: GestionarDevolucionRequest) =>
   post<Devolucion>(`/api/ventas/devoluciones/${devolucionId}/gestionar`, data)

@@ -59,7 +59,8 @@ async function load() {
   error.value = ""
   try {
     venta.value = await getVentaById(Number(route.params.id))
-    tipo.value  = venta.value.estado === "EnProceso" ? "Seña" : "Cuota"
+    // En una venta a crédito el primer cobro es la seña; los siguientes, cuotas.
+    tipo.value  = !isContado.value && venta.value.cobros.length === 0 ? "Seña" : "Cuota"
     resetFormToSaldo()
     // Hay caja disponible solo si la sesión actual está Abierta (PendienteAprobacion no acepta cobros).
     cajaAbierta.value = (await getSesionActual().catch(() => null))?.estado === "Abierta"
@@ -148,13 +149,13 @@ function goEmitir() {
               </div>
 
               <template v-else>
-                <!-- Aviso: no hay caja abierta (los cobros en efectivo se rechazan) -->
+                <!-- Aviso: no hay caja abierta -->
                 <div v-if="!cajaAbierta" class="rounded-2xl p-5 flex items-start justify-between gap-4 flex-wrap" style="background:var(--color-warning-container);border:1.5px solid var(--color-warning-container)">
                   <div class="flex items-start gap-3">
                     <span class="material-symbols-outlined" style="font-size:24px;color:var(--color-on-warning-container)">point_of_sale</span>
                     <div>
                       <p class="font-bold text-sm" style="color:var(--color-on-warning-container)">No hay una caja abierta</p>
-                      <p class="text-xs mt-0.5" style="color:var(--color-on-warning-container)">Para registrar cobros en efectivo primero tenés que abrir la caja. Tarjeta, transferencia y cheque sí se pueden registrar.</p>
+                      <p class="text-xs mt-0.5" style="color:var(--color-on-warning-container)">Todos los cobros (efectivo, tarjeta, transferencia y cheque) requieren una caja abierta.</p>
                     </div>
                   </div>
                   <BaseButton variant="primary" size="sm" @click="router.push('/ventas/cierre')">

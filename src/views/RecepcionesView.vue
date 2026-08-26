@@ -10,6 +10,7 @@ import FilterChips from "@/components/FilterChips.vue"
 import SearchableSelect from "@/components/SearchableSelect.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import {
   getRecepciones,
   type RecepcionListItem,
@@ -22,8 +23,14 @@ const router = useRouter()
 const recepciones = ref<RecepcionListItem[]>([])
 const totalCount = ref(0)
 const currentPage = ref(1)
-const pageSize = 20
+const PAGE_SIZE = 10
 const isLoading = ref(false)
+
+// ── Paginación (design-system §14) — server-side ─────────────────────────────────
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd   = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+function irAPagina(p: number) { currentPage.value = p; load() }
 
 const columns = [
   { key: "id", label: "# Rec." },
@@ -74,7 +81,7 @@ async function load() {
       fechaDesde: filtroFechaDesde.value || undefined,
       fechaHasta: filtroFechaHasta.value || undefined,
       page: currentPage.value,
-      pageSize,
+      pageSize: PAGE_SIZE,
     })
     recepciones.value = r.items
     totalCount.value = r.totalCount
@@ -213,6 +220,7 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
         <BaseTable :columns="columns" :items="recepciones" :loading="isLoading" @row-click="r => router.push(`/compras/recepciones/${r.id}`)">
           <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -266,9 +274,17 @@ function rowMenuItems(r: RecepcionListItem): ContextMenuItem[] {
           </template>
         </BaseTable>
 
-        <p class="text-sm" style="color: var(--color-on-surface-variant)">
-          Mostrando {{ recepciones.length }} de {{ totalCount }} recepciones
-        </p>
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="recepciones"
+            @update:current-page="irAPagina"
+          />
+        </div>
 
       </div>
     </main>

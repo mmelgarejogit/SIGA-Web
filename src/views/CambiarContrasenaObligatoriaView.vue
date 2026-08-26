@@ -4,6 +4,7 @@ import { useRouter } from "vue-router"
 import { changePassword } from "@/services/authService"
 import { useAuthStore } from "@/stores/auth"
 import { firstAccessibleRoute } from "@/config/menuConfig"
+import { PASSWORD_HINT, validatePassword } from "@/utils/password"
 import BaseButton from "@/components/BaseButton.vue"
 import PasswordInput from "@/components/PasswordInput.vue"
 import AuthHero from "@/components/AuthHero.vue"
@@ -24,8 +25,9 @@ async function handleSubmit() {
   hasError.value = false
   errorMessage.value = ""
 
-  if (newPassword.value.length < 6) {
-    errorMessage.value = "La nueva contraseña debe tener al menos 6 caracteres."
+  const passwordError = validatePassword(newPassword.value)
+  if (passwordError) {
+    errorMessage.value = passwordError
     hasError.value = true
     return
   }
@@ -106,7 +108,7 @@ async function handleSubmit() {
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Contraseña nueva</label>
-            <PasswordInput v-model="newPassword" placeholder="Mínimo 6 caracteres" />
+            <PasswordInput v-model="newPassword" :placeholder="PASSWORD_HINT" />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Confirmar contraseña nueva</label>

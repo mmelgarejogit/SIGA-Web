@@ -99,25 +99,6 @@ export interface Proveedor {
   contactos: ProveedorContacto[]
 }
 
-export interface PedidoItem {
-  id: number
-  productoId: number
-  productoNombre: string
-  cantidad: number
-  precioUnitario: number
-}
-
-export interface Pedido {
-  id: number
-  proveedorId: number
-  proveedorNombre: string
-  estado: "Pendiente" | "Enviado" | "Recibido" | "Cancelado"
-  observaciones: string | null
-  createdAt: string
-  updatedAt: string
-  items: PedidoItem[]
-}
-
 export interface PagedResult<T> {
   items: T[]
   totalCount: number
@@ -219,18 +200,6 @@ export interface CreateProveedorRequest {
   whatsApp?: string
   esLaboratorio?: boolean
   contactos: CreateProveedorContactoRequest[]
-}
-
-export interface CreatePedidoItemRequest {
-  productoId: number
-  cantidad: number
-  precioUnitario: number
-}
-
-export interface CreatePedidoRequest {
-  proveedorId: number
-  observaciones?: string
-  items: CreatePedidoItemRequest[]
 }
 
 // ── Productos ──────────────────────────────────────────────────────────────────
@@ -358,33 +327,6 @@ export async function updateProveedor(
 
 export async function deactivateProveedor(id: number): Promise<void> {
   await http.delete(`/api/proveedores/${id}`)
-}
-
-// ── Pedidos ────────────────────────────────────────────────────────────────────
-
-export async function getPedidos(params: {
-  proveedorId?: number
-  estado?: string
-} = {}): Promise<Pedido[]> {
-  const q = new URLSearchParams()
-  if (params.proveedorId) q.set("proveedorId", String(params.proveedorId))
-  if (params.estado) q.set("estado", params.estado)
-  const { data } = await http.get<Pedido[]>(`/api/proveedores/pedidos?${q}`)
-  return data
-}
-
-export async function createPedido(request: CreatePedidoRequest): Promise<Pedido> {
-  const { data } = await http.post<Pedido>("/api/proveedores/pedidos", request)
-  return data
-}
-
-export async function updatePedidoEstado(id: number, estado: string): Promise<Pedido> {
-  const { data } = await http.put<Pedido>(`/api/proveedores/pedidos/${id}/estado`, { estado })
-  return data
-}
-
-export async function cancelPedido(id: number): Promise<void> {
-  await http.delete(`/api/proveedores/pedidos/${id}`)
 }
 
 // ── Categorías de producto ─────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import SearchableSelect from "@/components/SearchableSelect.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   getFacturasCompra,
@@ -25,8 +26,14 @@ const router = useRouter()
 const facturas = ref<FacturaCompraItem[]>([])
 const totalCount = ref(0)
 const currentPage = ref(1)
-const pageSize = 20
+const PAGE_SIZE = 10
 const isLoading = ref(false)
+
+// ── Paginación (design-system §14) — server-side ─────────────────────────────────
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)))
+const rangeStart = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * PAGE_SIZE + 1))
+const rangeEnd   = computed(() => Math.min(currentPage.value * PAGE_SIZE, totalCount.value))
+function irAPagina(p: number) { currentPage.value = p; loadFacturas() }
 
 // ── Filtros ──────────────────────────────────────────────────────────────────
 const filtroEstado = ref<string[]>([])
@@ -91,7 +98,7 @@ async function loadFacturas() {
       fechaHasta: filtroFechaHasta.value || undefined,
       search: search.value || undefined,
       page: currentPage.value,
-      pageSize,
+      pageSize: PAGE_SIZE,
     })
     facturas.value = r.items
     totalCount.value = r.totalCount
@@ -289,6 +296,7 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
         </div>
 
         <!-- Tabla -->
+        <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
         <BaseTable :columns="columns" :items="facturas" :loading="isLoading" @row-click="f => router.push(`/compras/facturas/${f.id}`)">
           <template #empty>
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -338,9 +346,17 @@ function menuItems(f: FacturaCompraItem): ContextMenuItem[] {
           </template>
         </BaseTable>
 
-        <p class="text-sm" style="color: var(--color-on-surface-variant)">
-          Mostrando {{ facturas.length }} de {{ totalCount }} facturas
-        </p>
+          <PaginationFooter
+            v-if="!isLoading && totalCount > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="totalCount"
+            noun="facturas"
+            @update:current-page="irAPagina"
+          />
+        </div>
 
       </div>
     </main>

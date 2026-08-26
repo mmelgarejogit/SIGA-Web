@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue"
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue"
 
 export interface SelectOption {
   value: number | string | null
@@ -23,7 +23,36 @@ const emit = defineEmits<{ "update:modelValue": [v: number | string | null] }>()
 const open = ref(false)
 const search = ref("")
 const containerRef = ref<HTMLElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
+
+// El dropdown se teletransporta al <body> para no quedar recortado por
+// ancestros con overflow (tablas con scroll horizontal, modales, etc.).
+// Se posiciona con coordenadas fixed calculadas desde el trigger.
+const dropStyle = ref<Record<string, string>>({})
+
+function positionDropdown() {
+  const el = containerRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  const gap = 6
+  const estH = 300 // alto estimado del dropdown para decidir si abre hacia arriba
+  const spaceBelow = window.innerHeight - r.bottom
+  const openUp = spaceBelow < estH && r.top > spaceBelow
+  dropStyle.value = openUp
+    ? {
+        position: "fixed",
+        left: `${r.left}px`,
+        width: `${r.width}px`,
+        bottom: `${window.innerHeight - r.top + gap}px`,
+      }
+    : {
+        position: "fixed",
+        left: `${r.left}px`,
+        width: `${r.width}px`,
+        top: `${r.bottom + gap}px`,
+      }
+}
 
 const selected = computed(() =>
   props.modelValue != null
@@ -47,10 +76,9 @@ async function toggle() {
   open.value = !open.value
   if (open.value) {
     search.value = ""
-    if (props.searchable) {
-      await nextTick()
-      inputRef.value?.focus()
-    }
+    await nextTick()
+    positionDropdown()
+    if (props.searchable) inputRef.value?.focus()
   }
 }
 
@@ -61,14 +89,36 @@ function select(val: number | string | null) {
 }
 
 function onClickOutside(e: MouseEvent) {
-  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
+  const t = e.target as Node
+  const inTrigger = containerRef.value?.contains(t)
+  const inDropdown = dropdownRef.value?.contains(t)
+  if (!inTrigger && !inDropdown) {
     open.value = false
     search.value = ""
   }
 }
 
+function onReposition() {
+  if (open.value) positionDropdown()
+}
+
+// Reposiciona ante scroll de cualquier ancestro (capture) y resize de ventana.
+watch(open, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener("scroll", onReposition, true)
+    window.addEventListener("resize", onReposition)
+  } else {
+    window.removeEventListener("scroll", onReposition, true)
+    window.removeEventListener("resize", onReposition)
+  }
+})
+
 onMounted(() => document.addEventListener("mousedown", onClickOutside))
-onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
+onUnmounted(() => {
+  document.removeEventListener("mousedown", onClickOutside)
+  window.removeEventListener("scroll", onReposition, true)
+  window.removeEventListener("resize", onReposition)
+})
 </script>
 
 <template>
@@ -91,8 +141,9 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
       </span>
     </button>
 
-    <!-- Dropdown -->
-    <div v-if="open" class="ss-dropdown">
+    <!-- Dropdown (teletransportado al body para no quedar recortado por overflow) -->
+    <Teleport to="body">
+    <div v-if="open" ref="dropdownRef" class="ss-dropdown" :style="dropStyle">
       <!-- Search (solo si searchable) -->
       <div v-if="props.searchable" class="ss-search-wrap">
         <span class="material-symbols-outlined" style="font-size: 16px; color: var(--color-outline)">search</span>
@@ -135,6 +186,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
         <p v-else class="ss-empty">Sin resultados</p>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -204,12 +256,10 @@ onUnmounted(() => document.removeEventListener("mousedown", onClickOutside))
   transform: rotate(180deg);
 }
 
+/* Posición (fixed + left/top/width) la calcula positionDropdown() y llega por :style.
+   Teletransportado al <body>, por eso z-index alto para quedar sobre modales. */
 .ss-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 200;
+  z-index: 1000;
   background: var(--color-surface-container-lowest);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-md);

@@ -19,6 +19,7 @@ export interface GetPatientsParams {
 export interface Patient {
   id: number
   userId?: number
+  personId: number
   ci: string
   firstName: string
   lastName: string
@@ -78,4 +79,8 @@ export async function updatePatient(id: number, request: UpdatePatientRequest): 
 
 export async function deletePatient(id: number): Promise<void> {
   await http.delete(`/api/patients/${id}`)
+}
+
+export async function activatePatient(id: number): Promise<void> {
+  await http.post(`/api/patients/${id}/activar`)
 }

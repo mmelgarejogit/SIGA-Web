@@ -396,7 +396,7 @@ async function confirmActivate() {
                   : 'background-color: var(--color-surface-container-high); color: var(--color-outline)'"
               >
                 <span class="material-symbols-outlined" style="font-size: 13px">percent</span>
-                {{ item.descuento > 0 ? item.descuento + "%" : "Sin descuento" }}
+                {{ item.descuento > 0 ? item.descuento : "Sin descuento" }}
               </span>
             </template>
 

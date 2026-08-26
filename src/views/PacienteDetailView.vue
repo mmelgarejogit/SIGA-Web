@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { inputStyle, avatarStyle, initials } from "@/composables/useFieldStyles"
-import { ref, computed, onMounted, watch, defineComponent, h, reactive } from "vue"
+import { useClientPagination } from "@/composables/useClientPagination"
+import { ref, computed, onMounted, watch, reactive } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseModal from "@/components/BaseModal.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import { useAuthStore } from "@/stores/auth"
 
 import {
   type Patient,
   getPatientById,
   deletePatient,
+  activatePatient,
 } from "@/services/patientService"
 import PacienteEditModal from "@/components/PacienteEditModal.vue"
 
@@ -19,84 +22,13 @@ import { type ConsultaClinica, getConsultasByPatient } from "@/services/clinicaS
 
 import { type Turno, getTurnos } from "@/services/turnoService"
 
-const TabPending = defineComponent({
-  props: {
-    icon: { type: String, required: true },
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    accent: { type: String, default: "var(--color-outline)" },
-    accentBg: { type: String, default: "rgba(117,118,132,0.06)" },
-  },
-  setup(props) {
-    return () =>
-      h(
-        "div",
-        {
-          style:
-            "display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:320px; text-align:center; padding:3rem;",
-        },
-        [
-          h(
-            "div",
-            {
-              style: `width:80px; height:80px; border-radius:9999px; background-color:${props.accentBg}; display:flex; align-items:center; justify-content:center; margin-bottom:1.5rem;`,
-            },
-            [
-              h(
-                "span",
-                {
-                  class: "material-symbols-outlined",
-                  style: `color:${props.accent}; font-size:36px;`,
-                },
-                props.icon,
-              ),
-            ],
-          ),
-          h(
-            "div",
-            {
-              style:
-                "display:inline-flex; align-items:center; gap:6px; background-color:var(--color-surface-container-low); border-radius:9999px; padding:4px 12px; margin-bottom:1rem;",
-            },
-            [
-              h(
-                "span",
-                {
-                  class: "material-symbols-outlined",
-                  style: "font-size:12px; color:var(--color-outline);",
-                },
-                "construction",
-              ),
-              h(
-                "span",
-                {
-                  style:
-                    "font-size:11px; font-weight:700; color:var(--color-outline); text-transform:uppercase; letter-spacing:0.06em;",
-                },
-                "En desarrollo",
-              ),
-            ],
-          ),
-          h(
-            "h3",
-            {
-              style:
-                "font-size:1.125rem; font-weight:800; color:var(--color-on-surface); margin-bottom:0.5rem;",
-            },
-            props.title,
-          ),
-          h(
-            "p",
-            {
-              style:
-                "font-size:0.875rem; color:var(--color-outline); max-width:400px; line-height:1.6;",
-            },
-            props.description,
-          ),
-        ],
-      )
-  },
-})
+import { type Venta, type EstadoVenta, getVentas } from "@/services/ventasService"
+
+import {
+  type NotificacionPreferencia,
+  getPreferenciasByPersona,
+  updatePreferenciasByPersona,
+} from "@/services/notificacionPreferenciaService"
 
 const route = useRoute()
 const router = useRouter()
@@ -106,13 +38,14 @@ const patientId = computed(() => Number(route.params.id))
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type TabId = "info" | "citas" | "clinico" | "ventas"
+type TabId = "info" | "citas" | "clinico" | "ventas" | "preferencias"
 
 const ALL_TABS: { id: TabId; label: string; icon: string; available: boolean; permission: string | null }[] = [
   { id: "info",    label: "Información",     icon: "badge",               available: true,  permission: null },
   { id: "citas",   label: "Citas y Turnos",  icon: "calendar_month",      available: true,  permission: "ver_agenda" },
   { id: "clinico", label: "Historial Clínico", icon: "medical_information", available: true, permission: "ver_historia_clinica" },
-  { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: false, permission: "ver_ventas" },
+  { id: "ventas",  label: "Ventas",           icon: "receipt_long",        available: true,  permission: "ver_ventas" },
+  { id: "preferencias", label: "Notificaciones", icon: "notifications", available: true, permission: "gestionar_notificaciones" },
 ]
 
 const tabs = computed(() =>
@@ -228,10 +161,133 @@ async function loadCitas() {
   }
 }
 
+// ── Ventas del Paciente ───────────────────────────────────────────────────────
+
+const ventas = ref<Venta[]>([])
+const isLoadingVentas = ref(false)
+const ventasLoaded = ref(false)
+
+async function loadVentas() {
+  if (!patient.value) return
+
+  // Sin personId no se puede filtrar: el endpoint devolvería TODAS las ventas de la
+  // óptica y las mostraría como si fueran de este paciente. Mejor lista vacía.
+  const personId = patient.value.personId
+  if (!personId) {
+    ventas.value = []
+    ventasLoaded.value = true
+    return
+  }
+
+  isLoadingVentas.value = true
+  try {
+    const res = await getVentas({ personId, pageSize: 100 })
+    ventas.value = res.items
+  } catch {
+    ventas.value = []
+  } finally {
+    ventasLoaded.value = true
+    isLoadingVentas.value = false
+  }
+}
+
+// Ventas "reales" para el resumen: excluye borradores (presupuestos) y canceladas.
+const ventasReales = computed(() =>
+  ventas.value.filter((v) => v.estado !== "Borrador" && v.estado !== "Cancelada"),
+)
+
+const totalComprado = computed(() => ventasReales.value.reduce((acc, v) => acc + v.total, 0))
+const saldoPendiente = computed(() => ventasReales.value.reduce((acc, v) => acc + v.saldoPendiente, 0))
+
+const formatPrice = (n: number) =>
+  new Intl.NumberFormat("es-PY", { style: "currency", currency: "PYG", maximumFractionDigits: 0 }).format(n)
+
+// fechaVenta viene como "yyyy-MM-dd" (sin hora): agregar T00:00:00 para que se
+// interprete en hora local y no reste un día por el offset UTC.
+const formatVentaDate = (s: string) =>
+  new Date(s.includes("T") ? s : s + "T00:00:00").toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+
+function ventaEstadoBadge(estado: EstadoVenta | string) {
+  const map: Record<string, { bg: string; text: string; label: string }> = {
+    Borrador:           { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: "Presupuesto" },
+    Confirmada:         { bg: "color-mix(in srgb, var(--color-tertiary) 12%, var(--color-surface-container-lowest))", text: "var(--color-tertiary)", label: "Confirmada" },
+    EnProceso:          { bg: "var(--color-info-container)", text: "var(--color-on-info-container)", label: "En proceso" },
+    ListaParaCobrar:    { bg: "var(--color-warning-container)", text: "var(--color-on-warning-container)", label: "Lista cobrar" },
+    ComprobanteEmitido: { bg: "var(--color-success-container)", text: "var(--color-on-success-container)", label: "Emitido" },
+    Cancelada:          { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: "Cancelada" },
+  }
+  return map[estado] ?? { bg: "var(--color-surface-container)", text: "var(--color-outline)", label: estado }
+}
+
+function goToVenta(id: number) {
+  router.push(`/ventas/${id}`)
+}
+
+// ── Paginación client-side (footer §14 del design-system) ─────────────────────
+// Los tabs cargan el set completo del paciente; acá lo dividimos en páginas de 10.
+const ventasPager = useClientPagination<Venta>(() => ventas.value)
+const citasPager = useClientPagination<Turno>(() => citas.value)
+const consultasPager = useClientPagination<ConsultaClinica>(() => consultas.value)
+
 watch(activeTab, (tab) => {
   if (tab === "clinico" && !consultas.value.length) loadConsultas()
   if (tab === "citas" && !citas.value.length) loadCitas()
+  if (tab === "ventas" && !ventasLoaded.value) loadVentas()
+  if (tab === "preferencias" && !preferencia.value) loadPreferencia()
 })
+
+// ── Preferencias de notificación ─────────────────────────────────────────────
+
+const preferencia = ref<NotificacionPreferencia | null>(null)
+const isLoadingPreferencia = ref(false)
+const isSavingPreferencia = ref(false)
+const preferenciaError = ref("")
+const preferenciaSaved = ref(false)
+
+const recibirEmail = ref(true)
+const usaVentanaSilencio = ref(false)
+const ventanaInicio = ref("21:00")
+const ventanaFin = ref("08:00")
+
+async function loadPreferencia() {
+  if (!patient.value) return
+  isLoadingPreferencia.value = true
+  preferenciaError.value = ""
+  try {
+    preferencia.value = await getPreferenciasByPersona(patient.value.personId)
+    recibirEmail.value = preferencia.value.recibirEmail
+    usaVentanaSilencio.value = !!preferencia.value.ventanaSilencioInicio
+    if (preferencia.value.ventanaSilencioInicio) ventanaInicio.value = preferencia.value.ventanaSilencioInicio.slice(0, 5)
+    if (preferencia.value.ventanaSilencioFin) ventanaFin.value = preferencia.value.ventanaSilencioFin.slice(0, 5)
+  } catch (err: unknown) {
+    preferenciaError.value = err instanceof Error ? err.message : "Error al cargar las preferencias."
+  } finally {
+    isLoadingPreferencia.value = false
+  }
+}
+
+async function savePreferencia() {
+  if (!patient.value || isSavingPreferencia.value) return
+  isSavingPreferencia.value = true
+  preferenciaError.value = ""
+  preferenciaSaved.value = false
+  try {
+    preferencia.value = await updatePreferenciasByPersona(patient.value.personId, {
+      recibirEmail: recibirEmail.value,
+      ventanaSilencioInicio: usaVentanaSilencio.value ? `${ventanaInicio.value}:00` : null,
+      ventanaSilencioFin: usaVentanaSilencio.value ? `${ventanaFin.value}:00` : null,
+    })
+    preferenciaSaved.value = true
+  } catch (err: unknown) {
+    preferenciaError.value = err instanceof Error ? err.message : "Error al guardar las preferencias."
+  } finally {
+    isSavingPreferencia.value = false
+  }
+}
 
 // ── Modal Editar ──────────────────────────────────────────────────────────────
 
@@ -259,6 +315,23 @@ async function confirmDelete() {
     deleteError.value = err instanceof Error ? err.message : "Error al desactivar paciente."
   } finally {
     isDeleting.value = false
+  }
+}
+
+// ── Reactivar ─────────────────────────────────────────────────────────────────
+
+const isActivating = ref(false)
+
+async function reactivar() {
+  if (isActivating.value || !patient.value) return
+  isActivating.value = true
+  try {
+    await activatePatient(patient.value.id)
+    await loadPatient()
+  } catch (err: unknown) {
+    loadError.value = err instanceof Error ? err.message : "Error al reactivar paciente."
+  } finally {
+    isActivating.value = false
   }
 }
 </script>
@@ -385,6 +458,16 @@ async function confirmDelete() {
               >
                 <span class="material-symbols-outlined" style="font-size: 18px">person_off</span>
                 Desactivar
+              </BaseButton>
+              <BaseButton
+                v-if="!patient.isActive && auth.hasPermission('desactivar_paciente')"
+                variant="primary"
+                size="default"
+                :disabled="isActivating"
+                @click="reactivar"
+              >
+                <span class="material-symbols-outlined" style="font-size: 18px">person_check</span>
+                {{ isActivating ? "Reactivando…" : "Reactivar" }}
               </BaseButton>
             </div>
           </div>
@@ -713,7 +796,7 @@ async function confirmDelete() {
 
               <div v-else class="divide-y" style="border-color: var(--color-hairline)">
                 <div
-                  v-for="cita in citas"
+                  v-for="cita in citasPager.pageItems"
                   :key="cita.id"
                   class="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface"
                 >
@@ -763,6 +846,17 @@ async function confirmDelete() {
                   >
                 </div>
               </div>
+
+              <!-- Footer paginador (§14) -->
+              <PaginationFooter
+                v-if="!isLoadingCitas && citas.length"
+                v-model:current-page="citasPager.currentPage"
+                :total-pages="citasPager.totalPages"
+                :range-start="citasPager.rangeStart"
+                :range-end="citasPager.rangeEnd"
+                :total="citas.length"
+                noun="citas"
+              />
             </div>
           </div>
 
@@ -851,7 +945,7 @@ async function confirmDelete() {
                 style="--tw-divide-opacity: 1; border-color: var(--color-hairline)"
               >
                 <div
-                  v-for="c in consultas"
+                  v-for="c in consultasPager.pageItems"
                   :key="c.id"
                   class="px-6 py-4 flex items-start justify-between gap-4 hover:bg-surface"
                 >
@@ -896,18 +990,290 @@ async function confirmDelete() {
                   >
                 </div>
               </div>
+
+              <!-- Footer paginador (§14) -->
+              <PaginationFooter
+                v-if="!isLoadingConsultas && consultas.length"
+                v-model:current-page="consultasPager.currentPage"
+                :total-pages="consultasPager.totalPages"
+                :range-start="consultasPager.rangeStart"
+                :range-end="consultasPager.rangeEnd"
+                :total="consultas.length"
+                noun="consultas"
+              />
             </div>
           </div>
 
           <!-- ── Tab: Ventas ────────────────────────────────────────────────── -->
           <div v-else-if="activeTab === 'ventas'">
-            <TabPending
-              icon="receipt_long"
-              title="Ventas"
-              description="El historial de compras y ventas asociadas al paciente estará disponible cuando se implemente el módulo de Ventas."
-              accent="var(--color-primary)"
-              accent-bg="rgba(0,40,142,0.06)"
-            />
+            <!-- Resumen -->
+            <div v-if="ventasLoaded && ventasReales.length" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div
+                class="rounded-lg px-6 py-5"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)"
+              >
+                <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--color-outline)">
+                  Total comprado
+                </p>
+                <p class="text-2xl font-extrabold" style="color: var(--color-on-surface)">
+                  {{ formatPrice(totalComprado) }}
+                </p>
+              </div>
+              <div
+                class="rounded-lg px-6 py-5"
+                style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm); outline: 1px solid var(--color-hairline)"
+              >
+                <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--color-outline)">
+                  Saldo pendiente
+                </p>
+                <p
+                  class="text-2xl font-extrabold"
+                  :style="{ color: saldoPendiente > 0 ? 'var(--color-on-warning-container)' : 'var(--color-on-surface)' }"
+                >
+                  {{ formatPrice(saldoPendiente) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Lista de ventas -->
+            <div
+              class="rounded-lg overflow-hidden"
+              style="
+                background-color: var(--color-surface-container-lowest);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
+              "
+            >
+              <!-- Encabezado -->
+              <div
+                class="flex items-center justify-between px-6 py-5"
+                style="border-bottom: 1px solid var(--color-hairline)"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined"
+                    style="color: var(--color-primary); font-size: 20px"
+                    >receipt_long</span
+                  >
+                  <h2
+                    class="text-sm font-bold uppercase tracking-widest"
+                    style="color: var(--color-outline)"
+                  >
+                    Ventas y Presupuestos
+                  </h2>
+                </div>
+                <BaseButton
+                  variant="secondary"
+                  size="sm"
+                  @click="() => router.push({ path: '/ventas' })"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 14px">open_in_new</span>
+                  Ver en Ventas
+                </BaseButton>
+              </div>
+
+              <!-- Loading -->
+              <div v-if="isLoadingVentas" class="flex justify-center py-16">
+                <svg
+                  class="animate-spin w-7 h-7"
+                  style="color: var(--color-primary)"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+              </div>
+
+              <!-- Vacío -->
+              <div v-else-if="!ventas.length" class="py-16 text-center">
+                <span
+                  class="material-symbols-outlined block mx-auto mb-3"
+                  style="color: var(--color-outline-variant); font-size: 40px"
+                  >receipt_long</span
+                >
+                <p class="text-sm font-semibold" style="color: var(--color-outline)">
+                  Sin ventas registradas
+                </p>
+                <p class="text-xs mt-1" style="color: var(--color-outline-variant)">
+                  Las ventas y presupuestos de este paciente aparecerán aquí.
+                </p>
+              </div>
+
+              <!-- Lista -->
+              <div
+                v-else
+                class="divide-y"
+                style="--tw-divide-opacity: 1; border-color: var(--color-hairline)"
+              >
+                <button
+                  v-for="v in ventasPager.pageItems"
+                  :key="v.id"
+                  type="button"
+                  class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-surface transition-colors"
+                  @click="goToVenta(v.id)"
+                >
+                  <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div
+                      class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style="background-color: rgba(0, 40, 142, 0.06)"
+                    >
+                      <span
+                        class="material-symbols-outlined"
+                        style="color: var(--color-primary); font-size: 18px"
+                        >{{ v.tipo === "TrabajoAPedido" ? "visibility" : "shopping_bag" }}</span
+                      >
+                    </div>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span class="text-sm font-bold" style="color: var(--color-on-surface)">{{
+                          v.numeroComprobante || "Presupuesto"
+                        }}</span>
+                        <span
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                          :style="`background-color: ${ventaEstadoBadge(v.estado).bg}; color: ${ventaEstadoBadge(v.estado).text}`"
+                          >{{ ventaEstadoBadge(v.estado).label }}</span
+                        >
+                      </div>
+                      <p class="text-xs" style="color: var(--color-outline)">
+                        {{ formatVentaDate(v.fechaVenta) }}
+                        <template v-if="v.saldoPendiente > 0">
+                          <span class="mx-1.5" style="color: var(--color-outline-variant)">·</span>
+                          <span style="color: var(--color-on-warning-container)"
+                            >Saldo {{ formatPrice(v.saldoPendiente) }}</span
+                          >
+                        </template>
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-sm font-bold" style="color: var(--color-on-surface)">{{
+                      formatPrice(v.total)
+                    }}</span>
+                    <span
+                      class="material-symbols-outlined"
+                      style="color: var(--color-outline-variant); font-size: 20px"
+                      >chevron_right</span
+                    >
+                  </div>
+                </button>
+              </div>
+
+              <!-- Footer paginador (§14) -->
+              <PaginationFooter
+                v-if="!isLoadingVentas && ventas.length"
+                v-model:current-page="ventasPager.currentPage"
+                :total-pages="ventasPager.totalPages"
+                :range-start="ventasPager.rangeStart"
+                :range-end="ventasPager.rangeEnd"
+                :total="ventas.length"
+                noun="ventas"
+              />
+            </div>
+          </div>
+
+          <!-- ── Tab: Preferencias de notificación ─────────────────────────── -->
+          <div v-else-if="activeTab === 'preferencias'">
+            <div
+              class="rounded-2xl p-6 max-w-xl"
+              style="
+                background-color: var(--color-surface-container-lowest);
+                box-shadow: var(--shadow-sm);
+                outline: 1px solid var(--color-hairline);
+              "
+            >
+              <div class="flex items-center gap-2 mb-5">
+                <span class="material-symbols-outlined" style="color: var(--color-primary); font-size: 20px">notifications</span>
+                <h2 class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">
+                  Preferencias de notificación
+                </h2>
+              </div>
+
+              <div v-if="isLoadingPreferencia" class="flex justify-center py-10">
+                <svg class="animate-spin w-6 h-6" style="color: var(--color-primary)" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+
+              <template v-else>
+                <div class="flex items-center justify-between py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
+                  <div>
+                    <p class="text-sm font-bold" style="color: var(--color-on-surface)">Recordatorios y avisos por email</p>
+                    <p class="text-xs mt-0.5" style="color: var(--color-outline)">Turnos, cambios de cita y avisos de pickup.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="recibirEmail"
+                    @click="recibirEmail = !recibirEmail"
+                    class="relative flex-shrink-0 transition-colors duration-200"
+                    style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+                    :style="recibirEmail ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+                  >
+                    <span
+                      class="absolute bg-white transition-all duration-200"
+                      style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+                      :style="recibirEmail ? 'left: 24px;' : 'left: 4px;'"
+                    ></span>
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between py-3" style="border-bottom: 1px solid var(--color-hairline-soft)">
+                  <div>
+                    <p class="text-sm font-bold" style="color: var(--color-on-surface)">Ventana de silencio</p>
+                    <p class="text-xs mt-0.5" style="color: var(--color-outline)">No enviar avisos no urgentes en este horario.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="usaVentanaSilencio"
+                    @click="usaVentanaSilencio = !usaVentanaSilencio"
+                    class="relative flex-shrink-0 transition-colors duration-200"
+                    style="width: 44px; height: 24px; border-radius: var(--radius-xs)"
+                    :style="usaVentanaSilencio ? 'background-color: var(--color-primary);' : 'background-color: var(--color-outline-variant);'"
+                  >
+                    <span
+                      class="absolute bg-white transition-all duration-200"
+                      style="top: 4px; width: 16px; height: 16px; border-radius: 3px"
+                      :style="usaVentanaSilencio ? 'left: 24px;' : 'left: 4px;'"
+                    ></span>
+                  </button>
+                </div>
+
+                <div v-if="usaVentanaSilencio" class="flex items-center gap-4 py-4">
+                  <div class="flex-1">
+                    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Desde</label>
+                    <input v-model="ventanaInicio" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+                  </div>
+                  <div class="flex-1">
+                    <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-outline)">Hasta</label>
+                    <input v-model="ventanaFin" type="time" class="mt-1 px-4 h-12 rounded-md text-sm outline-none w-full" :style="inputStyle(false)" />
+                  </div>
+                </div>
+
+                <p v-if="preferenciaError" class="text-xs font-medium mt-4" style="color: var(--color-error)">{{ preferenciaError }}</p>
+                <p v-if="preferenciaSaved" class="text-xs font-medium mt-4" style="color: var(--color-success)">Preferencias guardadas.</p>
+
+                <div class="pt-5">
+                  <BaseButton variant="primary" size="default" :disabled="isSavingPreferencia" @click="savePreferencia">
+                    {{ isSavingPreferencia ? "Guardando..." : "Guardar" }}
+                  </BaseButton>
+                </div>
+              </template>
+            </div>
           </div>
         </template>
       </div>

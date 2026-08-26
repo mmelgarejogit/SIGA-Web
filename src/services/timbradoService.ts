@@ -1,9 +1,12 @@
 import { http } from "@/api/http"
 
+export type TipoDocumentoFiscal = "Factura" | "NotaCredito"
+
 export interface Timbrado {
   id: number
   sucursalId: number
   sucursalNombre?: string
+  tipo: TipoDocumentoFiscal
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string
@@ -20,6 +23,7 @@ export interface Timbrado {
 
 export interface CreateTimbradoRequest {
   sucursalId?: number
+  tipo: TipoDocumentoFiscal
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string
@@ -31,6 +35,7 @@ export interface CreateTimbradoRequest {
 
 export interface UpdateTimbradoRequest {
   sucursalId?: number
+  tipo: TipoDocumentoFiscal
   numeroTimbrado: string
   establecimiento: string
   puntoExpedicion: string

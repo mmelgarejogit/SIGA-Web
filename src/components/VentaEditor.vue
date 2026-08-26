@@ -18,7 +18,7 @@ import {
 import { type Cliente, getClienteById } from "@/services/clienteService"
 import { type ProveedorSimple, getLaboratorios } from "@/services/comprasService"
 import { getProductos, type Producto } from "@/services/inventarioService"
-import SearchableSelect from "@/components/SearchableSelect.vue"
+import SearchableSelect, { type SelectOption } from "@/components/SearchableSelect.vue"
 import { http } from "@/api/http"
 import { emptyOptica, opticaLineas, opticaTrabajoPedido, type LineaUI } from "@/composables/optica"
 
@@ -44,6 +44,21 @@ const fechaVenta     = ref(new Date().toISOString().slice(0, 10))
 const validezDias    = ref(15)
 const observaciones  = ref("")
 
+// ── Plan de cuotas (opcional, solo aplica a Crédito) ──────────────────────────────
+// Si cantidadCuotas queda en null, la venta a crédito es "libre" (cobros parciales
+// sin cronograma), igual que antes de que existiera esta funcionalidad.
+const cantidadCuotas       = ref<number | null>(null)
+const frecuenciaCuotasDias = ref<number | null>(30)
+const cantidadCuotasOptions: SelectOption[] = [3, 6, 9, 12].map(n => ({ value: n, label: `${n} cuotas` }))
+const frecuenciaOptions: SelectOption[] = [
+  { value: 30, label: "Mensual" },
+  { value: 15, label: "Quincenal" },
+]
+// Al pasar a Crédito, si no hay plan definido, se limpia (queda "libre" por defecto).
+watch(condicionVenta, (v) => {
+  if (v === "Contado") { cantidadCuotas.value = null }
+})
+
 // ── Líneas (Directa: productos/manual; A pedido: extras manuales) ─────────────────
 const lineas = ref<LineaUI[]>([])
 function removeLinea(i: number) { lineas.value.splice(i, 1) }
@@ -62,8 +77,15 @@ const filteredProductos = computed(() =>
     ? productos.value.filter(p => p.nombre.toLowerCase().includes(productoSearch.value.toLowerCase()) || (p.sku ?? "").toLowerCase().includes(productoSearch.value.toLowerCase()))
     : productos.value.slice(0, 20),
 )
+// Un producto sin stock disponible no se puede vender (el backend lo valida al confirmar/emitir;
+// acá se bloquea de entrada para dar feedback inmediato).
+const sinStock = (p: Producto) => p.stockActual <= 0
 function addProducto(p: Producto) {
-  lineas.value.push({ tipo: "Producto", productoId: p.id, descripcion: p.nombre, cantidad: 1, precioUnitario: p.precioVenta, descuento: 0, categoriaFiscal: "Gravado10" })
+  if (sinStock(p)) return
+  // El descuento de la categoría es un %; la línea guarda un monto absoluto.
+  // Se precarga el descuento aplicando ese % al precio de venta (cantidad inicial = 1).
+  const descuento = Math.round(p.precioVenta * (p.descuentoCategoria ?? 0) / 100)
+  lineas.value.push({ tipo: "Producto", productoId: p.id, descripcion: p.nombre, cantidad: 1, precioUnitario: p.precioVenta, descuento, categoriaFiscal: "Gravado10" })
   productoSearch.value = ""
   showProductoDrop.value = false
 }
@@ -204,6 +226,8 @@ function cargarPresupuesto(v: Venta) {
   condicionVenta.value = v.condicionVenta
   observaciones.value  = v.observaciones ?? ""
   recetaId.value       = v.recetaId ?? null
+  cantidadCuotas.value       = v.cantidadCuotas ?? null
+  frecuenciaCuotasDias.value = v.frecuenciaCuotasDias ?? 30
   labSeleccionadoId.value = v.trabajoPedido?.laboratorioProveedorId ?? null
   presupuestosDelCliente.value = []
   lineas.value = v.lineas.map(l => ({ tipo: l.tipo, productoId: l.productoId, servicioId: l.servicioId, descripcion: l.descripcion, cantidad: l.cantidad, precioUnitario: l.precioUnitario, descuento: l.descuento, categoriaFiscal: l.categoriaFiscal }))
@@ -261,6 +285,8 @@ function buildPayload() {
     observaciones:  observaciones.value || undefined,
     lineas:         lineasFinales.value.map(l => ({ ...l }) as AgregarLineaRequest),
     trabajoPedido:  esPedido.value ? opticaTrabajoPedido(optica) : undefined,
+    cantidadCuotas:       condicionVenta.value === "Credito" ? (cantidadCuotas.value ?? undefined) : undefined,
+    frecuenciaCuotasDias: condicionVenta.value === "Credito" && cantidadCuotas.value ? (frecuenciaCuotasDias.value ?? undefined) : undefined,
   }
 }
 
@@ -296,6 +322,8 @@ async function guardar() {
         observaciones:          observaciones.value || undefined,
         lineas:                 lineasFinales.value.map(l => ({ ...l }) as AgregarLineaRequest),
         laboratorioProveedorId: esPedido.value ? (labSeleccionadoId.value ?? undefined) : undefined,
+        cantidadCuotas:         condicionVenta.value === "Credito" ? (cantidadCuotas.value ?? undefined) : undefined,
+        frecuenciaCuotasDias:   condicionVenta.value === "Credito" && cantidadCuotas.value ? (frecuenciaCuotasDias.value ?? undefined) : undefined,
       })
     } else {
       const v = await crearVenta(buildPayload())
@@ -420,8 +448,16 @@ const guardarLabel = computed(() =>
                     @focus="showProductoDrop = true" @blur="hideProductoDrop" />
                   <div v-if="showProductoDrop && filteredProductos.length" class="absolute top-full left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden max-h-56 overflow-y-auto"
                     style="background: var(--color-surface-container-lowest); border: 1px solid var(--color-outline-variant); box-shadow: 0 4px 12px rgba(0,0,0,0.08)">
-                    <button v-for="p in filteredProductos" :key="p.id" type="button" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between" style="border-bottom: 1px solid rgba(196,197,213,0.1)" @mousedown.prevent="addProducto(p)">
-                      <span class="font-medium" style="color: var(--color-on-surface)">{{ p.nombre }}</span>
+                    <button v-for="p in filteredProductos" :key="p.id" type="button" :disabled="sinStock(p)"
+                      class="w-full text-left px-4 py-3 text-sm flex items-center justify-between"
+                      :class="{ 'cursor-not-allowed': sinStock(p) }"
+                      :style="sinStock(p) ? 'border-bottom: 1px solid rgba(196,197,213,0.1); opacity: 0.55' : 'border-bottom: 1px solid rgba(196,197,213,0.1)'"
+                      @mousedown.prevent="addProducto(p)">
+                      <span class="font-medium flex items-center gap-2" style="color: var(--color-on-surface)">
+                        {{ p.nombre }}
+                        <span v-if="sinStock(p)" class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style="background: var(--color-error-container); color: var(--color-error)">Sin stock</span>
+                        <span v-else class="text-[10px] font-medium" style="color: var(--color-outline)">Stock: {{ p.stockActual }}</span>
+                      </span>
                       <span class="font-semibold text-xs" style="color: var(--color-primary)">{{ formatPrice(p.precioVenta) }}</span>
                     </button>
                   </div>
@@ -465,7 +501,9 @@ const guardarLabel = computed(() =>
                       <label class="flex items-center gap-1">
                         <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-outline)">P.Unit</span>
                         <div class="w-24">
-                          <MontoInput compact align="right" :model-value="l.precioUnitario ?? null"
+                          <!-- Producto: precio fijo del catálogo, no editable -->
+                          <span v-if="l.tipo === 'Producto'" class="block text-right text-xs font-semibold px-2 py-1" style="color: var(--color-on-surface)" title="El precio del producto se toma del catálogo y no se edita en la venta">{{ formatPrice(l.precioUnitario) }}</span>
+                          <MontoInput v-else compact align="right" :model-value="l.precioUnitario ?? null"
                             @update:model-value="l.precioUnitario = $event ?? 0" />
                         </div>
                       </label>
@@ -506,6 +544,28 @@ const guardarLabel = computed(() =>
                   <div class="flex gap-2">
                     <button @click="condicionVenta = 'Contado'" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" :style="condicionVenta === 'Contado' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'">Contado</button>
                     <button @click="condicionVenta = 'Credito'" class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all" :style="condicionVenta === 'Credito' ? 'background: var(--color-primary); color: var(--color-on-primary)' : 'background: var(--color-surface-container-high); color: var(--color-on-surface-variant)'">Crédito</button>
+                  </div>
+                </div>
+                <div v-if="condicionVenta === 'Credito'" class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Plan de cuotas</label>
+                    <SearchableSelect
+                      v-model="cantidadCuotas"
+                      :options="cantidadCuotasOptions"
+                      :searchable="false"
+                      null-label="Sin plan (libre)"
+                      placeholder="Sin plan (libre)"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold uppercase tracking-wider block mb-1.5" style="color: var(--color-outline)">Frecuencia</label>
+                    <SearchableSelect
+                      v-model="frecuenciaCuotasDias"
+                      :options="frecuenciaOptions"
+                      :searchable="false"
+                      :disabled="!cantidadCuotas"
+                      placeholder="Mensual"
+                    />
                   </div>
                 </div>
                 <div>

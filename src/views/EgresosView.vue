@@ -220,7 +220,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
     {
       type: "item", label: "Anular egreso", icon: "block",
       action: () => openAnular(e),
-      hidden: !canManage || e.estado !== "Pendiente",
+      hidden: !canManage || (e.estado !== "Pendiente" && e.estado !== "Aprobado"),
       danger: true,
     },
   ]
@@ -466,7 +466,7 @@ function menuItems(e: Egreso): ContextMenuItem[] {
         <div class="flex justify-between w-full">
           <BaseButton variant="secondary" @click="showDetalle = false">Cerrar</BaseButton>
           <BaseButton
-            v-if="detalleEgreso && canManage && detalleEgreso.estado === 'Pendiente'"
+            v-if="detalleEgreso && canManage && (detalleEgreso.estado === 'Pendiente' || detalleEgreso.estado === 'Aprobado')"
             variant="danger"
             @click="openAnular(detalleEgreso!)"
           >Anular</BaseButton>

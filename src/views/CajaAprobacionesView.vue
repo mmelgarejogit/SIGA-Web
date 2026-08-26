@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { inputStyle } from "@/composables/useFieldStyles"
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppHeader from "@/components/AppHeader.vue"
 import BaseModal from "@/components/BaseModal.vue"
 import BaseButton from "@/components/BaseButton.vue"
 import BaseTable from "@/components/BaseTable.vue"
+import PaginationFooter from "@/components/PaginationFooter.vue"
 import RowContextMenu, { type ContextMenuItem } from "@/components/RowContextMenu.vue"
 import {
   type SesionCajaListItem,
@@ -40,11 +41,16 @@ const page      = ref(1)
 const isLoading = ref(false)
 const loadError = ref("")
 
+const PAGE_SIZE  = 10
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+const rangeStart = computed(() => total.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1)
+const rangeEnd   = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
+
 async function cargar() {
   isLoading.value = true
   loadError.value = ""
   try {
-    const res = await getSesiones(page.value, 20, "PendienteAprobacion")
+    const res = await getSesiones(page.value, PAGE_SIZE, "PendienteAprobacion")
     sesiones.value = res.items
     total.value    = res.totalCount
   } catch (e: any) {
@@ -52,6 +58,11 @@ async function cargar() {
   } finally {
     isLoading.value = false
   }
+}
+
+function irAPagina(p: number) {
+  page.value = p
+  cargar()
 }
 
 onMounted(cargar)
@@ -179,6 +190,7 @@ async function submitRechazar() {
 
         <!-- Tabla -->
         <template v-else>
+          <div class="rounded-lg overflow-hidden" style="background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-sm)">
           <BaseTable :loading="isLoading" :empty="sesiones.length === 0">
             <template #head>
               <th class="px-6 py-5 text-left text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline)">Cajero</th>
@@ -218,9 +230,17 @@ async function submitRechazar() {
             </template>
           </BaseTable>
 
-          <p v-if="total > 0" class="mt-4 text-sm" style="color: var(--color-outline)">
-            {{ sesiones.length }} de {{ total }} sesión{{ total !== 1 ? "es" : "" }} pendiente{{ total !== 1 ? "s" : "" }}
-          </p>
+          <PaginationFooter
+            v-if="total > 0"
+            :current-page="page"
+            :total-pages="totalPages"
+            :range-start="rangeStart"
+            :range-end="rangeEnd"
+            :total="total"
+            noun="sesiones pendientes"
+            @update:current-page="irAPagina"
+          />
+          </div>
         </template>
 
       </div>
